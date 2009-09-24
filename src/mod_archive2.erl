@@ -62,7 +62,7 @@
 %% - wipeout_interval = 86400 (= 1 day)
 
 
--module(mod_archive_odbc).
+-module(mod_archive2).
 -author('ogoffart@kde.org').
 -author('alexey@process-one.net').
 -author('ejabberd@ndl.kiev.ua').
