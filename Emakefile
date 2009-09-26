@@ -1,1 +1,2 @@
-{'src/mod_archive2',     [{outdir, "../ejabberd/bin"},{i,"../ejabberd/src"}]}.
+{'src/mod_archive2',     [{outdir, "../ejabberd/src"},{i,"../ejabberd/src"}]}.
+{'test/client',          [{outdir, "test"}]}.
