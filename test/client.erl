@@ -1,36 +1,16 @@
 -module(client).
--export([xml_report/1]).
+-export([xml_report/1, session_setup/0, session_teardown/1, gen/1, response/2, responses/3]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
--define(SERVERHOST, "ndl-server").
--define(SERVERPORT, 6222).
--define(CLIENTNAME, "client").
--define(PASSWORD, "password").
--define(NS, "http://www.xmpp.org/extensions/xep-0136.html#ns").
--define(TIMEOUT, 5000).
-
--include("global_prefs.hrl").
+-include("config.hrl").
 
 xml_report(OutDir) ->
-    eunit:test(client, [{report,{eunit_surefire,[{dir,OutDir}]}}]).
+    eunit:test([prefs], [{report, {eunit_surefire, [{dir, OutDir}]}}]).
 
-client_test_() ->
-{
-    setup,
-    local, 
-    fun session_setup/0,
-    fun session_teardown/1, 
-    {
-        with,
-        [
-	    fun test_default_global_prefs/1,
-	    fun test_default_global_prefs_change/1
-	]
-    }
-}.
+client_test_() -> [{module, prefs}].
 
 session_setup() ->
     application:start(exmpp),
@@ -49,18 +29,14 @@ session_setup() ->
 session_teardown({Session, _JID}) ->
     exmpp_session:stop(Session).
 
-
-response({Session, _JID}, Query) ->
-    exmpp_session:send_packet(Session, Query),
-    receive
-        Response -> Response
-    after ?TIMEOUT ->
-        throw("No response from server!")
-    end.
+gen(Fun) -> fun(Fixture) -> ?_test(Fun(Fixture)) end.
 
 responses({Session, _JID}, Query, Count) ->
+    ?DEBUG_FMT("Request (XML): ~p~n", [exmpp_xml:document_to_list(Query)]),
     exmpp_session:send_packet(Session, Query),
-    responses([], Count).
+    Responses = responses([], Count),
+    lists:map(fun(_Response) -> ?DEBUG_FMT("Response (XML): ~p~nResponse (XMLEL): ~p~n", [exmpp_xml:document_to_list(_Response#received_packet.raw_packet), _Response]) end, Responses),
+    Responses.
 
 responses(Responses, 0) ->
     lists:reverse(Responses);
@@ -72,17 +48,6 @@ responses(Responses, Count) ->
         throw("No response from server!")
     end.
 
-test_default_global_prefs(F) ->
-    ?DEFAULT_GLOBAL_PREFS = response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
-
-test_default_global_prefs_change(F) ->
-    [?DEFAULT_GLOBAL_PREFS_CHANGE_PUSH, ?DEFAULT_GLOBAL_PREFS_CHANGE_RESULT] =
-    responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "pref", [],
-    [
-        exmpp_xml:element(undefined, "default",
-	[
-	    exmpp_xml:attribute("otr", "prefer"),
-	    exmpp_xml:attribute("save", "false")
-	], [])
-    ])), 2),
-    ?DEFAULT_GLOBAL_PREFS_CHANGED = response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+response(F, Query) ->
+    [Response] = responses(F, Query, 1),
+    Response.
