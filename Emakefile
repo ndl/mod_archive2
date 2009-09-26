@@ -1,2 +1,2 @@
-{'src/*', [{outdir, "../ejabberd/src"},{i,"../ejabberd/src"}]}.
+{'src/*', [debug_info, {outdir, "../ejabberd/src"}, {i, "../ejabberd/src"}]}.
 {'test/*', [{outdir, "test"}]}.
