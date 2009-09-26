@@ -8,9 +8,11 @@
 -include("config.hrl").
 
 xml_report(OutDir) ->
-    eunit:test([prefs], [{report, {eunit_surefire, [{dir, OutDir}]}}]).
+    eunit:test(modules_to_test(), [{report, {eunit_surefire, [{dir, OutDir}]}}]).
 
-client_test_() -> [{module, prefs}].
+client_test_() -> modules_to_test().
+
+modules_to_test() -> [prefs, manual].
 
 session_setup() ->
     application:start(exmpp),

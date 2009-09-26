@@ -1,0 +1,3 @@
+ - prefs:test_jid_prefs_remove - NIY.
+ - manual:test_upload - should return not empty result, but "chat" element,
+   and also support version. TODO: add 2nd test to verify version increment.
