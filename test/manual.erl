@@ -12,9 +12,9 @@ manual_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        client:gen(fun test_upload/1),
-        client:gen(fun test_change_subject/1),
-        client:gen(fun test_utc_attribute/1)
+        ?test_gen(test_upload),
+        ?test_gen(test_change_subject),
+        ?test_gen(test_utc_attribute)
     ]
 }.
 

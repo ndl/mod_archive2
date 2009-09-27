@@ -6,5 +6,7 @@
 -define(NS, "http://www.xmpp.org/extensions/xep-0136.html#ns").
 -define(TIMEOUT, 5000).
 
+-define(test_gen(F), fun(Fixture) -> {atom_to_list(F), {{?MODULE, F, 1}, fun() -> fun F/1(Fixture) end}} end).
+
 -define(DEBUG_FMT(Format, Values), false).
 %-define(DEBUG_FMT(Format, Values), ?debugFmt(Format, Values)).

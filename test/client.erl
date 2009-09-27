@@ -1,5 +1,5 @@
 -module(client).
--export([xml_report/1, session_setup/0, session_teardown/1, gen/1, response/2, responses/3]).
+-export([xml_report/1, session_setup/0, session_teardown/1, response/2, responses/3]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
@@ -30,8 +30,6 @@ session_setup() ->
 
 session_teardown({Session, _JID}) ->
     exmpp_session:stop(Session).
-
-gen(Fun) -> fun(Fixture) -> ?_test(Fun(Fixture)) end.
 
 responses({Session, _JID}, Query, Count) ->
     ?DEBUG_FMT("Request (XML): ~p~n", [exmpp_xml:document_to_list(Query)]),
