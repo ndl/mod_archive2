@@ -8,7 +8,11 @@
 -include("config.hrl").
 
 xml_report(OutDir) ->
-    eunit:test(modules_to_test(), [{report, {eunit_surefire, [{dir, OutDir}]}}]).
+    lists:foreach(
+        fun(Module) ->
+            eunit:test(Module, [{report, {eunit_surefire, [{dir, OutDir}]}}])
+	end,
+	modules_to_test()).
 
 client_test_() -> modules_to_test().
 
