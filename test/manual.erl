@@ -14,12 +14,16 @@ manual_test_() ->
     [
         ?test_gen(test_upload),
         ?test_gen(test_change_subject),
-        ?test_gen(test_utc_attribute)
+        ?test_gen(test_utc_attribute),
+	?test_gen(test_groupchat),
+	?test_gen(test_linking),
+	?test_gen(test_link_remove),
+	?test_gen(test_add_attributes)
     ]
 }.
 
 test_upload(F) ->
-    ?MANUAL_UPLOAD1_RESULT =
+    ?MANUAL_TC1_UPLOAD_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
     [
         exmpp_xml:element(undefined, "chat",
@@ -37,7 +41,7 @@ test_upload(F) ->
 	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("Art thou not Romeo, and a Montague?")]) ])
 	])
     ]))),
-    ?MANUAL_UPLOADED1 =
+    ?MANUAL_TC1_UPLOADED =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
     [
         exmpp_xml:attribute("with", "juliet@capulet.com/chamber"),
@@ -45,7 +49,7 @@ test_upload(F) ->
     ], []))).
 
 test_change_subject(F) ->
-    ?MANUAL_CHANGE1_RESULT =
+    ?MANUAL_TC2_CHANGE_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
     [
         exmpp_xml:element(undefined, "chat",
@@ -55,7 +59,7 @@ test_change_subject(F) ->
 	    exmpp_xml:attribute("subject", "She speaks twice!")
 	], [])
     ]))),
-    ?MANUAL_CHANGED1 =
+    ?MANUAL_TC2_CHANGED =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
     [
         exmpp_xml:attribute("with", "juliet@capulet.com/chamber"),
@@ -63,7 +67,7 @@ test_change_subject(F) ->
     ], []))).
 
 test_utc_attribute(F) ->
-    ?MANUAL_CHANGE2_RESULT =
+    ?MANUAL_TC3_CHANGE_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
     [
         exmpp_xml:element(undefined, "chat",
@@ -90,9 +94,159 @@ test_utc_attribute(F) ->
 	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("How cam'st thou hither, tell me, and wherefore?")]) ])
 	])
     ]))),
-    ?MANUAL_CHANGED2 =
+    ?MANUAL_TC3_CHANGED =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
     [
         exmpp_xml:attribute("with", "juliet@capulet.com/chamber"),
 	exmpp_xml:attribute("start", "1469-07-21T02:56:15Z")
+    ], []))).
+
+test_groupchat(F) ->
+    ?MANUAL_TC4_UPLOAD_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    [
+        exmpp_xml:element(undefined, "chat",
+	[
+	    exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	    exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+	],
+	[
+	    exmpp_xml:element(undefined, "from",
+	    [
+	        exmpp_xml:attribute("secs", "0"),
+		exmpp_xml:attribute("name", "benvolio")
+	    ],
+	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("She will invite him to some supper.")]) ]),
+	    exmpp_xml:element(undefined, "from",
+	    [
+	        exmpp_xml:attribute("secs", "6"),
+		exmpp_xml:attribute("name", "mercutio")
+	    ],
+	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("A bawd, a bawd, a bawd! So ho!")]) ]),
+	    exmpp_xml:element(undefined, "from",
+	    [
+	        exmpp_xml:attribute("secs", "3"),
+		exmpp_xml:attribute("name", "romeo"),
+		exmpp_xml:attribute("jid", "romeo@montague.net")
+	    ],
+	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("What hast thou found?")]) ])
+	])
+    ]))),
+    ?MANUAL_TC4_UPLOADED =
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
+    [
+        exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+    ], []))).
+
+test_linking(F) ->
+    ?MANUAL_TC5_UPLOAD_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    [
+        exmpp_xml:element(undefined, "chat",
+	[
+	    exmpp_xml:attribute("with", "benvolio@montague.net"),
+	    exmpp_xml:attribute("start", "1469-07-21T03:01:54Z")
+	],
+	[
+	    exmpp_xml:element(undefined, "next",
+	    [
+	        exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+		exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+	    ], []),
+	    exmpp_xml:element(undefined, "to",
+	    [
+	        exmpp_xml:attribute("secs", "0")
+	    ],
+	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("O, I am fortune's fool!")]) ]),
+	    exmpp_xml:element(undefined, "from",
+	    [
+	        exmpp_xml:attribute("secs", "4")
+	    ],
+	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("Why dost thou stay?")]) ])
+	])
+    ]))),
+    ?MANUAL_TC5_UPLOADED =
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
+    [
+        exmpp_xml:attribute("with", "benvolio@montague.net"),
+	exmpp_xml:attribute("start", "1469-07-21T03:01:54Z")
+    ], []))),
+    ?MANUAL_TC5_CHANGE_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    [
+        exmpp_xml:element(undefined, "chat",
+	[
+	    exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	    exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+	],
+	[
+	    exmpp_xml:element(undefined, "previous",
+	    [
+	        exmpp_xml:attribute("with", "benvolio@montague.net"),
+		exmpp_xml:attribute("start", "1469-07-21T03:01:54Z")
+	    ], [])
+	])
+    ]))),
+    ?MANUAL_TC5_CHANGED =
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
+    [
+        exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+    ], []))).
+
+test_link_remove(F) ->
+    ?MANUAL_TC6_CHANGE_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    [
+        exmpp_xml:element(undefined, "chat",
+	[
+	    exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	    exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+	],
+	[
+	    exmpp_xml:element(undefined, "previous", [], []),
+	    exmpp_xml:element(undefined, "next", [], [])
+	])
+    ]))),
+    ?MANUAL_TC6_CHANGED =
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
+    [
+        exmpp_xml:attribute("with", "balcony@house.capulet.com"),
+	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
+    ], []))).
+
+test_add_attributes(F) ->
+    ?MANUAL_TC7_CHANGE_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    [
+        exmpp_xml:element(undefined, "chat",
+	[
+	    exmpp_xml:attribute("with", "benvolio@montague.net"),
+	    exmpp_xml:attribute("start", "1469-07-21T03:01:54Z")
+	],
+	[
+	    exmpp_xml:element("jabber:x:data", "x",
+	    [
+	        exmpp_xml:attribute("type", "submit")
+	    ],
+	    [
+	        exmpp_xml:element(undefined, "field",
+		[
+		    exmpp_xml:attribute("var", "FORM_TYPE")
+		],
+		[
+		    exmpp_xml:element(undefined, "value", [],
+		    [
+		        exmpp_xml:cdata("http://example.com/archiving")
+		    ])
+		])
+	    ])
+	])
+    ]))),
+    ?MANUAL_TC7_CHANGED =
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "retrieve",
+    [
+        exmpp_xml:attribute("with", "benvolio@montague.net"),
+	exmpp_xml:attribute("start", "1469-07-21T03:01:54Z")
     ], []))).

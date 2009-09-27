@@ -16,7 +16,7 @@ xml_report(OutDir) ->
 
 client_test_() -> modules_to_test().
 
-modules_to_test() -> [prefs, manual].
+modules_to_test() -> [prefs, manual, management, replication, general].
 
 session_setup() ->
     application:start(exmpp),

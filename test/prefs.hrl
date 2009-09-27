@@ -1,4 +1,4 @@
--define(DEFAULT_PREFS,
+-define(PREFS_TC1_DEFAULT,
 {received_packet,iq,"result",
     {<<?CLIENTNAME>>,<<?SERVERHOST>>,_},
     _,undefined,
@@ -36,7 +36,7 @@
                   [{xmlattr,undefined,save,<<"true">>}],
                   []}]}]}}).
 
--define(PREFS_CHANGE1_PUSH,
+-define(PREFS_TC2_CHANGE_PUSH,
 {received_packet,iq,"set",
     {undefined,<<?SERVERHOST>>,undefined},
     "push",undefined,
@@ -57,7 +57,7 @@
                    {xmlattr,undefined,save,<<"false">>}],
                   []}]}]}}).
 
--define(PREFS_CHANGE1_RESULT,
+-define(PREFS_TC2_CHANGE_RESULT,
 {received_packet,iq,"result",
     {<<?CLIENTNAME>>,<<?SERVERHOST>>,undefined},
     _,undefined,
@@ -69,7 +69,7 @@
          {xmlattr,undefined,type,<<"result">>}],
         []}}).
 
--define(PREFS_CHANGED1,
+-define(PREFS_TC2_CHANGED,
 {received_packet,iq,"result",
     {<<?CLIENTNAME>>,<<?SERVERHOST>>,undefined},
     _,undefined,
@@ -108,7 +108,7 @@
                   [{xmlattr,undefined,save,<<"true">>}],
                   []}]}]}}).
 
--define(PREFS_CHANGE2_PUSH,
+-define(PREFS_TC3_CHANGE_PUSH,
     {received_packet,iq,"set",
         {undefined,<<"ndl-server">>,undefined},
         "push",undefined,
@@ -142,7 +142,7 @@
                        {xmlattr,undefined,use,<<"prefer">>}],
                       []}]}]}}).
 
--define(PREFS_CHANGE2_RESULT,
+-define(PREFS_TC3_CHANGE_RESULT,
     {received_packet,iq,"result",
         {<<"client">>,<<"ndl-server">>,undefined},
         _,undefined,
@@ -154,7 +154,7 @@
              {xmlattr,undefined,type,<<"result">>}],
             []}}).
 
--define(PREFS_CHANGED2,
+-define(PREFS_TC3_CHANGED,
 {received_packet,iq,"result",
     {<<?CLIENTNAME>>,<<?SERVERHOST>>,undefined},
     _,undefined,
@@ -193,7 +193,7 @@
                   [{xmlattr,undefined,save,<<"true">>}],
                   []}]}]}}).
 
--define(PREFS_CHANGE3_PUSH,
+-define(PREFS_TC4_CHANGE_PUSH,
     {received_packet,iq,"set",
      {undefined,<<?SERVERHOST>>,undefined},
      "push",undefined,
@@ -217,7 +217,7 @@
            {xmlattr,undefined,otr,<<"concede">>}],
           []}]}]}}).
 
--define(PREFS_CHANGE3_RESULT,
+-define(PREFS_TC4_CHANGE_RESULT,
     {received_packet,iq,"result",
         {<<?CLIENTNAME>>,<<?SERVERHOST>>,undefined},
         _,undefined,
@@ -229,7 +229,7 @@
              {xmlattr,undefined,type,<<"result">>}],
             []}}).
 
--define(PREFS_CHANGED3,
+-define(PREFS_TC4_CHANGED,
     {received_packet,iq,"result",
      {<<?CLIENTNAME>>,<<?SERVERHOST>>,undefined},
      _,undefined,

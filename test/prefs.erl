@@ -21,10 +21,10 @@ prefs_test_() ->
 }.
 
 test_default_prefs(F) ->
-    ?DEFAULT_PREFS = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+    ?PREFS_TC1_DEFAULT = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
 
 test_global_prefs_change(F) ->
-    [?PREFS_CHANGE1_PUSH, ?PREFS_CHANGE1_RESULT] =
+    [?PREFS_TC2_CHANGE_PUSH, ?PREFS_TC2_CHANGE_RESULT] =
     client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "pref", [],
     [
         exmpp_xml:element(undefined, "default",
@@ -33,10 +33,10 @@ test_global_prefs_change(F) ->
 	    exmpp_xml:attribute("save", "false")
 	], [])
     ])), 2),
-    ?PREFS_CHANGED1 = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+    ?PREFS_TC2_CHANGED = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
 
 test_prefs_methods_change(F) ->
-    [?PREFS_CHANGE2_PUSH, ?PREFS_CHANGE2_RESULT] =
+    [?PREFS_TC3_CHANGE_PUSH, ?PREFS_TC3_CHANGE_RESULT] =
     client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "pref", [],
     [
         exmpp_xml:element(undefined, "method",
@@ -55,10 +55,10 @@ test_prefs_methods_change(F) ->
 	    exmpp_xml:attribute("use", "prefer")
 	], [])
     ])), 2),
-    ?PREFS_CHANGED2 = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+    ?PREFS_TC3_CHANGED = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
 
 test_jid_prefs_change(F) ->
-    [?PREFS_CHANGE3_PUSH, ?PREFS_CHANGE3_RESULT] =
+    [?PREFS_TC4_CHANGE_PUSH, ?PREFS_TC4_CHANGE_RESULT] =
     client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "pref", [],
     [
         exmpp_xml:element(undefined, "item",
@@ -69,10 +69,10 @@ test_jid_prefs_change(F) ->
 	    exmpp_xml:attribute("otr", "concede")
 	], [])
     ])), 2),
-    ?PREFS_CHANGED3 = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+    ?PREFS_TC4_CHANGED = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
 
 %test_jid_prefs_remove(F) ->
-%    [?PREFS_CHANGE4_PUSH, ?PREFS_CHANGE4_RESULT] =
+%    [?PREFS_TC5_CHANGE_PUSH, ?PREFS_TC5_CHANGE_RESULT] =
 %    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "pref", [],
 %    [
 %        exmpp_xml:element(undefined, "itemremove",
@@ -80,4 +80,4 @@ test_jid_prefs_change(F) ->
 %	    exmpp_xml:attribute("jid", "romeo@montague.net")
 %	], [])
 %    ])), 2).
-%    ?PREFS_CHANGED4 = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
+%    ?PREFS_TC5_CHANGED = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).
