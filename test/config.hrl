@@ -8,5 +8,7 @@
 
 -define(test_gen(F), fun(Fixture) -> {atom_to_list(F), {{?MODULE, F, 1}, fun() -> fun F/1(Fixture) end}} end).
 
+-define(EUNIT_XML_REPORT(Module, OutDir), eunit:test(Module, [{report, {eunit_surefire, [{dir, OutDir}]}}])).
+
 -define(DEBUG_FMT(Format, Values), false).
 %-define(DEBUG_FMT(Format, Values), ?debugFmt(Format, Values)).

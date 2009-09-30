@@ -1,5 +1,5 @@
 -module(client).
--export([xml_report/1, session_setup/0, session_teardown/1, response/2, responses/3]).
+-export([eunit_xml_report/1, session_setup/0, session_teardown/1, response/2, responses/3]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
@@ -7,10 +7,10 @@
 
 -include("config.hrl").
 
-xml_report(OutDir) ->
+eunit_xml_report(OutDir) ->
     lists:foreach(
         fun(Module) ->
-            eunit:test(Module, [{report, {eunit_surefire, [{dir, OutDir}]}}])
+	    ?EUNIT_XML_REPORT(Module, OutDir)
 	end,
 	modules_to_test()).
 
