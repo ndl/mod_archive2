@@ -31,6 +31,9 @@
 init([Host, _Opts]) ->
     {ok, #state{host = Host}}.
 
+handle_call({transaction, F}, _From, State) ->
+    {reply, ejabberd_odbc:sql_transaction(State#state.host, F), State};
+
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
 
@@ -77,14 +80,14 @@ handle_query({delete, Tab, MS}, Info) ->
     {deleted, Count};
 
 handle_query({read, R}, {RDBMS, RecordsInfo}) ->
-    Table = get_field(1, R, RecordsInfo),
+    Table = element(1, R),
     {selected, _, Rows} =
         sql_query(
             string:join(
                 ["select * from",
-                 atom_to_list(element(1, R)),
-                 "where",
                  atom_to_list(Table),
+                 "where",
+                 atom_to_list(get_field(1, R, RecordsInfo)),
                  "=",
                  escape(RDBMS, element(2, R))], " ")),
     {selected, convert_rows(Rows, Table, [])};
@@ -419,7 +422,8 @@ escape(sqlite, Str) when is_list(Str) ->
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 escape(_, Str) when is_list(Str) ->
 	"'" ++ ejabberd_odbc:escape(Str) ++ "'";
-escape(_, _) ->
+escape(_D, _V) ->
+    io:format("Cannot parse: ~p, ~p~n", [_D, _V]),
     throw({error, badarg}).
 
 %% Escaping for ANSI SQL compliant RDBMS - so far SQLite only?
