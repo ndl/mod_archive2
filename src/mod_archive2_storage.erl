@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_storage.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : Message Archiving (XEP-136) Storage Support
+%%% Purpose : Unified RDBMS and Mnesia Storage Support
 %%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Version : 2.0.0
 %%% Id      : $Id$
@@ -10,154 +10,100 @@
 -module(mod_archive2_storage).
 -author('ejabberd@ndl.kiev.ua').
 
--include("mod_archive2.hrl").
--include_lib("stdlib/include/ms_transform.hrl").
+%% gen_mod callbacks
+-export([start/2, stop/1]).
 
-%-behaviour(gen_server).
+%% API.
+-export([start_link/2,
+         delete/2, delete/3,
+         read/2, select/4,
+         insert/2, update/2, update/3,
+         transaction/2]).
 
-%% gen_server callbacks
--export([init/1]).
-%-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-%         terminate/2, code_change/3]).
+-define(SUPERVISOR, ejabberd_sup).
+-define(BACKEND_KEY, mod_archive2_backend).
+-define(MODULE_MNESIA, mod_archive2_mnesia).
+-define(MODULE_ODBC, mod_archive2_odbc).
 
--export([ms_to_sql/2]).
+start_link(Host, Opts) ->
+    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    Module = put_backend_info(Opts),
+    gen_server:start_link({local, Proc}, Module, [Host, Opts], []).
 
--record(state, {rdbms, records}).
+start(Host, Opts) ->
+    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    Module = put_backend_info(Opts),
+    Spec = {Proc, {Module, start_link, [Host, Opts]},
+            transient, 1000, worker, [?MODULE]},
+    supervisor:start_child(?SUPERVISOR, Spec).
 
-%%--------------------------------------------------------------------
-%% Function: init(Args) -> {ok, State} |
-%%                         {ok, State, Timeout} |
-%%                         ignore               |
-%%                         {stop, Reason}
-%% Description: Initiates the server
-%%--------------------------------------------------------------------
-init([RDBMS, RecordsInfo]) ->
-    {ok, #state{rdbms = RDBMS, records = dict:from_list(RecordsInfo)}}.
+stop(Host) ->
+    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    gen_server:call(Proc, stop),
+    supervisor:delete_child(?SUPERVISOR, Proc).
+
+%% Deletes the specified record: key is mandatory, all other fields are unused.
+delete(Host, R) ->
+    forward_query(Host, {delete, R}).
+
+%% Deletes all records matching MS.
+delete(Host, Tab, MS) ->
+    forward_query(Host, {delete, {Tab, MS}}).
+
+%% Retrieves the specified record: key is mandatory, all other fields are unused.
+read(Host, R) ->
+    forward_query(Host, {read, R}).
+
+%% Retrieves all records matching MS and using Opts.
+select(Host, Tab, MS, Opts) ->
+    forward_query(Host, {select, {Tab, MS, Opts}}).
+
+%% Updates the specified record, which is assumed to exist: key is mandatory,
+%% all other fields not set to "undefined" are used.
+update(Host, R) ->
+    forward_query(Host, {update, R}).
+
+%% Updates all records matching MS, all fields not set to "undefined" are used
+%% (except key).
+update(Host, R, MS) ->
+    forward_query(Host, {update, {R, MS}}).
+
+%% Inserts all records in the list to their respective tables, records are
+%% assumed to not exist, keys are auto-generated, all other fields not set to
+%% "undefined" are used. Returns last inserted ID, but it is meaningful only
+%% if Records contained single record.
+insert(Host, Records) ->
+    forward_query(Host, {insert, Records}).
 
 %%
-%% WARNING! WARNING! WARNING!
-%% We support EXTREMELY LIMITED subset of match expressions!
+%% TODO: DO WE NEED IT?
 %%
-%% Some of the limitations:
-%%
-%% - Only matching with explicit records specification, and only for those records that are
-%%   explicitly registered in init/1 call is supported.
-%%
-%% - No repetitions of matching variables in matching head is allowed: use explicit equality
-%%   condition.
-%%
-%% - Only single-clause match expressions are supported: allowing multiple clauses may lead to
-%%   specification of different output results in different clauses, which is not supported by SQL.
-%%
-%% - The only recognized form of match expression body is the tuple of matching variables or single
-%%   matching variable for the whole record: no variables that are not part of tuple, constants,
-%%   lists or whatever are allowed, as tuple of variables is the way SQL will return us its results.
-%%
-%% - The set of supported functions and operators is also quite limited: if you extend it, make
-%%   sure it is done in portable way across different RDBMS implementations! (possibly using
-%%   RDBMS-specific handling code)
-%%
-%% @spec (state(), MS()) -> {Where, Body}
-%% @throws ?ERR_INTERNAL_SERVER_ERROR()
-ms_to_sql(State, [{MatchHead, MatchConditions, MatchBody}]) ->
-    RecordName = element(1, MatchHead),
-    % Get record info, which is necessary for proper position-to-field-name mapping.
-    RecordInfo =
-    case dict:find(RecordName, State#state.records) of
-        {ok, Info} -> Info;
-        _ -> throw({error, ?ERR_INTERNAL_SERVER_ERROR})
-    end,
-    % Fill dictionary of matching-variable-to-field-name mapping.
-    % Throw if repetitive use of the same matching variable is detected.
-    {MatchVarsDict, _} = 
-    lists:foldl(
-        fun(MatchItem, {MatchVars, Index}) ->
-	    case is_match_variable(MatchItem) of
-	        true ->
-	            case dict:find(MatchItem, MatchVars) of
-		        {ok, _} ->
-		            throw({error, ?ERR_INTERNAL_SERVER_ERROR});
-		        _ ->
-  	                    {dict:store(MatchItem, lists:nth(Index, RecordInfo), MatchVars), Index + 1}
-		    end;
-	        _ -> {MatchVars, Index + 1}
-	    end
-	end,
-	{dict:new(), 0},
-	tuple_to_list(MatchHead)),
-    % Transform match conditions to SQL syntax.
-    Conditions = lists:map(fun(MatchCondition) -> parse_match_condition(MatchCondition, MatchVarsDict) end, MatchConditions),
-    % Generate request body: empty if full record is requested, otherwise it's the list of fields.
-    Body =
-    if MatchBody =:= ['$_'] -> [];
-        true ->
-	    [{MatchBodyRecord}] = MatchBody,
-            lists:map(fun(Expr) -> parse_match_body(Expr, MatchVarsDict) end, tuple_to_list(MatchBodyRecord))
-    end,
-    {string:join(Conditions, " and "), string:join(Body, ", ")}.
+%% Updates or inserts all records in their respective tables depending on
+%% whether they exist or not, keys are auto-generated, all other fields not set
+%% to "undefined" are used. Returns last inserted ID, but it is meaningful only
+%% if Records contained single record.
+%% write(Host, Records) ->
+%%    ?FORWARD(Host, {write, Records}).
 
-parse_match_condition(Val, MatchVarsDict) when is_atom(Val) ->
-    case dict:find(Val, MatchVarsDict) of
-        {ok, Field} -> atom_to_list(Field);
-        _ -> atom_to_list(Val)
-    end;
+%% Runs transaction.
+transaction(Host, F) ->
+    gen_server:call(gen_mod:get_module_proc(Host, ?MODULE), {transaction, F}).
 
-% TODO: proper escaping !!!
-parse_match_condition(Val, _MatchVarsDict) when is_list(Val) ->
-    "\"" ++ Val ++ "\"";
-
-parse_match_condition(Val, _MatchVarsDict) when is_integer(Val) ->
-    integer_to_list(Val);
-
-parse_match_condition(Val, _MatchVarsDict) when is_float(Val) ->
-    float_to_list(Val);
-    
-parse_match_condition({GuardFun, Op1}, MatchVarsDict) ->
-    OpName =
-    case GuardFun of
-        'not' -> "not";
-	'abs' -> "abs";
-	_ -> throw({error, ?ERR_INTERNAL_SERVER_ERROR})
-    end,
-    generate_unary_op(OpName, Op1, MatchVarsDict);
-
-parse_match_condition({GuardFun, Op1, Op2}, MatchVarsDict) ->
-    OpName = 
-    case GuardFun of
-        'and' -> "and";
-	'andalso' -> "and";
-	'or' -> "or";
-	'orelse' -> "or";
-	'==' -> "=";
-	'=:=' -> "=";
-	'<' -> "<";
-	'=<' -> "<=";
-	'>' -> ">";
-	'>=' -> ">=";
-	'=/=' -> "<>";
-	'/=' -> "<>";
-	'+' -> "+";
-	'-' -> "-";
-	'*' -> "*";
-	'/' -> "/";
-	_ -> throw({error, ?ERR_INTERNAL_SERVER_ERROR})
-    end,
-    generate_binary_op(OpName, Op1, Op2, MatchVarsDict).
-
-generate_unary_op(OpName, Op1, MatchVarsDict) ->
-    OpName ++ "(" ++ parse_match_condition(Op1, MatchVarsDict) ++ ")".
-
-generate_binary_op(OpName, Op1, Op2, MatchVarsDict) ->
-    "(" ++ parse_match_condition(Op1, MatchVarsDict) ++ " " ++ OpName ++ " " ++ parse_match_condition(Op2, MatchVarsDict) ++ ")".
-
-parse_match_body(Expr, MatchVarsDict) ->
-    case dict:find(Expr, MatchVarsDict) of
-        {ok, Field} -> atom_to_list(Field);
-	_ -> throw({error, ?ERR_INTERNAL_SERVER_ERROR})
+forward_query(_Host, Query) ->
+    case get(?BACKEND_KEY) of
+        {?MODULE_MNESIA, _, _} ->
+            mod_archive2_mnesia:handle_query(Query);
+        {?MODULE_ODBC, RDBMS, RecordsInfo} ->
+            mod_archive2_odbc:handle_query(Query, {RDBMS, RecordsInfo})
     end.
 
-is_match_variable(Variable) ->
-    case catch list_to_integer(string:substr(atom_to_list(Variable), 2)) of
-        N when is_integer(N) -> true;
-        _ -> false
-    end.
+put_backend_info(Opts) ->
+    RDBMS = proplists:get_value(rdbms, Opts, mnesia),
+    Backend =
+        case RDBMS of
+            mnesia -> ?MODULE_MNESIA;
+            _ -> ?MODULE_ODBC
+        end,
+    RecordsInfo = dict:from_list(proplists:get_value(records, Opts, [])),
+    put(?BACKEND_KEY, {Backend, RDBMS, RecordsInfo}),
+    Backend.
