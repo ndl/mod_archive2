@@ -10,51 +10,16 @@
 -module(mod_archive2_mnesia).
 -author('ejabberd@ndl.kiev.ua').
 
--behaviour(gen_server).
-
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
-
 -export([handle_query/1]).
 
 -define(SELECT_NOBJECTS, 64).
 
--record(state, {host}).
-
-%%--------------------------------------------------------------------
-%% Function: init(Args) -> {ok, State} |
-%%                         {ok, State, Timeout} |
-%%                         ignore               |
-%%                         {stop, Reason}
-%% Description: Initiates the server
-%%--------------------------------------------------------------------
-init([Host, _Opts]) ->
-    {ok, #state{host = Host}}.
-
-handle_call({transaction, F}, _From, State) ->
-    {reply, mnesia:transaction(F), State};
-
-handle_call(stop, _From, State) ->
-    {stop, normal, ok, State};
-
-handle_call(_Req, _From, State) ->
-    {reply, {error, badarg}, State}.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-handle_info(_Info, State) ->
-    {noreply, State}.
-
-terminate(_Reason, _State) ->
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
-
 %%--------------------------------------------------------------------
 %% Queries interface
 %%--------------------------------------------------------------------
+
+handle_query({transaction, F}) ->
+    mnesia:transaction(F);
 
 handle_query({delete, R}) ->
     mnesia:delete({element(1, R), element(2, R)}),

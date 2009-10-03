@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_odbc_test.erl
+%%% File    : mod_archive2_storage_test.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : Message Archiving (XEP-136) Storage Support
-%%% Created : 3 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Version : 2.0.0
 %%% Id      : $Id$
 %%%----------------------------------------------------------------------
@@ -18,45 +18,53 @@
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
-mod_archive2_odbc_test_() ->
+mod_archive2_match_to_sql_test_() ->
 {
     foreach,
     local,
     fun tests_setup/0,
     fun tests_teardown/1,
     [
-        ?test_gen(test_insert_and_read)
+        ?test_gen(test_match_to_sql)
     ]
 }.
 
 tests_setup() ->
-    {ok, Pid} = gen_server:start(mod_archive2_odbc, [{host, "localhost"}, []], []),
-    Opts =
-    	{mysql,
-	 dict:from_list(
-	     [{archive_jid_prefs, record_info(fields, archive_jid_prefs)},
-              {archive_global_prefs, record_info(fields, archive_global_prefs)},
-              {archive_collection, record_info(fields, archive_collection)},
-              {archive_message, record_info(fields, archive_message)}])},
-    {Pid, Opts}.
+    #backend{
+        rdbms = mysql,
+        schema = ?MOD_ARCHIVE2_SCHEMA
+    }.
 
-tests_teardown({Pid, _Opts}) ->
-    gen_server:call(Pid, stop),
-    mnesia:clear_table(archive_message).
+tests_teardown(_State) -> ok.
 
-test_insert_and_read({_Pid, Opts}) ->
-    ejabberd_odbc:start(["select", {selected, [], [{"0", "1", "2"}]}]),
-    {atomic, {inserted, 1, Key}} =
-        ejabberd_odbc:sql_transaction("localhost",
-            fun() ->
-                mod_archive2_odbc:handle_query(
-                    {insert,
-                     [#archive_message{direction = from, body = "Hi!", name = "me"}]}, Opts)
-            end),
-    {atomic, {selected, [#archive_message{body = "Hi!", name = "me"}]}} =
-        ejabberd_odbc:sql_transaction("localhost",
-            fun() ->
-                mod_archive2_odbc:handle_query(
-                    {read,
-                     #archive_message{id = Key}}, Opts)
-            end).
+test_match_to_sql(State) ->
+    Where1Clause = "((id = 1) or ((id = 2) and (utc = \"2000-01-01\")))",
+    Query1Res =  {Where1Clause, "id, utc, body"},
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+	    State,
+            [{#archive_message{id = '$1', coll_id = '_', utc = '$2', direction = '_', body = '$3', name = '_'},
+             [{'orelse',{'==','$1',1},
+	                {'andalso',{'==','$1',2},{'==',utc,"2000-01-01"}}}],
+	     [{{'$1', '$2', '$3'}}]}])
+	=:= Query1Res),
+    % The same query, but now using matching transform:
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+            State,
+	    ets:fun2ms(
+	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
+		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
+		    {ID, UTC, Body}
+		end))
+	=:= Query1Res),
+    % The same query, but with full record returned.
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+            State,
+	    ets:fun2ms(
+	        fun(#archive_message{id = ID, utc = UTC} = R) when
+		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
+		    R
+		end))
+	=:= {Where1Clause, ""}).

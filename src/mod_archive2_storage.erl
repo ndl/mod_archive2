@@ -12,10 +12,16 @@
 
 -include("mod_archive2_storage.hrl").
 
+-behaviour(gen_server).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
+
 %% gen_mod callbacks
 -export([start/2, stop/1]).
 
-%% API.
+%% API
 -export([start_link/2,
          delete/1, delete/2,
          read/1, select/3,
@@ -27,15 +33,42 @@
 -define(MODULE_MNESIA, mod_archive2_mnesia).
 -define(MODULE_ODBC, mod_archive2_odbc).
 
-start_link(Host, Opts) ->
-    Proc = gen_mod:get_module_proc(Host, ?MODULE),
-    Info = put_backend_info(Host, Opts),
-    gen_server:start_link({local, Proc}, Info#backend_info.backend, Info, []).
+%%--------------------------------------------------------------------
+%% gen_server callbacks
+%%--------------------------------------------------------------------
+
+init([Host, Opts]) ->
+    put_backend(Host, Opts),
+    {ok, []}.
+
+handle_call({transaction, F}, _From, State) ->
+    {reply, forward_query({transaction, F}), State};
+
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
+
+handle_call(_Req, _From, State) ->
+    {reply, {error, badarg}, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+%%--------------------------------------------------------------------
+%% gen_mod callbacks
+%%--------------------------------------------------------------------
 
 start(Host, Opts) ->
     Proc = gen_mod:get_module_proc(Host, ?MODULE),
-    Info = put_backend_info(Host, Opts),
-    Spec = {Proc, {Info#backend_info.backend, start_link, Info},
+    Spec = {Proc, {?MODULE, start_link, [Host, Opts]},
             transient, 1000, worker, [?MODULE]},
     supervisor:start_child(?SUPERVISOR, Spec).
 
@@ -43,6 +76,14 @@ stop(Host) ->
     Proc = gen_mod:get_module_proc(Host, ?MODULE),
     gen_server:call(Proc, stop),
     supervisor:delete_child(?SUPERVISOR, Proc).
+
+%%--------------------------------------------------------------------
+%% API
+%%--------------------------------------------------------------------
+
+start_link(Host, Opts) ->
+    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
 %% Deletes the specified record: key is mandatory, all other fields are unused.
 delete(R) ->
@@ -91,29 +132,33 @@ insert(Records) ->
 transaction(Host, F) ->
     gen_server:call(gen_mod:get_module_proc(Host, ?MODULE), {transaction, F}).
 
+%%--------------------------------------------------------------------
+%% Helper functions
+%%--------------------------------------------------------------------
+
 forward_query(Query) ->
     Info = get(?BACKEND_KEY),
-    case Info#backend_info.backend of
+    case Info#backend.name of
         ?MODULE_MNESIA ->
             mod_archive2_mnesia:handle_query(Query);
         ?MODULE_ODBC ->
             mod_archive2_odbc:handle_query(Query, Info)
     end.
 
-put_backend_info(Host, Opts) ->
+put_backend(Host, Opts) ->
     RDBMS = proplists:get_value(rdbms, Opts, mnesia),
     Backend =
         case RDBMS of
             mnesia -> ?MODULE_MNESIA;
             _ -> ?MODULE_ODBC
         end,
-    RecordsInfo = dict:from_list(proplists:get_value(records, Opts, [])),
-    EscapeInfo = proplists:get_value(escape, Opts, []),
+    Tables = [Table#table{rdbms = RDBMS} ||
+              Table <- proplists:get_value(schema, Opts, [])],
+    Schema = dict:from_list(Tables),
     put(?BACKEND_KEY,
-        #backend_info{
+        #backend{
+            name = Backend,
             host = Host,
-            backend = Backend,
             rdbms = RDBMS,
-            records = RecordsInfo,
-            escape = EscapeInfo}),
+            schema = Schema}),
     Backend.

@@ -12,6 +12,8 @@
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 
+-include("mod_archive2_storage.hrl").
+
 -define(NS_ARCHIVE,
         "http://www.xmpp.org/extensions/xep-0136.html#ns").
 -define(NS_ARCHIVE_AUTO,
@@ -22,14 +24,12 @@
         "http://www.xmpp.org/extensions/xep-0136.html#ns-pref").
 -define(NS_ARCHIVE_MANUAL,
         "http://www.xmpp.org/extensions/xep-0136.html#ns-manual").
--define(INFINITY, calendar:datetime_to_gregorian_seconds({{2038,1,19},{0,0,0}})).
-
-%% Should be OK for most of modern DBs, I hope ...
--define(MAX_QUERY_LENGTH, 32768).
 
 -record(archive_jid_prefs,
         {us,
-         jid,
+         with_user,
+         with_server,
+         with_resource,
          save = undefined,
          expire = undefined,
          otr = undefined}).
@@ -47,7 +47,9 @@
 -record(archive_collection,
         {id,
          us,
-         jid,
+         with_user,
+         with_server,
+         with_resource,
          utc,
          change_by,
          change_utc,
@@ -66,3 +68,27 @@
          direction,
          body,
          name = ""}).
+
+-define(MOD_ARCHIVE2_SCHEMA,
+        [#table{name = archive_jid_prefs,
+                fields = record_info(fields, archive_jid_prefs),
+                types = [string, string, string, string, bool, integer, enum],
+                enums = [approve, concede, forbid, oppose, prefer, require],
+                keys = 4},
+         #table{name = archive_global_prefs,
+                fields = record_info(fields, archive_global_prefs),
+                types = [string, bool, integer, enum, enum, enum, enum, bool],
+                enums = [approve, concede, forbid, oppose, prefer, require],
+                keys = 1},
+         #table{name = archive_collection,
+                fields = record_info(fields, archive_collection),
+                types = [integer, string, string, string, string, time,
+                         string, time, bool, string, integer, integer, string,
+                         bool, blob],
+                enums = [],
+                keys = 1},
+         #table{name = archive_message,
+                fields = record_info(fields, archive_message),
+                types = [integer, integer, time, enum, string, string],
+                enums = [from, to, note],
+                keys = 1}]).

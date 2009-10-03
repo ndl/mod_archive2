@@ -10,90 +10,55 @@
 -module(mod_archive2_odbc).
 -author('ejabberd@ndl.kiev.ua').
 
--include("mod_archive2.hrl").
+-include("mod_archive2_storage.hrl").
 
--behaviour(gen_server).
+-export([handle_query/2, ms_to_sql/2]).
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
-
--export([handle_query/2]).
-
--record(state, {host, records}).
-
-%%--------------------------------------------------------------------
-%% Function: init(Args) -> {ok, State} |
-%%                         {ok, State, Timeout} |
-%%                         ignore               |
-%%                         {stop, Reason}
-%% Description: Initiates the server
-%%--------------------------------------------------------------------
-init([Host, _Opts]) ->
-    {ok, #state{host = Host}}.
-
-handle_call({transaction, F}, _From, State) ->
-    {reply, ejabberd_odbc:sql_transaction(State#state.host, F), State};
-
-handle_call(stop, _From, State) ->
-    {stop, normal, ok, State};
-
-handle_call(_Req, _From, State) ->
-    {reply, {error, badarg}, State}.
-
-handle_cast(_Msg, State) ->
-    {noreply, State}.
-
-handle_info(_Info, State) ->
-    {noreply, State}.
-
-terminate(_Reason, #state{host = _Host}) ->
-    ok.
-
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+%% Should be OK for most of modern DBs, I hope ...
+-define(MAX_QUERY_LENGTH, 32768).
 
 %%--------------------------------------------------------------------
 %% Queries interface
 %%--------------------------------------------------------------------
 
-handle_query({delete, R}, {RDBMS, RecordsInfo}) ->
+handle_query({delete, R}, DbInfo) ->
+    TableInfo = get_table_info(R, DbInfo),
     {updated, Count} =
         sql_query(
             string:join(
                 ["delete from",
-                 atom_to_list(element(1, R)),
+                 atom_to_list(TableInfo#table.name),
                  "where",
-                 atom_to_list(get_field(1, R, RecordsInfo)),
-                 "=",
-                 escape(RDBMS, element(2, R))], " ")),
+                 encode_keys(R, TableInfo)], " ")),
     {deleted, Count};
 
-handle_query({delete, Tab, MS}, Info) ->
-    {WhereMS, _BodyMS} = ms_to_sql(Info, MS),
+handle_query({delete, Table, MS}, DbInfo) ->
+    TableInfo = get_table_info(Table, DbInfo),
+    {WhereMS, _BodyMS} =
+        ms_to_sql(MS, TableInfo),
     {updated, Count} =
         sql_query(
             string:join(
                 ["delete from",
-                 atom_to_list(Tab),
+                 atom_to_list(Table),
                  "where",
                  WhereMS], " ")),
     {deleted, Count};
 
-handle_query({read, R}, {RDBMS, RecordsInfo}) ->
-    Table = element(1, R),
+handle_query({read, R}, DbInfo) ->
+    TableInfo = get_table_info(R, DbInfo),
     {selected, _, Rows} =
         sql_query(
             string:join(
                 ["select * from",
-                 atom_to_list(Table),
+                 atom_to_list(TableInfo#table.name),
                  "where",
-                 atom_to_list(get_field(1, R, RecordsInfo)),
-                 "=",
-                 escape(RDBMS, element(2, R))], " ")),
-    {selected, convert_rows(Rows, Table, [])};
+                 encode_keys(R, TableInfo)], " ")),
+    {selected, convert_rows(Rows, [], TableInfo)};
 
-handle_query({select, Tab, MS, Opts}, {RDBMS, RecordsInfo} = Info) ->
-    {WhereMS, BodyMS} = ms_to_sql(Info, MS),
+handle_query({select, Table, MS, Opts}, DbInfo) ->
+    TableInfo = get_table_info(Table, DbInfo),
+    {WhereMS, BodyMS} = ms_to_sql(MS, TableInfo),
     {OrderBy, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
     Offset = proplists:get_value(offset, Opts, undefined),
@@ -103,7 +68,7 @@ handle_query({select, Tab, MS, Opts}, {RDBMS, RecordsInfo} = Info) ->
         case OrderBy of
             undefined -> "";
             _ ->
-                FieldName = get_field(OrderBy, Tab, RecordsInfo),
+                FieldName = lists:nth(OrderBy, TableInfo#table.fields),
                 string:join(
                     ["order by",
                      atom_to_list(FieldName),
@@ -113,12 +78,12 @@ handle_query({select, Tab, MS, Opts}, {RDBMS, RecordsInfo} = Info) ->
     WhereOffset =
         case Offset of
             undefined -> "";
-            _ -> "offset " ++ escape(RDBMS, Offset)
+            _ -> "offset " ++ encode(Offset, TableInfo)
         end,
     WhereLimit =
         case Limit of
             undefined -> "";
-            _ -> "limit " ++ escape(RDBMS, Limit)
+            _ -> "limit " ++ encode(Limit, TableInfo)
         end,
     Where = string:join([WhereMS, WhereOrdered, WhereOffset, WhereLimit], " "),
     Body =
@@ -133,75 +98,83 @@ handle_query({select, Tab, MS, Opts}, {RDBMS, RecordsInfo} = Info) ->
                 ["select",
                  Body,
                  "from",
-                 atom_to_list(Tab),
+                 atom_to_list(Table),
                  "where",
                  Where], " ")
         ),
-    {selected, convert_rows(Rows, Tab, BodyMS)};
+    {selected, convert_rows(Rows, BodyMS, TableInfo)};
 
-handle_query({update, R}, {RDBMS, RecordsInfo} = Info) ->
-    Set = get_update_set_stmt(R, Info),
+handle_query({update, R}, DbInfo) ->
+    TableInfo = get_table_info(R, DbInfo),
+    Set = get_update_set_stmt(R, TableInfo),
     {updated, Count} =
         sql_query(
             string:join(
                 ["update",
-                 atom_to_list(element(1, R)),
+                 atom_to_list(TableInfo#table.name),
                  "where",
-                 atom_to_list(get_field(1, R, RecordsInfo)),
-                 "=",
-                 escape(RDBMS, element(2, R)),
+                 encode_keys(R, TableInfo),
                  "set",
                  Set], " ")),
     {updated, Count};
 
-handle_query({update, R, MS}, Info) ->
-    Set = get_update_set_stmt(R, Info),
-    {WhereMS, _BodyMS} = ms_to_sql(Info, MS),
+handle_query({update, R, MS}, DbInfo) ->
+    TableInfo = get_table_info(R, DbInfo),
+    Set = get_update_set_stmt(R, TableInfo),
+    {WhereMS, _BodyMS} = ms_to_sql(MS, TableInfo),
     {updated, Count} =
         sql_query(
             string:join(
                 ["update",
-                 atom_to_list(element(1, R)),
+                 TableInfo#table.name,
                  "where",
                  WhereMS,
                  "set",
                  Set], " ")),
     {updated, Count};
 
-handle_query({insert, Records}, {RDBMS, _RecordsInfo}) ->
+handle_query({insert, Records}, DbInfo) ->
     % TODO: optimize for those RDBMS that have multiple insert!
-    {Count, Table} =
+    {Count, TableInfo} =
         lists:foldl(
             fun(R, {N, _}) ->
-                Table = element(1, R),
+                TableInfo = get_table_info(R, DbInfo),
                 {updated, _} =
                     sql_query(
                         string:join(
                         ["insert into ",
-                         atom_to_list(Table),
+                         atom_to_list(TableInfo#table.name),
                          "values",
-                         get_record_values(R, RDBMS)], " ")),
-                {N + 1, Table}
+                         get_record_values(R, TableInfo)], " ")),
+                {N + 1, TableInfo}
             end,
             {0, undefined},
             Records),
     LastKey =
-        case RDBMS of
+        case TableInfo#table.rdbms of
             "mysql" ->
                 {selected, _, [{ID}]} =
                     sql_query(["select LAST_INSERT_ID()"]),
-                to_integer(ID);
+                decode(ID, integer, TableInfo);
             "sqlite" ->
                 {selected, _, [{ID}]} =
                     sql_query(["select last_insert_rowid()"]),
-    		    to_integer(ID);
+    		    decode(ID, integer, TableInfo);
 	        "pgsql" ->
                 {selected, _, [{ID}]} =
-                    sql_query(["select currval('", atom_to_list(Table), "_id_seq')"]),
-                to_integer(ID)
+                    sql_query(["select currval('",
+                               atom_to_list(TableInfo#table.name),
+                               "_id_seq')"]),
+                decode(ID, integer, TableInfo)
         end,
-    {inserted, Count, LastKey}.
+    {inserted, Count, LastKey};
 
+handle_query({transaction, F}, DbInfo) ->
+    ejabberd_odbc:sql_transaction(DbInfo#backend.host, F).
+
+%%--------------------------------------------------------------------
+%%
+%% Matching expressions support in SQL.
 %%
 %% WARNING! WARNING! WARNING!
 %% We support EXTREMELY LIMITED subset of match expressions!
@@ -227,9 +200,8 @@ handle_query({insert, Records}, {RDBMS, _RecordsInfo}) ->
 %%   extend it, make sure it is done in portable way across different RDBMS
 %%   implementations! (possibly using RDBMS-specific handling code)
 %%
-%% @spec (state(), MS()) -> {Where, Body}
-%% @throws ?ERR_INTERNAL_SERVER_ERROR()
-ms_to_sql({RDBMS, RecordsInfo}, [{MatchHead, MatchConditions, MatchBody}]) ->
+%%--------------------------------------------------------------------
+ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
     % Fill dictionary of matching-variable-to-field-name mapping.
     % Throw if repetitive use of the same matching variable is detected.
     {MatchVarsDict, _} = 
@@ -242,8 +214,8 @@ ms_to_sql({RDBMS, RecordsInfo}, [{MatchHead, MatchConditions, MatchBody}]) ->
 		            throw({error, badmatchexpr});
 		        _ ->
   	                {dict:store(MatchItem,
-                                get_field(Index, MatchHead, RecordsInfo),
-                                MatchVars),
+                        lists:nth(Index, TableInfo#table.fields),
+                        MatchVars),
                      Index + 1}
 		    end;
 	        _ -> {MatchVars, Index + 1}
@@ -254,7 +226,9 @@ ms_to_sql({RDBMS, RecordsInfo}, [{MatchHead, MatchConditions, MatchBody}]) ->
     % Transform match conditions to SQL syntax.
     Conditions = lists:map(
         fun(MatchCondition) ->
-                parse_match_condition(RDBMS, MatchCondition, MatchVarsDict)
+                parse_match_condition(
+                    MatchCondition,
+                    {MatchVarsDict, TableInfo})
         end, MatchConditions),
     % Generate request body: empty if full record is requested, otherwise it's the list of fields.
     Body =
@@ -268,26 +242,28 @@ ms_to_sql({RDBMS, RecordsInfo}, [{MatchHead, MatchConditions, MatchBody}]) ->
     end,
     {string:join(Conditions, " and "), string:join(Body, ", ")}.
 
-parse_match_condition(_RDBMS, Val, MatchVarsDict) when is_atom(Val) ->
-    case dict:find(Val, MatchVarsDict) of
-        {ok, Field} -> atom_to_list(Field);
-        _ -> atom_to_list(Val)
+parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
+    case dict:find(Value, MatchVarsDict) of
+        {ok, Field} ->
+            atom_to_list(Field);
+        _ ->
+            encode(Value, TableInfo)
     end;
 
-parse_match_condition(RDBMS, Val, _MatchVarsDict)
-    when is_list(Val) orelse is_integer(Val) orelse is_float(Val) ->
-    escape(RDBMS, Val);
+parse_match_condition(Value, {_MatchVarsDict, TableInfo})
+    when is_list(Value) orelse is_integer(Value) orelse is_float(Value) ->
+    encode(Value, TableInfo);
 
-parse_match_condition(RDBMS, {GuardFun, Op1}, MatchVarsDict) ->
+parse_match_condition({GuardFun, Op1}, Context) ->
     OpName =
     case GuardFun of
         'not' -> "not";
 	'abs' -> "abs";
 	_ -> throw({error, badmatchexpr})
     end,
-    generate_unary_op(RDBMS, OpName, Op1, MatchVarsDict);
+    generate_unary_op(OpName, Op1, Context);
 
-parse_match_condition(RDBMS, {GuardFun, Op1, Op2}, MatchVarsDict) ->
+parse_match_condition({GuardFun, Op1, Op2}, Context) ->
     OpName = 
     case GuardFun of
         'and' -> "and";
@@ -308,21 +284,21 @@ parse_match_condition(RDBMS, {GuardFun, Op1, Op2}, MatchVarsDict) ->
 	'/' -> "/";
 	_ -> throw({error, badmatchexpr})
     end,
-    generate_binary_op(RDBMS, OpName, Op1, Op2, MatchVarsDict).
+    generate_binary_op(OpName, Op1, Op2, Context).
 
-generate_unary_op(RDBMS, OpName, Op1, MatchVarsDict) ->
-    OpName ++ "(" ++ parse_match_condition(RDBMS, Op1, MatchVarsDict) ++ ")".
+generate_unary_op(OpName, Op1, Context) ->
+    OpName ++ "(" ++ parse_match_condition(Op1, Context) ++ ")".
 
-generate_binary_op(RDBMS, OpName, Op1, Op2, MatchVarsDict) ->
+generate_binary_op(OpName, Op1, Op2, Context) ->
     "(" ++
-        parse_match_condition(RDBMS, Op1, MatchVarsDict) ++
+        parse_match_condition(Op1, Context) ++
         " " ++ OpName ++ " " ++
-        parse_match_condition(RDBMS, Op2, MatchVarsDict) ++ ")".
+        parse_match_condition(Op2, Context) ++ ")".
 
 parse_match_body(Expr, MatchVarsDict) ->
     case dict:find(Expr, MatchVarsDict) of
         {ok, Field} -> atom_to_list(Field);
-	_ -> throw({error, badmatchexpr})
+	    _ -> throw({error, badmatchexpr})
     end.
 
 is_match_variable(Variable) ->
@@ -332,107 +308,215 @@ is_match_variable(Variable) ->
     end.
 
 %%--------------------------------------------------------------------
-%% Utility functions to make database interaction easier.
+%% Utility functions for database interaction.
 %%--------------------------------------------------------------------
+
+%%
+%% Wrapper for ejabberd_odbc:sql_query_t for easier debugging.
+%%
 sql_query(Query) ->
     %%?MYDEBUG("running query: ~p", [lists:flatten(Query)]),
     case catch ejabberd_odbc:sql_query_t(Query) of
-        {'EXIT', Err} ->
-            ?ERROR_MSG("unhandled exception during query: ~p", [Err]),
-            exit(Err);
-        {error, Err} ->
-            ?ERROR_MSG("error during query: ~p", [Err]),
-            throw({error, Err});
+        {'EXIT', Error} ->
+            %?ERROR_MSG("unhandled exception during query: ~p", [Error]),
+            exit(Error);
+        {error, Error} ->
+            %?ERROR_MSG("error during query: ~p", [Error]),
+            throw({error, Error});
         aborted ->
-            ?ERROR_MSG("query aborted", []),
+            %?ERROR_MSG("query aborted", []),
             throw(aborted);
         R -> %?MYDEBUG("query result: ~p", [R]),
 	    R
     end.
 
-get_field(Index, Table, RecordsInfo) when is_atom(Table) ->
-    {ok, Info} = dict:find(Table, RecordsInfo),
-    lists:nth(Index, Info);
+%%
+%% Compose SET statement for UPDATE from all non-undefined fields except
+%% key ones.
+%%
+get_update_set_stmt(R, TableInfo) ->
+    string:join(get_update_set_stmt(R, TableInfo, tuple_size(R), []), ", ").
 
-get_field(Index, R, RecordsInfo) when is_atom(R) ->
-    get_field(Index, element(1, R), RecordsInfo).
+% Do not overwrite key field.
+get_update_set_stmt(_R, TableInfo, N, Stmts) when N =:= TableInfo#table.keys + 1->
+    Stmts;
 
-get_update_set_stmt(R, Info) ->
-    string:join(get_update_set_stmt(R, Info, tuple_size(R), []), ", ").
-
-get_update_set_stmt(R, {RDBMS, _RecordsInfo} = Info, N, Stmts) ->
+get_update_set_stmt(R, TableInfo, N, Stmts) ->
     NewStmts =
         case element(N, R) of
             undefined ->
                 Stmts;
-         Value ->
-                [string:join(
-                    [atom_to_list(get_field(N, R, Info)),
-                     "=",
-                     escape(RDBMS, Value)], " ") | Stmts]
+            Value ->
+                [atom_to_list(lists:nth(N, TableInfo#table.fields)) ++
+                 " = " ++
+                 encode(Value, TableInfo) | Stmts]
         end,
-    get_update_set_stmt(R, Info, N - 1, NewStmts);
+    get_update_set_stmt(R, TableInfo, N - 1, NewStmts).
 
-% Do not overwrite key field.
-get_update_set_stmt(_R, _Info, 2, Stmts) ->
-    Stmts.
-
-get_record_values(R, RDBMS) ->
+%%
+%% Compose VALUES clause for INSERT command based on record fields.
+%%
+get_record_values(R, TableInfo) ->
     Values =
         lists:map(
             fun(Value) ->
-                escape(RDBMS, Value)
+                encode(Value, TableInfo)
             end,
             lists:nthtail(1, tuple_to_list(R))),
     "(" ++ string:join(Values, ", ") ++ ")".
 
-convert_rows(Rows, Table, BodyMS) ->
-    case BodyMS of
-        [] ->
-            lists:map(
-                fun(Row) ->
-                    list_to_tuple(Table ++ tuple_to_list(Row))
-                end,
-            Rows);
-        _ ->
-            Rows
-    end.
+%%
+%% Composes WHERE part of SQL command from record keys.
+%%
+encode_keys(R, TableInfo) ->
+    string:join([atom_to_list(lists:nth(N, TableInfo)) ++
+                 " = " ++
+                 encode(element(2, R), TableInfo) ||
+                 N <- lists:seq(1, TableInfo#table.keys)],
+        " and ").
+
+%%
+%% Converts data returned by SQL engine back to their corresponding types.
+%%
+convert_rows(Rows, BodyMS, TableInfo) ->
+    lists:map(
+         fun(Row) ->
+             Values =
+                convert_row(tuple_to_list(Row),
+                            BodyMS,
+                            [],
+                            TableInfo),
+                list_to_tuple(
+                    if BodyMS =:= TableInfo#table.fields ->
+                        TableInfo#table.name ++ Values;
+                       true ->
+                        Values
+                    end)
+         end,
+         Rows).
+
+convert_row([], [], Row, _TableInfo) ->
+    lists:reverse(Row);
+
+convert_row([Value | VT], [Field | FT], Row, TableInfo) ->
+    Index = elem_index(Field, TableInfo#table.fields),
+    NewRow = [decode(Value, lists:nth(Index, TableInfo#table.types), TableInfo) |
+              Row],
+    convert_row(VT, FT, NewRow, TableInfo).
+
+%%
+%% Returns table information given table or record.
+%%
+get_table_info(Table, DbInfo) when is_atom(Table) ->
+    {ok, TableInfo} = dict:find(Table, DbInfo#backend.schema),
+    TableInfo;
+
+get_table_info(R, DbInfo) ->
+    {ok, TableInfo} = dict:find(element(1, R), DbInfo#backend.schema),
+    TableInfo.
+
+
+%%--------------------------------------------------------------------
+%%
+%% Encoding/decoding for SQL.
+%%
+%%--------------------------------------------------------------------
+
+%% RDBMS-independent escaping.
+encode(null, _) ->
+    "null";
+
+encode(undefined, _) ->
+    "null";
+
+encode(true, _) ->
+    "1";
+
+encode(false, _) ->
+    "0";
+
+% TODO: locales?
+encode(N, _) when is_integer(N) ->
+    integer_to_list(N);
+
+% TODO: locales?
+encode(N, _) when is_float(N) ->
+    float_to_list(N);
+
+encode({{Year, Month, Day}, {Hour, Minute, Second}}, _) ->
+    io_lib:format("~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w",
+                  [Year, Month, Day, Hour, Minute, Second]);
+
+%% RDBMS-specific escaping.
 
 %% Noone seems to follow standards these days :-(
 %% We have to perform DB-specific escaping,as f.e. SQLite does not understand
 %% '\' as escaping character (which is exactly in accordance with the standard,
 %% by the way), while most other DBs do.
-
-%% RDBMS-independent escaping.
-escape(_, null) ->
-    "null";
-escape(_, undefined) ->
-    "null";
-escape(_, infinity) ->
-    integer_to_list(?INFINITY);
-% TODO: locales?
-escape(_, N) when is_integer(N) ->
-    integer_to_list(N);
-% TODO: locales?
-escape(_, N) when is_float(N) ->
-    float_to_list(N);
-
-%% RDBMS-specific escaping.
-escape(sqlite, Str) when is_list(Str) ->
+encode(Str, TableInfo) when is_list(Str) andalso TableInfo#table.rdbms =:= sqlite ->
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
-escape(_, Str) when is_list(Str) ->
+
+encode(Str, _) when is_list(Str) ->
 	"'" ++ ejabberd_odbc:escape(Str) ++ "'";
-escape(_D, _V) ->
-    io:format("Cannot parse: ~p, ~p~n", [_D, _V]),
-    throw({error, badarg}).
+
+encode(Value, TableInfo) when is_atom(Value) ->
+    integer_to_list(elem_index(Value, TableInfo#table.enums)).
+
+decode(null, _Type, _TableInfo) ->
+    undefined;
+
+decode("null", _Type, _TableInfo) ->
+    undefined;
+
+decode(Value, string, _TableInfo) ->
+    Value;
+
+decode(Value, integer, _TableInfo) when is_list(Value) ->
+    list_to_integer(Value);
+
+decode(Value, integer, _TableInfo) when is_integer(Value) ->
+    Value;
+
+decode(Value, bool, TableInfo) ->
+    case decode(Value, integer, TableInfo) of
+        0 -> false;
+        1 -> true
+    end;
+
+decode(Value, time, _TableInfo) ->
+    parse_sql_datetime(Value);
+
+decode(Value, enum, TableInfo) ->
+    lists:nth(decode(Value, integer, TableInfo), TableInfo#table.enums).
+
+%%
+%% Missing functionality from lists module: get element index in list.
+%%
+elem_index(Value, List) -> elem_index(Value, List, 1).
+
+elem_index(_Value, [], _) -> undefined;
+elem_index(Value, [Value | _], N) -> N;
+elem_index(Value, [_ | Tail], N) -> elem_index(Value, Tail, N + 1).
 
 %% Escaping for ANSI SQL compliant RDBMS - so far SQLite only?
 escape_char_ansi_sql($')  -> "''";
 escape_char_ansi_sql(C)  -> C.
 
-to_integer(N) when is_integer(N) ->
-    N;
-to_integer(null) ->
-    undefined;
-to_integer(Str) ->
-    list_to_integer(Str).
+%%
+%% Date/time handling, partially copied from jlib and modified to support
+%% SQL syntax.
+%%
+parse_sql_datetime(TimeStr) ->
+    [Date, Time] = string:tokens(TimeStr, " "),
+    {parse_sql_date(Date), parse_sql_time(Time)}.
+
+%% yyyy-mm-dd
+parse_sql_date(Date) ->
+    [Y, M, D] = string:tokens(Date, "-"),
+    {list_to_integer(Y), list_to_integer(M), list_to_integer(D)}.
+
+%% hh:mm:ss[.sss]
+parse_sql_time(Time) ->
+    [HMS | _] =  string:tokens(Time, "."),
+    [H, M, S] = string:tokens(HMS, ":"),
+    {list_to_integer(H), list_to_integer(M), list_to_integer(S)}.

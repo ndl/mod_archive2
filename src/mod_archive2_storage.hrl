@@ -7,10 +7,8 @@
 %%% Id      : $Id$
 %%%----------------------------------------------------------------------
 
--record(backend_info,
-    {
-     host,
-     backend,
-     rdbms,
-     records,
-     escape}).
+%% Table information.
+-record(table, {name, rdbms, fields, types, enums, keys}).
+
+%% Storage backend information.
+-record(backend, {name, host, rdbms, schema}).

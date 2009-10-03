@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_storage_test.erl
+%%% File    : mod_archive2_odbc_test.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : Message Archiving (XEP-136) Storage Support
-%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 3 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Version : 2.0.0
 %%% Id      : $Id$
 %%%----------------------------------------------------------------------
@@ -16,59 +16,77 @@
 
 -export([eunit_xml_report/1]).
 
+-define(HOST, "localhost").
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
-mod_archive2_storage_test_() ->
+mod_archive2_mysql_test_() ->
 {
     foreach,
     local,
-    fun tests_setup/0,
-    fun tests_teardown/1,
+    fun mysql_tests_setup/0,
+    fun common_tests_teardown/1,
     [
-        ?test_gen(test_match_to_sql)
+        ?test_gen(mysql_test_insert_and_read)
     ]
 }.
 
-tests_setup() ->
-    {ok, State} =
-    mod_archive2_storage:init(
-        ["generic",
-         [{archive_jid_prefs, record_info(fields, archive_jid_prefs)},
-          {archive_global_prefs, record_info(fields, archive_global_prefs)},
-          {archive_collection, record_info(fields, archive_collection)},
-          {archive_message, record_info(fields, archive_message)}]]),
-    State.
+mod_archive2_mnesia_test_() ->
+{
+    foreach,
+    local,
+    fun mnesia_tests_setup/0,
+    fun mnesia_tests_teardown/1,
+    [
+        ?test_gen(mnesia_test_insert_and_read)
+    ]
+}.
 
-tests_teardown(_State) -> true.
+common_tests_setup(RDBMS) ->
+    {ok, Pid} =
+        gen_server:start(
+            mod_archive2_storage,
+            [{host, ?HOST},
+             [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]], []),
+    Pid.
 
-test_match_to_sql(State) ->
-    Where1Clause = "((id = 1) or ((id = 2) and (utc = \"2000-01-01\")))",
-    Query1Res =  {Where1Clause, "id, utc, body"},
-    ?assert(
-        mod_archive2_storage:ms_to_sql(
-	    State,
-            [{#archive_message{id = '$1', coll_id = '_', utc = '$2', direction = '_', body = '$3', name = '_'},
-             [{'orelse',{'==','$1',1},
-	                {'andalso',{'==','$1',2},{'==',utc,"2000-01-01"}}}],
-	     [{{'$1', '$2', '$3'}}]}])
-	=:= Query1Res),
-    % The same query, but now using matching transform:
-    ?assert(
-        mod_archive2_storage:ms_to_sql(
-            State,
-	    ets:fun2ms(
-	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
-		    {ID, UTC, Body}
-		end))
-	=:= Query1Res),
-    % The same query, but with full record returned.
-    ?assert(
-        mod_archive2_storage:ms_to_sql(
-            State,
-	    ets:fun2ms(
-	        fun(#archive_message{id = ID, utc = UTC} = R) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
-		    R
-		end))
-	=:= {Where1Clause, ""}).
+common_tests_teardown(Pid) ->
+    gen_server:call(Pid, stop).
+
+mysql_tests_setup() ->
+    common_tests_setup(mysql).
+
+mnesia_tests_setup() ->
+    mnesia:start(),
+    mnesia:create_schema([node()]),
+    mnesia:create_table(archive_message,
+                        [{ram_copies, [node()]},
+                         {attributes, record_info(fields, archive_message)}]),
+    common_tests_setup(mnesia).
+
+mnesia_tests_teardown(Pid) ->
+    mnesia:clear_table(archive_message),
+    common_tests_teardown(Pid).
+
+mysql_test_insert_and_read(Pid) ->
+    ejabberd_odbc:start(["select", {selected, [], [{"0", "1", "2"}]}]),
+    common_test_insert_and_read(Pid).
+
+mnesia_test_insert_and_read(Pid) ->
+    common_test_insert_and_read(Pid).
+
+common_test_insert_and_read(_Pid) ->
+    {atomic, {inserted, 1, Key}} =
+        mod_archive2_storage:transaction(?HOST,
+            fun() ->
+                mod_archive2_storage:insert(
+                    [#archive_message{
+                        direction = from,
+                        body = "Hi!",
+                        name = "me"}])
+            end),
+    {atomic, {selected, [#archive_message{body = "Hi!", name = "me"}]}} =
+        mod_archive2_storage:transaction(?HOST,
+            fun() ->
+                mod_archive2_storage:read(#archive_message{id = Key})
+            end).
