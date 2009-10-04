@@ -23,8 +23,8 @@
 
 %% API
 -export([start_link/2,
-         delete/1, delete/2,
-         read/1, select/3,
+         delete/1,
+         read/1, select/1, select/2,
          insert/1, update/1, update/2,
          transaction/2]).
 
@@ -74,7 +74,7 @@ start(Host, Opts) ->
 
 stop(Host) ->
     Proc = gen_mod:get_module_proc(Host, ?MODULE),
-    gen_server:call(Proc, stop),
+    supervisor:terminate_child(?SUPERVISOR, Proc),
     supervisor:delete_child(?SUPERVISOR, Proc).
 
 %%--------------------------------------------------------------------
@@ -85,21 +85,23 @@ start_link(Host, Opts) ->
     Proc = gen_mod:get_module_proc(Host, ?MODULE),
     gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
-%% Deletes the specified record: key is mandatory, all other fields are unused.
-delete(R) ->
-    forward_query({delete, R}).
-
-%% Deletes all records matching MS.
-delete(Tab, MS) ->
-    forward_query({delete, {Tab, MS}}).
+%% Depending on argument type:
+%%  - Deletes the specified record: key is mandatory, all other fields are unused.
+%%  - Deletes all records matching MS.
+delete(Arg) ->
+    forward_query({delete, Arg}).
 
 %% Retrieves the specified record: key is mandatory, all other fields are unused.
 read(R) ->
     forward_query({read, R}).
 
+%% Retrieves all records matching MS.
+select(MS) ->
+    forward_query({select, MS, []}).
+
 %% Retrieves all records matching MS and using Opts.
-select(Tab, MS, Opts) ->
-    forward_query({select, {Tab, MS, Opts}}).
+select(MS, Opts) ->
+    forward_query({select, MS, Opts}).
 
 %% Updates the specified record, which is assumed to exist: key is mandatory,
 %% all other fields not set to "undefined" are used.
@@ -109,7 +111,7 @@ update(R) ->
 %% Updates all records matching MS, all fields not set to "undefined" are used
 %% (except key).
 update(R, MS) ->
-    forward_query({update, {R, MS}}).
+    forward_query({update, R, MS}).
 
 %% Inserts all records in the list to their respective tables, records are
 %% assumed to not exist, keys are auto-generated, all other fields not set to
@@ -140,7 +142,7 @@ forward_query(Query) ->
     Info = get(?BACKEND_KEY),
     case Info#backend.name of
         ?MODULE_MNESIA ->
-            mod_archive2_mnesia:handle_query(Query);
+            mod_archive2_mnesia:handle_query(Query, Info);
         ?MODULE_ODBC ->
             mod_archive2_odbc:handle_query(Query, Info)
     end.
@@ -152,9 +154,8 @@ put_backend(Host, Opts) ->
             mnesia -> ?MODULE_MNESIA;
             _ -> ?MODULE_ODBC
         end,
-    Tables = [Table#table{rdbms = RDBMS} ||
+    Schema = [Table#table{rdbms = RDBMS} ||
               Table <- proplists:get_value(schema, Opts, [])],
-    Schema = dict:from_list(Tables),
     put(?BACKEND_KEY,
         #backend{
             name = Backend,

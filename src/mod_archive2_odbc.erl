@@ -21,116 +21,117 @@
 %% Queries interface
 %%--------------------------------------------------------------------
 
-handle_query({delete, R}, DbInfo) ->
-    TableInfo = get_table_info(R, DbInfo),
+handle_query({delete, R}, DbInfo) when is_tuple(R) ->
+    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
     {updated, Count} =
         sql_query(
-            string:join(
+            join_non_empty(
                 ["delete from",
                  atom_to_list(TableInfo#table.name),
                  "where",
                  encode_keys(R, TableInfo)], " ")),
     {deleted, Count};
 
-handle_query({delete, Table, MS}, DbInfo) ->
-    TableInfo = get_table_info(Table, DbInfo),
+handle_query({delete, MS}, DbInfo) when is_list(MS) ->
+    TableInfo = mod_archive2_utils:get_table_info(MS, DbInfo),
     {WhereMS, _BodyMS} =
         ms_to_sql(MS, TableInfo),
     {updated, Count} =
         sql_query(
-            string:join(
+            join_non_empty(
                 ["delete from",
-                 atom_to_list(Table),
-                 "where",
-                 WhereMS], " ")),
+                 atom_to_list(TableInfo#table.name),
+                 get_if_not_empty("where", WhereMS)], " ")),
     {deleted, Count};
 
 handle_query({read, R}, DbInfo) ->
-    TableInfo = get_table_info(R, DbInfo),
+    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
     {selected, _, Rows} =
         sql_query(
-            string:join(
+            join_non_empty(
                 ["select * from",
                  atom_to_list(TableInfo#table.name),
                  "where",
                  encode_keys(R, TableInfo)], " ")),
-    {selected, convert_rows(Rows, [], TableInfo)};
+    {selected, convert_rows(Rows, TableInfo#table.fields, TableInfo, undefined)};
 
-handle_query({select, Table, MS, Opts}, DbInfo) ->
-    TableInfo = get_table_info(Table, DbInfo),
+handle_query({select, MS, Opts}, DbInfo) ->
+    TableInfo = mod_archive2_utils:get_table_info(MS, DbInfo),
     {WhereMS, BodyMS} = ms_to_sql(MS, TableInfo),
     {OrderBy, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
     Offset = proplists:get_value(offset, Opts, undefined),
     Limit = proplists:get_value(limit, Opts, undefined),
     Aggregate = proplists:get_value(aggregate, Opts, undefined),
-    WhereOrdered =
+    OrderedClause =
         case OrderBy of
             undefined -> "";
             _ ->
-                FieldName = lists:nth(OrderBy, TableInfo#table.fields),
-                string:join(
-                    ["order by",
-                     atom_to_list(FieldName),
-                     ",",
-                     atom_to_list(OrderType)], " ")
+                FieldName = lists:nth(OrderBy - 1, TableInfo#table.fields),
+                "order by " ++
+                atom_to_list(FieldName) ++
+                ", " ++
+                atom_to_list(OrderType)
         end,
-    WhereOffset =
+    OffsetClause =
         case Offset of
             undefined -> "";
             _ -> "offset " ++ encode(Offset, TableInfo)
         end,
-    WhereLimit =
+    LimitClause =
         case Limit of
             undefined -> "";
             _ -> "limit " ++ encode(Limit, TableInfo)
         end,
-    Where = string:join([WhereMS, WhereOrdered, WhereOffset, WhereLimit], " "),
+    Where = get_if_not_empty("where", WhereMS),
     Body =
         case Aggregate of
-            count -> "count(*)";
-            _ when BodyMS =:= [] -> "*";
-            _ -> BodyMS
+            count ->
+                "count(*)";
+            {MinMax, Index} when MinMax =:= min orelse MinMax =:= max ->
+                atom_to_list(MinMax) ++
+                "(" ++
+                atom_to_list(lists:nth(Index - 1, TableInfo#table.fields)) ++
+                ")";
+            _ when BodyMS =:= TableInfo#table.fields ->
+                "*";
+            _ ->
+                string:join([atom_to_list(Field) || Field <- BodyMS], ", ")
         end,
     {selected, _, Rows} =
         sql_query(
-            string:join(
-                ["select",
-                 Body,
-                 "from",
-                 atom_to_list(Table),
-                 "where",
-                 Where], " ")
-        ),
-    {selected, convert_rows(Rows, BodyMS, TableInfo)};
+            join_non_empty(["select", Body,
+                            "from", atom_to_list(TableInfo#table.name),
+                            Where, OrderedClause, OffsetClause, LimitClause],
+                           " ")),
+    {selected, convert_rows(Rows, BodyMS, TableInfo, Aggregate)};
 
 handle_query({update, R}, DbInfo) ->
-    TableInfo = get_table_info(R, DbInfo),
+    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {updated, Count} =
         sql_query(
-            string:join(
+            join_non_empty(
                 ["update",
                  atom_to_list(TableInfo#table.name),
-                 "where",
-                 encode_keys(R, TableInfo),
                  "set",
-                 Set], " ")),
+                 Set,
+                 "where",
+                 encode_keys(R, TableInfo)], " ")),
     {updated, Count};
 
 handle_query({update, R, MS}, DbInfo) ->
-    TableInfo = get_table_info(R, DbInfo),
+    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {WhereMS, _BodyMS} = ms_to_sql(MS, TableInfo),
     {updated, Count} =
         sql_query(
-            string:join(
+            join_non_empty(
                 ["update",
-                 TableInfo#table.name,
-                 "where",
-                 WhereMS,
+                 atom_to_list(TableInfo#table.name),
                  "set",
-                 Set], " ")),
+                 Set,
+                 get_if_not_empty("where", WhereMS)], " ")),
     {updated, Count};
 
 handle_query({insert, Records}, DbInfo) ->
@@ -138,11 +139,11 @@ handle_query({insert, Records}, DbInfo) ->
     {Count, TableInfo} =
         lists:foldl(
             fun(R, {N, _}) ->
-                TableInfo = get_table_info(R, DbInfo),
+                TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
                 {updated, _} =
                     sql_query(
-                        string:join(
-                        ["insert into ",
+                        join_non_empty(
+                        ["insert into",
                          atom_to_list(TableInfo#table.name),
                          "values",
                          get_record_values(R, TableInfo)], " ")),
@@ -152,19 +153,19 @@ handle_query({insert, Records}, DbInfo) ->
             Records),
     LastKey =
         case TableInfo#table.rdbms of
-            "mysql" ->
+            mysql ->
                 {selected, _, [{ID}]} =
-                    sql_query(["select LAST_INSERT_ID()"]),
+                    sql_query("select LAST_INSERT_ID()"),
                 decode(ID, integer, TableInfo);
-            "sqlite" ->
+            sqlite ->
                 {selected, _, [{ID}]} =
-                    sql_query(["select last_insert_rowid()"]),
+                    sql_query("select last_insert_rowid()"),
     		    decode(ID, integer, TableInfo);
-	        "pgsql" ->
+	        pgsql ->
                 {selected, _, [{ID}]} =
-                    sql_query(["select currval('",
-                               atom_to_list(TableInfo#table.name),
-                               "_id_seq')"]),
+                    sql_query("select currval('" ++
+                              atom_to_list(TableInfo#table.name) ++
+                              "_id_seq')"),
                 decode(ID, integer, TableInfo)
         end,
     {inserted, Count, LastKey};
@@ -202,37 +203,52 @@ handle_query({transaction, F}, DbInfo) ->
 %%
 %%--------------------------------------------------------------------
 ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
-    % Fill dictionary of matching-variable-to-field-name mapping.
+    % Fill dictionary of matching-variable-to-field-name mapping and head
+    % matches, if any.
     % Throw if repetitive use of the same matching variable is detected.
-    {MatchVarsDict, _} = 
-    lists:foldl(
-        fun(MatchItem, {MatchVars, Index}) ->
-	    case is_match_variable(MatchItem) of
-	        true ->
-	            case dict:find(MatchItem, MatchVars) of
-		        {ok, _} ->
-		            throw({error, badmatchexpr});
-		        _ ->
-  	                {dict:store(MatchItem,
-                        lists:nth(Index, TableInfo#table.fields),
-                        MatchVars),
-                     Index + 1}
-		    end;
-	        _ -> {MatchVars, Index + 1}
-	    end
-	end,
-	{dict:new(), 0},
-	tuple_to_list(MatchHead)),
+    {MatchVarsDict, HeadMatches, _} =
+        lists:foldl(
+            fun(MatchItem, {MatchVars, HM, Index}) ->
+                FieldName = lists:nth(Index, TableInfo#table.fields),
+                case is_match_variable(MatchItem) of
+                    true ->
+                        case dict:find(MatchItem, MatchVars) of
+                            {ok, _} ->
+                                throw({error, badmatchexpr});
+                            _ ->
+                                {dict:store(MatchItem, FieldName, MatchVars),
+                                 HM,
+                                 Index + 1}
+                        end;
+                    _ ->
+                        case MatchItem of
+                            '_' ->
+                                {MatchVars, HM, Index + 1};
+                             _ ->
+                                {MatchVars,
+                                 ["(" ++
+                                  encode(FieldName, TableInfo) ++
+                                  " = " ++
+                                  encode(MatchItem, TableInfo)
+                                  ++")"| HM],
+                                  Index + 1}
+                        end
+                end
+            end,
+            {dict:new(), [], 1},
+            lists:nthtail(1, tuple_to_list(MatchHead))),
     % Transform match conditions to SQL syntax.
-    Conditions = lists:map(
-        fun(MatchCondition) ->
-                parse_match_condition(
-                    MatchCondition,
-                    {MatchVarsDict, TableInfo})
-        end, MatchConditions),
+    Conditions =
+        lists:reverse(HeadMatches) ++
+        lists:map(
+            fun(MatchCondition) ->
+                    parse_match_condition(
+                        MatchCondition,
+                        {MatchVarsDict, TableInfo})
+            end, MatchConditions),
     % Generate request body: empty if full record is requested, otherwise it's the list of fields.
     Body =
-    if MatchBody =:= ['$_'] -> [];
+    if MatchBody =:= ['$_'] -> TableInfo#table.fields;
         true ->
 	    [{MatchBodyRecord}] = MatchBody,
             lists:map(
@@ -240,7 +256,7 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
                         parse_match_body(Expr, MatchVarsDict)
                 end, tuple_to_list(MatchBodyRecord))
     end,
-    {string:join(Conditions, " and "), string:join(Body, ", ")}.
+    {string:join(Conditions, " and "), Body}.
 
 parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
     case dict:find(Value, MatchVarsDict) of
@@ -297,15 +313,18 @@ generate_binary_op(OpName, Op1, Op2, Context) ->
 
 parse_match_body(Expr, MatchVarsDict) ->
     case dict:find(Expr, MatchVarsDict) of
-        {ok, Field} -> atom_to_list(Field);
+        {ok, Field} -> Field;
 	    _ -> throw({error, badmatchexpr})
     end.
 
-is_match_variable(Variable) ->
-    case catch list_to_integer(string:substr(atom_to_list(Variable), 2)) of
-        N when is_integer(N) -> true;
+is_match_variable(Variable) when is_atom(Variable) ->
+    VarName = atom_to_list(Variable),
+    case catch list_to_integer(string:substr(VarName, 2)) of
+        N when is_integer(N) -> [Ch | _] = VarName, Ch =:= $$;
         _ -> false
-    end.
+    end;
+is_match_variable(_Variable) ->
+    false.
 
 %%--------------------------------------------------------------------
 %% Utility functions for database interaction.
@@ -330,6 +349,16 @@ sql_query(Query) ->
 	    R
     end.
 
+%% Returns joined Prefix and Text if Text is not empty and "" otherwise.
+get_if_not_empty(Prefix, Text) ->
+    if Text =/= [] -> Prefix ++ " " ++ Text;
+       true -> ""
+    end.
+
+%% Joins all values that are not empty.
+join_non_empty(Values, Sep) ->
+    string:join([S || S <- Values, length(S) > 0], Sep).
+
 %%
 %% Compose SET statement for UPDATE from all non-undefined fields except
 %% key ones.
@@ -347,7 +376,7 @@ get_update_set_stmt(R, TableInfo, N, Stmts) ->
             undefined ->
                 Stmts;
             Value ->
-                [atom_to_list(lists:nth(N, TableInfo#table.fields)) ++
+                [atom_to_list(lists:nth(N - 1, TableInfo#table.fields)) ++
                  " = " ++
                  encode(Value, TableInfo) | Stmts]
         end,
@@ -369,7 +398,7 @@ get_record_values(R, TableInfo) ->
 %% Composes WHERE part of SQL command from record keys.
 %%
 encode_keys(R, TableInfo) ->
-    string:join([atom_to_list(lists:nth(N, TableInfo)) ++
+    string:join([atom_to_list(lists:nth(N, TableInfo#table.fields)) ++
                  " = " ++
                  encode(element(2, R), TableInfo) ||
                  N <- lists:seq(1, TableInfo#table.keys)],
@@ -378,17 +407,28 @@ encode_keys(R, TableInfo) ->
 %%
 %% Converts data returned by SQL engine back to their corresponding types.
 %%
-convert_rows(Rows, BodyMS, TableInfo) ->
+convert_rows(Rows, BodyMS, TableInfo, Aggregate) ->
     lists:map(
          fun(Row) ->
              Values =
-                convert_row(tuple_to_list(Row),
-                            BodyMS,
-                            [],
-                            TableInfo),
+                case Aggregate of
+                    undefined ->
+                        convert_row(tuple_to_list(Row),
+                                    BodyMS,
+                                    [],
+                                    TableInfo);
+                    count ->
+                        {Count} = Row, [decode(Count, integer, TableInfo)];
+                    {_, Index} ->
+                        {Value} = Row,
+                        [decode(Value,
+                                lists:nth(Index - 1, TableInfo#table.types),
+                                TableInfo)]
+                end,
                 list_to_tuple(
-                    if BodyMS =:= TableInfo#table.fields ->
-                        TableInfo#table.name ++ Values;
+                    if BodyMS =:= TableInfo#table.fields andalso
+                       Aggregate =:= undefined ->
+                        [TableInfo#table.name | Values];
                        true ->
                         Values
                     end)
@@ -399,22 +439,12 @@ convert_row([], [], Row, _TableInfo) ->
     lists:reverse(Row);
 
 convert_row([Value | VT], [Field | FT], Row, TableInfo) ->
-    Index = elem_index(Field, TableInfo#table.fields),
-    NewRow = [decode(Value, lists:nth(Index, TableInfo#table.types), TableInfo) |
-              Row],
+    NewRow = [convert_value(Value, Field, TableInfo) | Row],
     convert_row(VT, FT, NewRow, TableInfo).
 
-%%
-%% Returns table information given table or record.
-%%
-get_table_info(Table, DbInfo) when is_atom(Table) ->
-    {ok, TableInfo} = dict:find(Table, DbInfo#backend.schema),
-    TableInfo;
-
-get_table_info(R, DbInfo) ->
-    {ok, TableInfo} = dict:find(element(1, R), DbInfo#backend.schema),
-    TableInfo.
-
+convert_value(Value, Field, TableInfo) ->
+    Index = mod_archive2_utils:elem_index(Field, TableInfo#table.fields),
+    decode(Value, lists:nth(Index, TableInfo#table.types), TableInfo).
 
 %%--------------------------------------------------------------------
 %%
@@ -444,8 +474,9 @@ encode(N, _) when is_float(N) ->
     float_to_list(N);
 
 encode({{Year, Month, Day}, {Hour, Minute, Second}}, _) ->
-    io_lib:format("~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w",
-                  [Year, Month, Day, Hour, Minute, Second]);
+    lists:flatten(
+        io_lib:format("'~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w'",
+                      [Year, Month, Day, Hour, Minute, Second]));
 
 %% RDBMS-specific escaping.
 
@@ -460,7 +491,12 @@ encode(Str, _) when is_list(Str) ->
 	"'" ++ ejabberd_odbc:escape(Str) ++ "'";
 
 encode(Value, TableInfo) when is_atom(Value) ->
-    integer_to_list(elem_index(Value, TableInfo#table.enums)).
+    case mod_archive2_utils:elem_index(Value, TableInfo#table.enums) of
+        N when is_integer(N) ->
+            integer_to_list(
+                mod_archive2_utils:elem_index(Value, TableInfo#table.enums) - 1);
+        _ -> atom_to_list(Value)
+    end.
 
 decode(null, _Type, _TableInfo) ->
     undefined;
@@ -487,16 +523,7 @@ decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
 
 decode(Value, enum, TableInfo) ->
-    lists:nth(decode(Value, integer, TableInfo), TableInfo#table.enums).
-
-%%
-%% Missing functionality from lists module: get element index in list.
-%%
-elem_index(Value, List) -> elem_index(Value, List, 1).
-
-elem_index(_Value, [], _) -> undefined;
-elem_index(Value, [Value | _], N) -> N;
-elem_index(Value, [_ | Tail], N) -> elem_index(Value, Tail, N + 1).
+    lists:nth(decode(Value, integer, TableInfo) + 1, TableInfo#table.enums).
 
 %% Escaping for ANSI SQL compliant RDBMS - so far SQLite only?
 escape_char_ansi_sql($')  -> "''";

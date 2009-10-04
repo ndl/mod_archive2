@@ -67,7 +67,7 @@
          utc,
          direction,
          body,
-         name = ""}).
+         name}).
 
 -define(MOD_ARCHIVE2_SCHEMA,
         [#table{name = archive_jid_prefs,

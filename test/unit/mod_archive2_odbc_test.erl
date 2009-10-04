@@ -29,42 +29,46 @@ mod_archive2_match_to_sql_test_() ->
     ]
 }.
 
-tests_setup() ->
-    #backend{
-        rdbms = mysql,
-        schema = ?MOD_ARCHIVE2_SCHEMA
-    }.
+tests_setup() -> ok.
 
-tests_teardown(_State) -> ok.
+tests_teardown(_) -> ok.
 
-test_match_to_sql(State) ->
-    Where1Clause = "((id = 1) or ((id = 2) and (utc = \"2000-01-01\")))",
-    Query1Res =  {Where1Clause, "id, utc, body"},
+test_match_to_sql(_) ->
+    Where1Clause = "((id = 1) or ((id = 2) and (utc = '2000-01-01')))",
+    Query1Res =  {Where1Clause, [id, utc, body]},
+    TableSchema =
+        lists:keyfind(archive_message, #table.name, ?MOD_ARCHIVE2_SCHEMA),
+    TableInfo = TableSchema#table{rdbms = mysql},
     ?assert(
         mod_archive2_odbc:ms_to_sql(
-	    State,
             [{#archive_message{id = '$1', coll_id = '_', utc = '$2', direction = '_', body = '$3', name = '_'},
              [{'orelse',{'==','$1',1},
-	                {'andalso',{'==','$1',2},{'==',utc,"2000-01-01"}}}],
-	     [{{'$1', '$2', '$3'}}]}])
+	                {'andalso',{'==','$1', 2},{'==',utc,"2000-01-01"}}}],
+	     [{{'$1', '$2', '$3'}}]}], TableInfo)
 	=:= Query1Res),
     % The same query, but now using matching transform:
     ?assert(
         mod_archive2_odbc:ms_to_sql(
-            State,
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
 		    {ID, UTC, Body}
-		end))
+		end), TableInfo)
 	=:= Query1Res),
     % The same query, but with full record returned.
     ?assert(
         mod_archive2_odbc:ms_to_sql(
-            State,
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC} = R) when
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
 		    R
-		end))
-	=:= {Where1Clause, ""}).
+		end), TableInfo)
+	=:= {Where1Clause, TableInfo#table.fields}),
+    % Test head matching.
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+	    ets:fun2ms(
+	        fun(#archive_message{id = 1, utc = "2000-01-01"} = R) ->
+		    R
+		end), TableInfo)
+	=:= {"(id = 1) and (utc = '2000-01-01')", TableInfo#table.fields}).
