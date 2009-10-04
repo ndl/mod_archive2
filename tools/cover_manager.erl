@@ -1,11 +1,32 @@
 -module(cover_manager).
+
+-behaviour(gen_server).
+
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
+
+%% API.
 -export([start/1, stop/0]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 
--define(COVER_KEY, cover_manager_key).
+-define(PROC, list_to_atom(atom_to_list(?MODULE) ++ "_proc")).
 
+%%
+%% API.
+%%
 start(Args) ->
+    gen_server:start({local, ?PROC}, ?MODULE, Args, []).
+
+stop() ->
+    gen_server:call(?PROC, stop).
+
+%%--------------------------------------------------------------------
+%% gen_server callbacks
+%%--------------------------------------------------------------------
+
+init(Args) ->
     [PackageName, SrcPath, DataFile, XmlFile, FileMask] =
     	lists:map(fun(Value) when is_atom(Value) ->
                       atom_to_list(Value);
@@ -16,11 +37,23 @@ start(Args) ->
     lists:foreach(
         fun(File) -> cover:compile_beam(File) end,
 	Files),
-    put(?COVER_KEY, {PackageName, SrcPath, DataFile, XmlFile, [list_to_atom(filename:basename(File, ".beam")) || File <- Files]}),
-    cover:import(DataFile).
+    cover:import(DataFile),
+    {ok, {PackageName, SrcPath, DataFile, XmlFile,
+          [list_to_atom(filename:basename(File, ".beam")) || File <- Files]}}.
 
-stop() ->
-    {PackageName, SrcPath, DataFile, XmlFile, Modules} = get(?COVER_KEY),
+handle_call(stop, _From, State) ->
+    {stop, normal, ok, State};
+
+handle_call(_Req, _From, State) ->
+    {reply, {error, badarg}, State}.
+
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, {PackageName, SrcPath, DataFile, XmlFile, Modules}) ->
     cover:export(DataFile),
     {SumCovered, SumUncovered} =
     lists:foldl(
@@ -61,7 +94,11 @@ stop() ->
     file:write(Dev, "<?xml version='1.0' encoding='UTF-8'?>\n"
     "<!DOCTYPE coverage SYSTEM \"http://cobertura.sourceforge.net/xml/coverage-03.dtd\">\n"),
     file:write(Dev, exmpp_xml:document_to_iolist(CoverageXML)),
-    file:close(Dev).
+    file:close(Dev),
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
 analyse_module(Module) ->
     {ok, FunCovList} = cover:analyse(Module, coverage, function),
