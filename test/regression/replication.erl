@@ -12,7 +12,7 @@ replication_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        ?test_gen(test_retrieve_replication)
+        ?test_gen1(test_retrieve_replication)
     ]
 }.
 

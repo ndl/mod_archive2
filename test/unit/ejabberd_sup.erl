@@ -11,10 +11,13 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("eunit/include/eunit.hrl").
+-include("config.hrl").
 
 -behaviour(supervisor).
 
--export([start_link/0, init/1]).
+-export([start_link/0, init/1, eunit_xml_report/1]).
+
+eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).

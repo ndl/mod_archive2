@@ -24,11 +24,8 @@ elem_index(Value, [Value | _], N) -> N;
 elem_index(Value, [_ | Tail], N) -> elem_index(Value, Tail, N + 1).
 
 %%
-%% Returns table information given table, record or MS.
+%% Returns table information given record or MS.
 %%
-get_table_info(Table, DbInfo) when is_atom(Table) ->
-    lists:keyfind(Table, #table.name, DbInfo#backend.schema);
-
 get_table_info(R, DbInfo) when is_tuple(R) ->
     lists:keyfind(element(1, R), #table.name, DbInfo#backend.schema);
 

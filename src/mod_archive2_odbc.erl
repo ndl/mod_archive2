@@ -183,7 +183,7 @@ handle_query({transaction, F}, DbInfo) ->
 %% Some of the limitations:
 %%
 %% - Only matching with explicit records specification, and only for those
-%%   records that are explicitly registered in init/1 call is supported.
+%%   records that we have schema for is supported.
 %%
 %% - No repetitions of matching variables in matching head is allowed: use
 %%   explicit equality condition.
@@ -205,21 +205,17 @@ handle_query({transaction, F}, DbInfo) ->
 ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
     % Fill dictionary of matching-variable-to-field-name mapping and head
     % matches, if any.
-    % Throw if repetitive use of the same matching variable is detected.
+    % Fail if repetitive use of the same matching variable is detected.
     {MatchVarsDict, HeadMatches, _} =
         lists:foldl(
             fun(MatchItem, {MatchVars, HM, Index}) ->
                 FieldName = lists:nth(Index, TableInfo#table.fields),
                 case is_match_variable(MatchItem) of
                     true ->
-                        case dict:find(MatchItem, MatchVars) of
-                            {ok, _} ->
-                                throw({error, badmatchexpr});
-                            _ ->
-                                {dict:store(MatchItem, FieldName, MatchVars),
-                                 HM,
-                                 Index + 1}
-                        end;
+                        error = dict:find(MatchItem, MatchVars),
+                        {dict:store(MatchItem, FieldName, MatchVars),
+                         HM,
+                         Index + 1};
                     _ ->
                         case MatchItem of
                             '_' ->
@@ -240,22 +236,18 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
     % Transform match conditions to SQL syntax.
     Conditions =
         lists:reverse(HeadMatches) ++
-        lists:map(
-            fun(MatchCondition) ->
-                    parse_match_condition(
-                        MatchCondition,
-                        {MatchVarsDict, TableInfo})
-            end, MatchConditions),
-    % Generate request body: empty if full record is requested, otherwise it's the list of fields.
+        [parse_match_condition(MC, {MatchVarsDict, TableInfo}) ||
+         MC <- MatchConditions],
+    % Generate the list of fields requested.
     Body =
-    if MatchBody =:= ['$_'] -> TableInfo#table.fields;
-        true ->
-	    [{MatchBodyRecord}] = MatchBody,
-            lists:map(
-                fun(Expr) ->
-                        parse_match_body(Expr, MatchVarsDict)
-                end, tuple_to_list(MatchBodyRecord))
-    end,
+        case MatchBody of
+            ['$_'] ->
+                TableInfo#table.fields;
+            _ ->
+	            [{MatchBodyRecord}] = MatchBody,
+                [parse_match_body(Expr, MatchVarsDict) ||
+                 Expr <- tuple_to_list(MatchBodyRecord)]
+        end,
     {string:join(Conditions, " and "), Body}.
 
 parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
@@ -274,31 +266,29 @@ parse_match_condition({GuardFun, Op1}, Context) ->
     OpName =
     case GuardFun of
         'not' -> "not";
-	'abs' -> "abs";
-	_ -> throw({error, badmatchexpr})
+	    'abs' -> "abs"
     end,
     generate_unary_op(OpName, Op1, Context);
 
 parse_match_condition({GuardFun, Op1, Op2}, Context) ->
     OpName = 
     case GuardFun of
-        'and' -> "and";
-	'andalso' -> "and";
-	'or' -> "or";
-	'orelse' -> "or";
-	'==' -> "=";
-	'=:=' -> "=";
-	'<' -> "<";
-	'=<' -> "<=";
-	'>' -> ">";
-	'>=' -> ">=";
-	'=/=' -> "<>";
-	'/=' -> "<>";
-	'+' -> "+";
-	'-' -> "-";
-	'*' -> "*";
-	'/' -> "/";
-	_ -> throw({error, badmatchexpr})
+        'and' -> "&";
+	    'andalso' -> "and";
+	    'or' -> "|";
+	    'orelse' -> "or";
+        '==' -> "=";
+        '=:=' -> "=";
+        '<' -> "<";
+        '=<' -> "<=";
+        '>' -> ">";
+        '>=' -> ">=";
+        '=/=' -> "<>";
+        '/=' -> "<>";
+        '+' -> "+";
+        '-' -> "-";
+        '*' -> "*";
+        '/' -> "/"
     end,
     generate_binary_op(OpName, Op1, Op2, Context).
 
@@ -312,10 +302,8 @@ generate_binary_op(OpName, Op1, Op2, Context) ->
         parse_match_condition(Op2, Context) ++ ")".
 
 parse_match_body(Expr, MatchVarsDict) ->
-    case dict:find(Expr, MatchVarsDict) of
-        {ok, Field} -> Field;
-	    _ -> throw({error, badmatchexpr})
-    end.
+    {ok, Field} = dict:find(Expr, MatchVarsDict),
+    Field.
 
 is_match_variable(Variable) when is_atom(Variable) ->
     VarName = atom_to_list(Variable),
@@ -361,38 +349,23 @@ join_non_empty(Values, Sep) ->
 
 %%
 %% Compose SET statement for UPDATE from all non-undefined fields except
-%% key ones.
+%% key ones: start index is choosen to avoid overwriting keys fields.
 %%
 get_update_set_stmt(R, TableInfo) ->
-    string:join(get_update_set_stmt(R, TableInfo, tuple_size(R), []), ", ").
-
-% Do not overwrite key field.
-get_update_set_stmt(_R, TableInfo, N, Stmts) when N =:= TableInfo#table.keys + 1->
-    Stmts;
-
-get_update_set_stmt(R, TableInfo, N, Stmts) ->
-    NewStmts =
-        case element(N, R) of
-            undefined ->
-                Stmts;
-            Value ->
-                [atom_to_list(lists:nth(N - 1, TableInfo#table.fields)) ++
-                 " = " ++
-                 encode(Value, TableInfo) | Stmts]
-        end,
-    get_update_set_stmt(R, TableInfo, N - 1, NewStmts).
+    string:join(
+        [atom_to_list(lists:nth(N - 1, TableInfo#table.fields)) ++
+         " = " ++ encode(Value, TableInfo) ||
+         N <- lists:seq(TableInfo#table.keys + 2, tuple_size(R)),
+         (Value = element(N, R)) =/= undefined], ", ").
 
 %%
 %% Compose VALUES clause for INSERT command based on record fields.
 %%
 get_record_values(R, TableInfo) ->
-    Values =
-        lists:map(
-            fun(Value) ->
-                encode(Value, TableInfo)
-            end,
-            lists:nthtail(1, tuple_to_list(R))),
-    "(" ++ string:join(Values, ", ") ++ ")".
+    "(" ++
+    string:join([encode(Value, TableInfo) ||
+                 Value <- lists:nthtail(1, tuple_to_list(R))], ", ") ++
+    ")".
 
 %%
 %% Composes WHERE part of SQL command from record keys.
@@ -409,14 +382,11 @@ encode_keys(R, TableInfo) ->
 %%
 convert_rows(Rows, BodyMS, TableInfo, Aggregate) ->
     lists:map(
-         fun(Row) ->
-             Values =
+        fun(Row) ->
+            Values =
                 case Aggregate of
                     undefined ->
-                        convert_row(tuple_to_list(Row),
-                                    BodyMS,
-                                    [],
-                                    TableInfo);
+                        convert_row(tuple_to_list(Row), BodyMS, TableInfo);
                     count ->
                         {Count} = Row, [decode(Count, integer, TableInfo)];
                     {_, Index} ->
@@ -425,22 +395,19 @@ convert_rows(Rows, BodyMS, TableInfo, Aggregate) ->
                                 lists:nth(Index - 1, TableInfo#table.types),
                                 TableInfo)]
                 end,
-                list_to_tuple(
-                    if BodyMS =:= TableInfo#table.fields andalso
-                       Aggregate =:= undefined ->
-                        [TableInfo#table.name | Values];
-                       true ->
-                        Values
-                    end)
+            list_to_tuple(
+                if BodyMS =:= TableInfo#table.fields andalso
+                    Aggregate =:= undefined ->
+                    [TableInfo#table.name | Values];
+                   true ->
+                    Values
+                end)
          end,
          Rows).
 
-convert_row([], [], Row, _TableInfo) ->
-    lists:reverse(Row);
-
-convert_row([Value | VT], [Field | FT], Row, TableInfo) ->
-    NewRow = [convert_value(Value, Field, TableInfo) | Row],
-    convert_row(VT, FT, NewRow, TableInfo).
+convert_row(Values, Fields, TableInfo) ->
+    [convert_value(Value, Field, TableInfo) ||
+     {Value, Field} <- lists:zip(Values, Fields)].
 
 convert_value(Value, Field, TableInfo) ->
     Index = mod_archive2_utils:elem_index(Field, TableInfo#table.fields),
@@ -484,7 +451,8 @@ encode({{Year, Month, Day}, {Hour, Minute, Second}}, _) ->
 %% We have to perform DB-specific escaping,as f.e. SQLite does not understand
 %% '\' as escaping character (which is exactly in accordance with the standard,
 %% by the way), while most other DBs do.
-encode(Str, TableInfo) when is_list(Str) andalso TableInfo#table.rdbms =:= sqlite ->
+encode(Str, TableInfo) when is_list(Str) andalso
+                            TableInfo#table.rdbms =:= sqlite ->
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 
 encode(Str, _) when is_list(Str) ->

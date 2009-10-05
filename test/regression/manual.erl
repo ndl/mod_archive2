@@ -12,13 +12,13 @@ manual_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        ?test_gen(test_upload),
-        ?test_gen(test_change_subject),
-        ?test_gen(test_utc_attribute),
-	?test_gen(test_groupchat),
-	?test_gen(test_linking),
-	?test_gen(test_link_remove),
-	?test_gen(test_add_attributes)
+        ?test_gen1(test_upload),
+        ?test_gen1(test_change_subject),
+        ?test_gen1(test_utc_attribute),
+        ?test_gen1(test_groupchat),
+        ?test_gen1(test_linking),
+        ?test_gen1(test_link_remove),
+        ?test_gen1(test_add_attributes)
     ]
 }.
 

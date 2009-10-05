@@ -12,13 +12,13 @@ management_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        ?test_gen(test_retrieve_list),
-	?test_gen(test_retrieve_empty_list),
-	?test_gen(test_retrieve_collection),
-	?test_gen(test_retrieve_non_existing_collection),
-	?test_gen(test_remove_collections),
-	?test_gen(test_remove_all_collections),
-	?test_gen(test_remove_non_existing_collection)
+        ?test_gen1(test_retrieve_list),
+        ?test_gen1(test_retrieve_empty_list),
+        ?test_gen1(test_retrieve_collection),
+        ?test_gen1(test_retrieve_non_existing_collection),
+        ?test_gen1(test_remove_collections),
+        ?test_gen1(test_remove_all_collections),
+        ?test_gen1(test_remove_non_existing_collection)
     ]
 }.
 

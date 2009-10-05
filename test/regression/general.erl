@@ -12,9 +12,9 @@ general_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        ?test_gen(test_disco),
-	?test_gen(test_remove_user),
-	?test_gen(test_remove_user2)
+        ?test_gen1(test_disco),
+        ?test_gen1(test_remove_user),
+        ?test_gen1(test_remove_user2)
     ]
 }.
 

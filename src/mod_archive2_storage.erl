@@ -120,16 +120,6 @@ update(R, MS) ->
 insert(Records) ->
     forward_query({insert, Records}).
 
-%%
-%% TODO: DO WE NEED IT?
-%%
-%% Updates or inserts all records in their respective tables depending on
-%% whether they exist or not, keys are auto-generated, all other fields not set
-%% to "undefined" are used. Returns last inserted ID, but it is meaningful only
-%% if Records contained single record.
-%% write(Host, Records) ->
-%%    ?FORWARD(Host, {write, Records}).
-
 %% Runs transaction.
 transaction(Host, F) ->
     gen_server:call(gen_mod:get_module_proc(Host, ?MODULE), {transaction, F}).

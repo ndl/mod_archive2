@@ -19,34 +19,38 @@
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_match_to_sql_test_() ->
-{
-    foreach,
-    local,
-    fun tests_setup/0,
-    fun tests_teardown/1,
     [
-        ?test_gen(test_match_to_sql)
-    ]
-}.
+        ?test_gen0(test_match_to_sql1),
+        ?test_gen0(test_match_to_sql2),
+        ?test_gen0(test_match_to_sql3),
+        ?test_gen0(test_match_to_sql4),
+        ?test_gen0(test_match_to_sql5),
+        ?test_gen0(test_match_to_sql6)
+     ].
 
-tests_setup() -> ok.
+-define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01')))").
+-define(QUERY_RES1, {?WHERE_CLAUSE1, [id, utc, body]}).
 
-tests_teardown(_) -> ok.
-
-test_match_to_sql(_) ->
-    Where1Clause = "((id = 1) or ((id = 2) and (utc = '2000-01-01')))",
-    Query1Res =  {Where1Clause, [id, utc, body]},
+get_table_info(Table) ->
     TableSchema =
-        lists:keyfind(archive_message, #table.name, ?MOD_ARCHIVE2_SCHEMA),
-    TableInfo = TableSchema#table{rdbms = mysql},
+        lists:keyfind(Table, #table.name, ?MOD_ARCHIVE2_SCHEMA),
+    TableSchema#table{rdbms = mysql}.
+
+%% Direct MS test.
+test_match_to_sql1() ->
+    TableInfo = get_table_info(archive_message),
     ?assert(
         mod_archive2_odbc:ms_to_sql(
-            [{#archive_message{id = '$1', coll_id = '_', utc = '$2', direction = '_', body = '$3', name = '_'},
+            [{#archive_message{id = '$1', coll_id = '_', utc = '$2',
+                               direction = '_', body = '$3', name = '_'},
              [{'orelse',{'==','$1',1},
 	                {'andalso',{'==','$1', 2},{'==',utc,"2000-01-01"}}}],
 	     [{{'$1', '$2', '$3'}}]}], TableInfo)
-	=:= Query1Res),
-    % The same query, but now using matching transform:
+	=:= ?QUERY_RES1).
+
+%% fun2ms MS-generated test.
+test_match_to_sql2() ->
+    TableInfo = get_table_info(archive_message),
     ?assert(
         mod_archive2_odbc:ms_to_sql(
 	    ets:fun2ms(
@@ -54,8 +58,11 @@ test_match_to_sql(_) ->
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
 		    {ID, UTC, Body}
 		end), TableInfo)
-	=:= Query1Res),
-    % The same query, but with full record returned.
+	=:= ?QUERY_RES1).
+
+%% full record test.
+test_match_to_sql3() ->
+    TableInfo = get_table_info(archive_message),
     ?assert(
         mod_archive2_odbc:ms_to_sql(
 	    ets:fun2ms(
@@ -63,8 +70,11 @@ test_match_to_sql(_) ->
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
 		    R
 		end), TableInfo)
-	=:= {Where1Clause, TableInfo#table.fields}),
-    % Test head matching.
+	=:= {?WHERE_CLAUSE1, TableInfo#table.fields}).
+
+%% Head matching test.
+test_match_to_sql4() ->
+    TableInfo = get_table_info(archive_message),
     ?assert(
         mod_archive2_odbc:ms_to_sql(
 	    ets:fun2ms(
@@ -72,3 +82,47 @@ test_match_to_sql(_) ->
 		    R
 		end), TableInfo)
 	=:= {"(id = 1) and (utc = '2000-01-01')", TableInfo#table.fields}).
+
+%% Partial body plus head matching test.
+test_match_to_sql5() ->
+    TableInfo = get_table_info(archive_jid_prefs),
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+            ets:fun2ms(
+                fun(#archive_jid_prefs{with_user = "juliet",
+                                       save = Save, otr = OTR}) ->
+                    {Save, OTR}
+                end), TableInfo)
+    =:= {"(with_user = 'juliet')",[save,otr]}).
+
+%% All supported functions test.
+test_match_to_sql6() ->
+    TableInfo = get_table_info(archive_jid_prefs),
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+            ets:fun2ms(
+                fun(#archive_jid_prefs{save = Save, expire = Expire, otr = Otr} = R)
+                    when (not (not Save)) =:= Save andalso
+                         abs(Expire) == Expire andalso
+                         Expire < Otr orelse
+                         Expire =< Otr orelse
+                         Expire > Otr andalso
+                         Expire >= Otr andalso
+                         Expire =/= Otr andalso
+                         Expire /= Otr andalso
+                         Expire and Otr =:= Otr andalso
+                         Expire or Otr == Otr orelse
+                         Expire + Otr > Expire orelse
+                         Expire - Otr < Expire orelse
+                         Expire * Otr =:= Expire orelse
+                         Expire / Otr =/= Expire ->
+                        R
+                end), TableInfo)
+    =:=
+        {"(((not(not(save)) = save) and ((abs(expire) = expire) and "
+         "(expire < otr))) or ((expire <= otr) or (((expire > otr) and "
+         "((expire >= otr) and ((expire <> otr) and ((expire <> otr) and "
+         "(((expire & otr) = otr) and ((expire | otr) = otr)))))) or "
+         "(((expire + otr) > expire) or (((expire - otr) < expire) or "
+         "(((expire * otr) = expire) or ((expire / otr) <> expire)))))))",
+         [us,with_user,with_server,with_resource,save,expire,otr]}).

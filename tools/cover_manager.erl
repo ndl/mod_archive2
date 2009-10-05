@@ -87,7 +87,7 @@ terminate(_Reason, {PackageName, SrcPath, DataFile, XmlFile, Modules}) ->
 	        exmpp_xml:attribute("name", PackageName),
 	        exmpp_xml:attribute("line-rate", LineRate)
 	    ],
-            lists:map(fun(M) -> analyse_module(M) end, Modules))
+            [analyse_module(M) || M <- Modules])
         ])
     ]),
     {ok, Dev} = file:open(XmlFile, write),
@@ -113,8 +113,8 @@ analyse_module(Module) ->
 	exmpp_xml:attribute("line-rate", if Total > 0 -> format_float(Covered / Total); true -> "1" end)
     ],
     [
-        exmpp_xml:element(undefined, "methods", [], lists:map(fun(FC) -> analyse_fun(FC) end, FunCovList)),
-        exmpp_xml:element(undefined, "lines", [], lists:map(fun(Line) -> analyse_line(Line) end, LinesCovList))
+        exmpp_xml:element(undefined, "methods", [], [analyse_fun(FC) || FC <- FunCovList]),
+        exmpp_xml:element(undefined, "lines", [], [analyse_line(Line) || Line <- LinesCovList])
     ]).
 
 analyse_fun({{_Module, Fun, Arity}, {Covered, Uncovered}}) ->

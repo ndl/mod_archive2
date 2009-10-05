@@ -12,11 +12,11 @@ prefs_test_() ->
     fun client:session_setup/0,
     fun client:session_teardown/1, 
     [
-        ?test_gen(test_default_prefs),
-	?test_gen(test_global_prefs_change),
-        ?test_gen(test_prefs_methods_change),
-	?test_gen(test_jid_prefs_change)
-%	?test_gen(test_jid_prefs_remove)
+        ?test_gen1(test_default_prefs),
+	    ?test_gen1(test_global_prefs_change),
+        ?test_gen1(test_prefs_methods_change),
+	    ?test_gen1(test_jid_prefs_change)
+%	    ?test_gen(test_jid_prefs_remove)
     ]
 }.
 

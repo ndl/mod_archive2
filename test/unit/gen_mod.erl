@@ -11,8 +11,11 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("eunit/include/eunit.hrl").
+-include("config.hrl").
 
--export([get_module_proc/2]).
+-export([get_module_proc/2, eunit_xml_report/1]).
+
+eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 get_module_proc(Host, Base) ->
     list_to_atom(atom_to_list(Base) ++ "_" ++ Host).
