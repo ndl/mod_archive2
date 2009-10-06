@@ -1,0 +1,2 @@
+#!/bin/sh
+sed 's/<<\"stanza-[0-9]*\">>/<<\"stanza-\",_\/binary>>/;s/\"stanza-[0-9]\+\"/\"stanza-" ++ _/;s/<<\"client\([0-9]*\)@ndl-server\/exmpp#[0-9]*\">>/<<?CLIENTJID\1 \"\/", _\/binary>>/;s/<<\"client\([0-9]*\)@ndl-server\">>/<<?CLIENTJID\1>>/;s/<<\"client\([0-9]*\)\">>/<<?CLIENTNAME\1>>/;s/<<\"ndl-server\">>/<<?SERVERHOST>>/;s/\"http\:\/\/www\.xmpp\.org\/extensions\/xep-0136\.html#ns\"/?NS/;s/<<\"[0-9]*@[0-9]*\">>/_/;s/<<"2[0-9]*-[0-9]*-[0-9]*T[0-9]*:[0-9]*:[0-9]*\.[0-9]*Z">>/_/'

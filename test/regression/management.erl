@@ -2,25 +2,22 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("config.hrl").
+-include("testing.hrl").
 -include("management.hrl").
 
 management_test_() ->
-{
-    foreach,
-    local, 
-    fun client:session_setup/0,
-    fun client:session_teardown/1, 
-    [
-        ?test_gen1(test_retrieve_list),
-        ?test_gen1(test_retrieve_empty_list),
-        ?test_gen1(test_retrieve_collection),
-        ?test_gen1(test_retrieve_non_existing_collection),
-        ?test_gen1(test_remove_collections),
-        ?test_gen1(test_remove_all_collections),
-        ?test_gen1(test_remove_non_existing_collection)
-    ]
-}.
+    ?test_foreach(
+        client:session_setup,
+        client:session_teardown,
+        [
+            ?test_gen1(test_retrieve_list),
+            ?test_gen1(test_retrieve_empty_list),
+            ?test_gen1(test_retrieve_collection),
+            ?test_gen1(test_retrieve_non_existing_collection),
+            ?test_gen1(test_remove_collections),
+            ?test_gen1(test_remove_all_collections),
+            ?test_gen1(test_remove_non_existing_collection)
+        ]).
 
 test_retrieve_list(F) ->
     ?MANAGEMENT_TC1_RETRIEVE_RESULT =

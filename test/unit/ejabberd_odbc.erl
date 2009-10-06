@@ -11,7 +11,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("eunit/include/eunit.hrl").
--include("config.hrl").
+-include("testing.hrl").
 
 -export([start/1, sql_transaction/2, sql_query_t/1, escape/1, eunit_xml_report/1]).
 

@@ -2,21 +2,18 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("config.hrl").
+-include("testing.hrl").
 -include("general.hrl").
 
 general_test_() ->
-{
-    foreach,
-    local, 
-    fun client:session_setup/0,
-    fun client:session_teardown/1, 
-    [
-        ?test_gen1(test_disco),
-        ?test_gen1(test_remove_user),
-        ?test_gen1(test_remove_user2)
-    ]
-}.
+    ?test_foreach(
+        client:session_setup,
+        client:session_teardown,
+        [
+            ?test_gen1(test_disco),
+            ?test_gen1(test_remove_user),
+            ?test_gen1(test_remove_user2)
+        ]).
 
 test_disco(F) ->
     ?GENERAL_TC1_QUERY_RESULT =

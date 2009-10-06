@@ -2,19 +2,16 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("config.hrl").
+-include("testing.hrl").
 -include("replication.hrl").
 
 replication_test_() ->
-{
-    foreach,
-    local, 
-    fun client:session_setup/0,
-    fun client:session_teardown/1, 
-    [
-        ?test_gen1(test_retrieve_replication)
-    ]
-}.
+    ?test_foreach(
+        client:session_setup,
+        client:session_teardown,
+        [
+            ?test_gen1(test_retrieve_replication)
+        ]).
 
 test_retrieve_replication(F) ->
     ?REPLICATION_TC1_UPLOAD_RESULT =

@@ -11,7 +11,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("eunit/include/eunit.hrl").
--include("config.hrl").
+-include("testing.hrl").
 
 -behaviour(supervisor).
 

@@ -2,23 +2,20 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--include("config.hrl").
+-include("testing.hrl").
 -include("prefs.hrl").
 
 prefs_test_() ->
-{
-    foreach,
-    local, 
-    fun client:session_setup/0,
-    fun client:session_teardown/1, 
-    [
-        ?test_gen1(test_default_prefs),
-	    ?test_gen1(test_global_prefs_change),
-        ?test_gen1(test_prefs_methods_change),
-	    ?test_gen1(test_jid_prefs_change)
-%	    ?test_gen(test_jid_prefs_remove)
-    ]
-}.
+    ?test_foreach(
+        client:session_setup,
+        client:session_teardown,
+        [
+            ?test_gen1(test_default_prefs),
+	        ?test_gen1(test_global_prefs_change),
+            ?test_gen1(test_prefs_methods_change),
+	        ?test_gen1(test_jid_prefs_change)
+%	        ?test_gen(test_jid_prefs_remove)
+        ]).
 
 test_default_prefs(F) ->
     ?PREFS_TC1_DEFAULT = client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "pref"))).

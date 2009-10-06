@@ -12,7 +12,7 @@
 
 -include_lib("stdlib/include/ms_transform.hrl").
 -include("mod_archive2.hrl").
--include("config.hrl").
+-include("testing.hrl").
 
 -export([eunit_xml_report/1]).
 
