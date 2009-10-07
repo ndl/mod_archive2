@@ -26,7 +26,7 @@ CREATE INDEX IDX_archive_colls_change_utc ON archive_collections(change_utc);
 CREATE TABLE archive_messages(id INTEGER NOT NULL,
                               coll_id INTEGER NOT NULL,
                               utc DATETIME NOT NULL,
-                              dir INTEGER,
+                              direction INTEGER,
                               body VARCHAR(65535),
                               name VARCHAR(1023),
                               PRIMARY KEY(id));

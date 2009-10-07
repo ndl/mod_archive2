@@ -29,7 +29,7 @@ DROP TABLE archive_messages;
 CREATE TABLE archive_messages(id SERIAL NOT NULL,
                               coll_id INTEGER NOT NULL,
                               utc timestamp NOT NULL,
-                              dir INTEGER,
+                              direction INTEGER,
                               body VARCHAR(65535),
                               name VARCHAR(1023),
                               PRIMARY KEY(id));

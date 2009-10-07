@@ -31,7 +31,7 @@ CREATE INDEX IDX_archive_colls_change ON archive_collections(deleted,change_utc)
 CREATE TABLE archive_messages(id INTEGER NOT NULL AUTO_INCREMENT,
                               coll_id INTEGER NOT NULL,
                               utc DATETIME NOT NULL,
-                              dir TINYINT,
+                              direction TINYINT,
                               body VARCHAR(63488),
                               name VARCHAR(1023),
                               PRIMARY KEY(id))
