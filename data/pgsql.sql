@@ -1,72 +1,75 @@
-DROP TABLE archive_collections;
+DROP TABLE archive_collection;
 
-CREATE TABLE archive_collections(id SERIAL not null,
-                                 prev_id INTEGER,
-                                 next_id INTEGER,
-                                 us VARCHAR(2047) NOT NULL,
-                                 with_user VARCHAR(1023) NOT NULL,
-                                 with_server VARCHAR(1023) NOT NULL,
-                                 with_resource VARCHAR(1023) NOT NULL,
-                                 utc timestamp NOT NULL,
-                                 change_by VARCHAR(3071),
-                                 change_utc timestamp,
-                                 deleted INTEGER,
-                                 subject VARCHAR(1023),
-                                 thread VARCHAR(1023),
-                                 crypt INTEGER,
-                                 extra VARCHAR(32767),
-                                 PRIMARY KEY(id));
-CREATE INDEX IDX_archive_colls_prev_id ON archive_collections(prev_id);
-CREATE INDEX IDX_archive_colls_next_id ON archive_collections(next_id);
-CREATE INDEX IDX_archive_colls_us ON archive_collections(us);
-CREATE INDEX IDX_archive_colls_with_server ON archive_collections(with_server);
-CREATE INDEX IDX_archive_colls_with_user ON archive_collections(with_user);
-CREATE INDEX IDX_archive_colls_with_resource ON archive_collections(with_resource);
-CREATE INDEX IDX_archive_colls_utc ON archive_collections(utc);
-CREATE INDEX IDX_archive_colls_change_utc ON archive_collections(change_utc);
+CREATE TABLE archive_collection(id SERIAL not null,
+                                prev_id INTEGER,
+                                next_id INTEGER,
+                                us VARCHAR(2047) NOT NULL,
+                                with_user VARCHAR(1023) NOT NULL,
+                                with_server VARCHAR(1023) NOT NULL,
+                                with_resource VARCHAR(1023) NOT NULL,
+                                utc timestamp NOT NULL,
+                                change_utc timestamp,
+				version INTEGER,
+                                deleted INTEGER,
+                                subject VARCHAR(1023),
+                                thread VARCHAR(1023),
+                                crypt INTEGER,
+                                extra VARCHAR(32767),
+                                PRIMARY KEY(id));
+CREATE INDEX IDX_archive_colls_prev_id ON archive_collection(prev_id);
+CREATE INDEX IDX_archive_colls_next_id ON archive_collection(next_id);
+CREATE INDEX IDX_archive_colls_us ON archive_collection(us);
+CREATE INDEX IDX_archive_colls_with_server ON archive_collection(with_server);
+CREATE INDEX IDX_archive_colls_with_user ON archive_collection(with_user);
+CREATE INDEX IDX_archive_colls_with_resource ON archive_collection(with_resource);
+CREATE INDEX IDX_archive_colls_utc ON archive_collection(utc);
+CREATE INDEX IDX_archive_colls_change_utc ON archive_collection(change_utc);
 
-DROP TABLE archive_messages;
-CREATE TABLE archive_messages(id SERIAL NOT NULL,
-                              coll_id INTEGER NOT NULL,
-                              utc timestamp NOT NULL,
-                              direction INTEGER,
-                              body VARCHAR(65535),
-                              name VARCHAR(1023),
-                              PRIMARY KEY(id));
-CREATE INDEX IDX_archive_msgs_coll_id ON archive_messages(coll_id);
-CREATE INDEX IDX_archive_msgs_utc ON archive_messages(utc);
+DROP TABLE archive_message;
+CREATE TABLE archive_message(id SERIAL NOT NULL,
+                             coll_id INTEGER NOT NULL,
+                             utc timestamp NOT NULL,
+                             direction INTEGER,
+                             body VARCHAR(65535),
+                             name VARCHAR(1023),
+			                 jid VARCHAR(3071),
+                             PRIMARY KEY(id));
+CREATE INDEX IDX_archive_msgs_coll_id ON archive_message(coll_id);
+CREATE INDEX IDX_archive_msgs_utc ON archive_message(utc);
 
 DROP TABLE archive_jid_prefs;
 CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
                                with_user VARCHAR(1023) NOT NULL,
                                with_server VARCHAR(1023) NOT NULL,
                                with_resource VARCHAR(1023) NOT NULL,
-                               save integer,
+                               save INTEGER,
                                expire INTEGER,
-                               otr integer);
-CREATE INDEX IDX_archive_jid_prefs_us ON archive_jid_prefs(us);
-CREATE INDEX IDX_archive_jid_prefs_with_user ON archive_jid_prefs(with_user);
-CREATE INDEX IDX_archive_jid_prefs_with_server ON archive_jid_prefs(with_server);
-CREATE INDEX IDX_archive_jid_prefs_with_resource ON archive_jid_prefs(with_resource);
+                               otr INTEGER,
+                               PRIMARY KEY(us, with_user, with_server, with_resource));
 
 DROP TABLE archive_global_prefs;
 CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
-                                  save integer,
+                                  save INTEGER,
                                   expire INTEGER,
-                                  otr integer,
-                                  method_auto integer,
-                                  method_local integer,
-                                  method_manual integer,
-                                  auto_save integer);
-CREATE INDEX IDX_archive_global_prefs_us ON archive_global_prefs(us);
+                                  otr INTEGER,
+                                  method_auto INTEGER,
+                                  method_local INTEGER,
+                                  method_manual INTEGER,
+                                  auto_save INTEGER,
+                                  PRIMARY KEY(us));
 
+CREATE TRIGGER archive_collection_delete BEFORE DELETE ON archive_collection
+FOR EACH ROW
+BEGIN
+  DELETE FROM archive_message WHERE coll_id = OLD.id;
+  UPDATE archive_collection SET prev_id = null WHERE prev_id = OLD.id;
+  UPDATE archive_collection SET next_id = null WHERE next_id = OLD.id;
+END;
 
-CREATE RULE archive_collections_delete AS ON DELETE 
-    TO archive_collections
-    DO DELETE FROM archive_messages WHERE coll_id = OLD.id;
-    
-CREATE RULE archive_collections_update AS ON UPDATE
-    TO archive_collections
-    DO DELETE FROM archive_messages WHERE coll_id = NEW.id and NEW.deleted=1;
-    
-
+CREATE TRIGGER archive_collection_update BEFORE UPDATE ON archive_collection
+FOR EACH ROW WHEN NEW.deleted = 1
+BEGIN
+  DELETE FROM archive_message WHERE coll_id = NEW.id;
+  UPDATE archive_collection SET prev_id = null WHERE prev_id = NEW.id;
+  UPDATE archive_collection SET next_id = null WHERE next_id = NEW.id;
+END;

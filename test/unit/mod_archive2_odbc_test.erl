@@ -26,7 +26,6 @@
 -module(mod_archive2_odbc_test).
 -author('ejabberd@ndl.kiev.ua').
 
--include_lib("stdlib/include/ms_transform.hrl").
 -include("mod_archive2.hrl").
 -include("testing.hrl").
 
@@ -41,7 +40,8 @@ mod_archive2_match_to_sql_test_() ->
         ?test_gen0(test_match_to_sql3),
         ?test_gen0(test_match_to_sql4),
         ?test_gen0(test_match_to_sql5),
-        ?test_gen0(test_match_to_sql6)
+        ?test_gen0(test_match_to_sql6),
+        ?test_gen0(test_match_to_sql7)
      ].
 
 -define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01')))").
@@ -58,7 +58,8 @@ test_match_to_sql1() ->
     ?assert(
         mod_archive2_odbc:ms_to_sql(
             [{#archive_message{id = '$1', coll_id = '_', utc = '$2',
-                               direction = '_', body = '$3', name = '_'},
+                               direction = '_', body = '$3', name = '_',
+                               jid = '_'},
              [{'orelse',{'==','$1',1},
 	                {'andalso',{'==','$1', 2},{'==',utc,"2000-01-01"}}}],
 	     [{{'$1', '$2', '$3'}}]}], TableInfo)
@@ -141,4 +142,18 @@ test_match_to_sql6() ->
          "(((expire & otr) = otr) and ((expire | otr) = otr)))))) or "
          "(((expire + otr) > expire) or (((expire - otr) < expire) or "
          "(((expire * otr) = expire) or ((expire / otr) <> expire)))))))",
-         [us,with_user,with_server,with_resource,save,expire,otr]}).
+         TableInfo#table.fields}).
+
+test_match_to_sql7() ->
+    TableInfo = get_table_info(archive_collection),
+    ?assert(
+        mod_archive2_odbc:ms_to_sql(
+            ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
+                           US =:= "client@localhost",
+                           UTC < {{1469,7,21},{2,56,15}} orelse
+                           UTC =:= {{1469,7,21},{2,56,15}} andalso
+                           ID < 1 -> ok
+                       end), TableInfo)
+    =:=
+        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') or "
+         "((utc = '1469-07-21 02:56:15') and (id < 1)))", []}).

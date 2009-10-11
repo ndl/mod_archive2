@@ -42,6 +42,7 @@
          delete/1,
          read/1, select/1, select/2,
          insert/1, update/1, update/2,
+         sql_query/1,
          transaction/2]).
 
 -define(SUPERVISOR, ejabberd_sup).
@@ -135,6 +136,10 @@ update(R, MS) ->
 %% if Records contained single record.
 insert(Records) ->
     forward_query({insert, Records}).
+
+%% Runs given SQL query - does not work for Mnesia, of course ;-)
+sql_query(Query) ->
+    forward_query({sql_query, Query}).
 
 %% Runs transaction.
 transaction(Host, F) ->

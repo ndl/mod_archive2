@@ -24,41 +24,41 @@
 %%%----------------------------------------------------------------------
 
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("exmpp/include/exmpp.hrl").
+-include_lib("stdlib/include/ms_transform.hrl").
 
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 
 -include("mod_archive2_storage.hrl").
 
--define(NS_ARCHIVE,
-        "http://www.xmpp.org/extensions/xep-0136.html#ns").
--define(NS_ARCHIVE_AUTO,
-        "http://www.xmpp.org/extensions/xep-0136.html#ns-auto").
--define(NS_ARCHIVE_MANAGE,
-        "http://www.xmpp.org/extensions/xep-0136.html#ns-manage").
--define(NS_ARCHIVE_PREF,
-        "http://www.xmpp.org/extensions/xep-0136.html#ns-pref").
--define(NS_ARCHIVE_MANUAL,
-        "http://www.xmpp.org/extensions/xep-0136.html#ns-manual").
+-define(NS_ARCHIVING_AUTO, 'urn:xmpp:archive:auto').
+-define(NS_ARCHIVING_AUTO_s, "urn:xmpp:archive:auto").
+-define(NS_ARCHIVING_MANAGE, 'urn:xmpp:archive:manage').
+-define(NS_ARCHIVING_MANAGE_s, "urn:xmpp:archive:manage").
+-define(NS_ARCHIVING_MANUAL, 'urn:xmpp:archive:manual').
+-define(NS_ARCHIVING_MANUAL_s, "urn:xmpp:archive:manual").
+-define(NS_ARCHIVING_PREF, 'urn:xmpp:archive:pref').
+-define(NS_ARCHIVING_PREF_s, "urn:xmpp:archive:pref").
 
 -record(archive_jid_prefs,
         {us,
          with_user,
          with_server,
          with_resource,
-         save = undefined,
-         expire = undefined,
-         otr = undefined}).
+         save,
+         expire,
+         otr}).
 
 -record(archive_global_prefs,
         {us,
-         save = undefined,
-         expire = undefined,
-         otr = undefined,
-         method_auto = undefined,
-         method_local = undefined,
-         method_manual = undefined,
-         auto_save = undefined}).
+         save,
+         expire,
+         otr,
+         method_auto,
+         method_local,
+         method_manual,
+         auto_save}).
 
 -record(archive_collection,
         {id,
@@ -69,13 +69,13 @@
          with_server,
          with_resource,
          utc,
-         change_by,
          change_utc,
+         version,
          deleted,
-         subject = "",
-         thread = "",
-         crypt = false,
-         extra = ""}).
+         subject,
+         thread,
+         crypt,
+         extra}).
 
 -record(archive_message,
         {id,
@@ -83,7 +83,8 @@
          utc,
          direction,
          body,
-         name}).
+         name,
+         jid}).
 
 -define(MOD_ARCHIVE2_SCHEMA,
         [#table{name = archive_jid_prefs,
@@ -98,13 +99,13 @@
                 keys = 1},
          #table{name = archive_collection,
                 fields = record_info(fields, archive_collection),
-                types = [integer, integer, integer, string, string, string,
-                         string, time, string, time, bool, string, string,
+                types = [autoid, integer, integer, string, string, string,
+                         string, time, time, integer, bool, string, string,
                          bool, blob],
                 enums = [],
                 keys = 1},
          #table{name = archive_message,
                 fields = record_info(fields, archive_message),
-                types = [integer, integer, time, enum, string, string],
+                types = [autoid, integer, time, enum, string, string, string],
                 enums = [from, to, note],
                 keys = 1}]).

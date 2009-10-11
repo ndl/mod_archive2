@@ -28,7 +28,7 @@
 
 -include("mod_archive2_storage.hrl").
 
--export([handle_query/2, ms_to_sql/2]).
+-export([handle_query/2, encode/2, ms_to_sql/2]).
 
 %% Should be OK for most of modern DBs, I hope ...
 -define(MAX_QUERY_LENGTH, 32768).
@@ -186,6 +186,9 @@ handle_query({insert, Records}, DbInfo) ->
         end,
     {inserted, Count, LastKey};
 
+handle_query({sql_query, Query}, _DbInfo) ->
+    sql_query(Query);
+
 handle_query({transaction, F}, DbInfo) ->
     ejabberd_odbc:sql_transaction(DbInfo#backend.host, F).
 
@@ -208,10 +211,11 @@ handle_query({transaction, F}, DbInfo) ->
 %%   clauses may lead to specification of different output results in different
 %%   clauses, which is not supported by SQL.
 %%
-%% - The only recognized form of match expression body is the tuple of matching
-%%   variables or single matching variable for the whole record: no variables
-%%   that are not part of tuple, constants, lists or whatever are allowed, as
-%%   tuple of variables is the way SQL will return us its results.
+%% - The only recognized forms of match expression body are the tuple of matching
+%%   variables, single matching variable for the whole record or 'ok' atom for
+%%   queries returning no results: no variables that are not part of tuple,
+%%   constants, lists or whatever are allowed, as tuple of variables is the
+%%   only way SQL will return us its results.
 %%
 %% - The set of supported functions and operators is also quite limited: if you
 %%   extend it, make sure it is done in portable way across different RDBMS
@@ -259,6 +263,8 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
         case MatchBody of
             ['$_'] ->
                 TableInfo#table.fields;
+            ['ok'] ->
+                [];
             _ ->
 	            [{MatchBodyRecord}] = MatchBody,
                 [parse_match_body(Expr, MatchVarsDict) ||
@@ -277,6 +283,17 @@ parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
 parse_match_condition(Value, {_MatchVarsDict, TableInfo})
     when is_list(Value) orelse is_integer(Value) orelse is_float(Value) ->
     encode(Value, TableInfo);
+
+parse_match_condition({element, N, {const, R}}, Context)
+    when is_integer(N) andalso is_tuple(R) ->
+    parse_match_condition(mod_archive2_utils:encode_brackets(element(N, R)),
+                          Context);
+
+parse_match_condition({const, Value}, Context) ->
+    parse_match_condition(mod_archive2_utils:encode_brackets(Value), Context);
+
+parse_match_condition({_} = R, {_, TableInfo}) ->
+    encode(mod_archive2_utils:decode_brackets(R), TableInfo);
 
 parse_match_condition({GuardFun, Op1}, Context) ->
     OpName =
@@ -496,6 +513,9 @@ decode(Value, integer, _TableInfo) when is_list(Value) ->
 
 decode(Value, integer, _TableInfo) when is_integer(Value) ->
     Value;
+
+decode(Value, autoid, TableInfo) ->
+    decode(Value, integer, TableInfo);
 
 decode(Value, bool, TableInfo) ->
     case decode(Value, integer, TableInfo) of

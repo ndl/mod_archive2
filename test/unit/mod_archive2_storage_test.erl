@@ -26,7 +26,6 @@
 -module(mod_archive2_storage_test).
 -author('ejabberd@ndl.kiev.ua').
 
--include_lib("stdlib/include/ms_transform.hrl").
 -include("mod_archive2.hrl").
 -include("testing.hrl").
 
@@ -36,12 +35,12 @@
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
-mod_archive2_mysql_test_() ->
+mod_archive2_storage_mysql_test_() ->
 {
     foreach,
     local,
-    fun mysql_tests_setup/0,
-    fun common_tests_teardown/1,
+    fun testing:mysql_tests_setup/0,
+    fun testing:mysql_tests_teardown/1,
     [
         ?test_gen1(mysql_test_read),
         [
@@ -70,12 +69,12 @@ mod_archive2_mysql_test_() ->
     ]
 }.
 
-mod_archive2_mnesia_test_() ->
+mod_archive2_storage_mnesia_test_() ->
 {
     foreach,
     local,
-    fun mnesia_tests_setup/0,
-    fun mnesia_tests_teardown/1,
+    fun testing:mnesia_tests_setup/0,
+    fun testing:mnesia_tests_teardown/1,
     [
         ?test_gen1(common_test_read),
         [
@@ -103,38 +102,6 @@ mod_archive2_mnesia_test_() ->
         ]
     ]
 }.
-
-common_tests_setup(RDBMS) ->
-    case lists:member(ejabberd_sup, registered()) of
-        false -> ejabberd_sup:start_link();
-        true -> ok
-    end,
-    {ok, Pid} =
-        mod_archive2_storage:start(
-            ?HOST, [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
-    Pid.
-
-common_tests_teardown(_Pid) ->
-    mod_archive2_storage:stop(?HOST).
-
-mysql_tests_setup() ->
-    common_tests_setup(mysql).
-
-mnesia_tests_setup() ->
-    mnesia:start(),
-    mnesia:create_schema([node()]),
-    mnesia:create_table(archive_message,
-                        [{ram_copies, [node()]},
-                         {attributes, record_info(fields, archive_message)}]),
-    mnesia:create_table(archive_jid_prefs,
-                        [{ram_copies, [node()]},
-                         {attributes, record_info(fields, archive_jid_prefs)}]),
-    common_tests_setup(mnesia).
-
-mnesia_tests_teardown(Pid) ->
-    mnesia:clear_table(archive_message),
-    mnesia:clear_table(archive_jid_prefs),
-    common_tests_teardown(Pid).
 
 -define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59}},
                                   direction = from,
@@ -168,11 +135,12 @@ mysql_test_read(Pid) ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_message values (null, null, "
-                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me')",
+                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_message where id = 1",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0", "Hi!", "me"}]}},
+                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0", "Hi!",
+                  "me", null}]}},
                 {"delete from archive_message where id = 1",
                  {updated, 1}},
                 {}])
@@ -197,10 +165,10 @@ mysql_test_insert1() ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_message values (null, null, "
-                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me')",
+                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
                  {updated, 1}},
                 {"insert into archive_message values (null, null, "
-                 "'1999-11-30 19:01:02', 0, 'Hi there!', 'smb')",
+                 "'1999-11-30 19:01:02', 0, 'Hi there!', 'smb', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {}])
@@ -221,9 +189,9 @@ mysql_test_select1() ->
                 {},
                 {"select * from archive_message where (direction = 0)",
                  {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
-                                  "Hi!", "me"},
+                                  "Hi!", "me", null},
                                  {2, null, "1999-11-30 19:01:02", "0",
-                                  "Hi there!", "smb"}]}},
+                                  "Hi there!", "smb", null}]}},
                 {}])
         end),
     common_test_select1().
@@ -244,7 +212,7 @@ mysql_test_select2() ->
                 {"select * from archive_message where (direction = 0) order by "
                  "name, asc offset 1 limit 2",
                  {selected, [], [{1, null, "1999-11-30 19:01:02", "0",
-                                  "Hi there!", "smb"}]}},
+                                  "Hi there!", "smb", null}]}},
                 {}])
         end),
     common_test_select2().
@@ -266,7 +234,7 @@ mysql_test_select3() ->
                 {"select * from archive_message where (direction = 0) order by "
                  "name, desc offset 1 limit 2",
                  {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
-                                  "Hi!", "me"}]}},
+                                  "Hi!", "me", null}]}},
                 {}])
         end),
     common_test_select3().
@@ -480,7 +448,7 @@ mysql_test_update1() ->
                 {},
                 {"select * from archive_message where (name = 'me')",
                  {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
-                                  "Hi!", "me"}]}},
+                                  "Hi!", "me", null}]}},
                 {"update archive_message set name = 'other' where id = 1",
                  {updated, 1}},
                 {}])
