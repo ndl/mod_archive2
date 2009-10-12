@@ -354,10 +354,10 @@ add_packet(Type, Host, From, To, Packet) ->
 %%--------------------------------------------------------------------
 
 remove_user(User, Server) ->
-    JID = exmpp_jid:make_jid(User, Server),
-    Host = exmpp_jid:prep_domain_to_list(JID),
-    US = exmpp_jid:prep_bare_to_list(JID),
-    mod_archive_storage:transaction(
+    JID = exmpp_jid:make(User, Server),
+    Host = exmpp_jid:prep_domain_as_list(JID),
+    US = exmpp_jid:prep_bare_as_list(JID),
+    mod_archive2_storage:transaction(
         Host,
         fun() ->
             mod_archive2_storage:delete(
@@ -375,7 +375,7 @@ expire_collections(_Host, _Opts, mnesia) ->
 expire_collections(Host, Opts, RDBMS) ->
     UTCField = "archive_collection.utc",
     Now = mod_archive2_odbc:encode(calendar:now_to_datetime(now()),
-        mod_archive2_utils:get_table_info(archive_collection)),
+        mod_archive2_utils:get_table_info(archive_collection, ?MOD_ARCHIVE2_SCHEMA)),
     ExpireByDefault =
     	case gen_mod:get_opt(default_expire, Opts, infinity) of
             infinity ->
@@ -432,11 +432,11 @@ expire_collections(Host, Opts, RDBMS) ->
                     ok;
 		        N1 when is_integer(N1) ->
 			        mod_archive2_storage:sql_query(
-                        "delete from archive_collection "
-				        "where deleted = 1 "
-				        "and ",
-                        get_expired_condition(RDBMS, integer_to_list(N1),
-                            "archive_collection.change_utc"), " < ", Now)
+                        ["delete from archive_collection "
+				         "where deleted = 1 "
+				         "and ",
+                         get_expired_condition(RDBMS, integer_to_list(N1),
+                             "archive_collection.change_utc"), " < ", Now])
             end
         end).
 
