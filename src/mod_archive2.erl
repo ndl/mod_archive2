@@ -101,6 +101,7 @@
 
 -record(state, {host,
                 options,
+                dbinfo,
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer}).
@@ -120,6 +121,11 @@ start_link(Host, Opts) ->
     gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
 start(Host, Opts) ->
+    % Start our storage manager first
+    RDBMS = gen_mod:get_opt(rdbms, Opts, mnesia),
+    mod_archive2_storage:start(Host,
+        [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
+    % Now start ourselves
     Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
     ChildSpec =
         {Proc,
@@ -131,9 +137,12 @@ start(Host, Opts) ->
     supervisor:start_child(ejabberd_sup, ChildSpec).
 
 stop(Host) ->
+    % Stop ourselves
     Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
     gen_server:call(Proc, stop),
-    supervisor:delete_child(ejabberd_sup, Proc).
+    supervisor:delete_child(ejabberd_sup, Proc),
+    % Stop our storage manager
+    mod_archive2_storage:stop(Host).
 
 %%====================================================================
 %% gen_server callbacks
@@ -229,20 +238,20 @@ terminate(_Reason, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({From, To, #iq{payload = SubEl} = IQ}, _, State) ->
+handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
     #xmlel{name = Name} = SubEl,
     F =
         fun() ->
 	        case Name of
-                "pref" -> mod_archive2_prefs:pref(From, To, IQ);
-			    "auto" -> mod_archive2_auto:auto(From, To, IQ,
+                'pref' -> mod_archive2_prefs:pref(From, IQ);
+			    'auto' -> mod_archive2_auto:auto(From, IQ,
                                                  State#state.sessions);
-			    "list" -> mod_archive2_management:list(From, To, IQ);
-			    "retrieve" -> mod_archive2_management:retrieve(From, To, IQ);
-			    "save" -> mod_archive2_management:save(From, To, IQ);
-			    "remove" -> mod_archive2_management:remove(From, To, IQ,
-                                                           State#state.sessions);
-			    "modified" -> mod_archive2_replication:modified(From, To, IQ);
+			    'list' -> mod_archive2_management:list(From, IQ);
+			    'retrieve' -> mod_archive2_management:retrieve(From, IQ);
+			    'save' -> mod_archive2_management:save(From, IQ);
+			    'remove' -> mod_archive2_management:remove(From, IQ,
+                                State#state.sessions);
+			    'modified' -> mod_archive2_replication:modified(From, IQ);
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end
         end,
@@ -271,9 +280,9 @@ handle_call(stop, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({add_message, Args}, State) ->
+handle_cast({add_message, _Args}, State) ->
     Sessions = State#state.sessions,
-    NewSessions = mod_archive2_auto:add_message(Args, Sessions),
+    NewSessions = Sessions, % mod_archive2_auto:add_message(Args, Sessions),
     {noreply, State#state{sessions = NewSessions}};
 
 handle_cast(_Msg, State) ->
@@ -287,9 +296,9 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(expire_sessions, State) ->
     Sessions = State#state.sessions,
-    SessionDuration = gen_mod:get_opt(session_duration, State#state.options,
-                                      1800),
-    NewSessions = mod_archive2_auto:expire_sessions(Sessions, SessionDuration),
+    %SessionDuration = gen_mod:get_opt(session_duration, State#state.options,
+    %                                  1800),
+    NewSessions = Sessions, % mod_archive2_auto:expire_sessions(Sessions, SessionDuration),
     {noreply, State#state{sessions = NewSessions}};
 
 handle_info(expire_collections, State) ->

@@ -50,14 +50,18 @@ list_to_bool(undefined) -> undefined.
 %%
 %% Returns table information given record or MS.
 %%
-get_table_info(TableName, DbInfo) when is_atom(TableName) ->
+get_table_info(TableName, #backend{} = DbInfo) when is_atom(TableName) ->
     lists:keyfind(TableName, #table.name, DbInfo#backend.schema);
 
-get_table_info(R, DbInfo) when is_tuple(R) ->
+get_table_info(R, #backend{} = DbInfo) when is_tuple(R) ->
     lists:keyfind(element(1, R), #table.name, DbInfo#backend.schema);
 
-get_table_info([{MatchHead, _, _}], DbInfo) ->
-    lists:keyfind(element(1, MatchHead), #table.name, DbInfo#backend.schema).
+get_table_info([{MatchHead, _, _}], #backend{} = DbInfo) ->
+    lists:keyfind(element(1, MatchHead), #table.name, DbInfo#backend.schema);
+
+get_table_info(TableName, Schema) when is_atom(TableName) andalso
+    is_list(Schema) ->
+    lists:keyfind(TableName, #table.name, Schema).
 
 %% Generate head for matching specification that matches all fields.
 get_full_ms_head(TableInfo) ->

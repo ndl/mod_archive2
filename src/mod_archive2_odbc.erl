@@ -86,7 +86,7 @@ handle_query({select, MS, Opts}, DbInfo) ->
                 FieldName = lists:nth(OrderBy - 1, TableInfo#table.fields),
                 "order by " ++
                 atom_to_list(FieldName) ++
-                ", " ++
+                " " ++
                 atom_to_list(OrderType)
         end,
     OffsetClause =

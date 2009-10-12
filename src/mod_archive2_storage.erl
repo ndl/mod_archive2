@@ -55,11 +55,30 @@
 %%--------------------------------------------------------------------
 
 init([Host, Opts]) ->
-    put_backend(Host, Opts),
-    {ok, []}.
+    RDBMS = proplists:get_value(rdbms, Opts, mnesia),
+    Name =
+        case RDBMS of
+            mnesia -> ?MODULE_MNESIA;
+            _ -> ?MODULE_ODBC
+        end,
+    Schema = [Table#table{rdbms = RDBMS} ||
+              Table <- proplists:get_value(schema, Opts, [])],
+    {ok, #backend{name = Name,
+                  host = Host,
+                  rdbms = RDBMS,
+                  schema = Schema}}.
 
 handle_call({transaction, F}, _From, State) ->
-    {reply, forward_query({transaction, F}), State};
+    CombiF =
+        fun() ->
+            put(?BACKEND_KEY, State),
+            Result = F(),
+            % The value will not be erased if exception is thrown, but
+            % we do not really care.
+            erase(?BACKEND_KEY),
+            Result
+        end,
+    {reply, forward_query({transaction, CombiF}, State), State};
 
 handle_call(stop, _From, State) ->
     {stop, normal, ok, State};
@@ -150,27 +169,13 @@ transaction(Host, F) ->
 %%--------------------------------------------------------------------
 
 forward_query(Query) ->
-    Info = get(?BACKEND_KEY),
-    case Info#backend.name of
-        ?MODULE_MNESIA ->
-            mod_archive2_mnesia:handle_query(Query, Info);
-        ?MODULE_ODBC ->
-            mod_archive2_odbc:handle_query(Query, Info)
-    end.
+    State = get(?BACKEND_KEY),
+    forward_query(Query, State).
 
-put_backend(Host, Opts) ->
-    RDBMS = proplists:get_value(rdbms, Opts, mnesia),
-    Backend =
-        case RDBMS of
-            mnesia -> ?MODULE_MNESIA;
-            _ -> ?MODULE_ODBC
-        end,
-    Schema = [Table#table{rdbms = RDBMS} ||
-              Table <- proplists:get_value(schema, Opts, [])],
-    put(?BACKEND_KEY,
-        #backend{
-            name = Backend,
-            host = Host,
-            rdbms = RDBMS,
-            schema = Schema}),
-    Backend.
+forward_query(Query, State) ->
+    case State#backend.name of
+        ?MODULE_MNESIA ->
+            mod_archive2_mnesia:handle_query(Query, State);
+        ?MODULE_ODBC ->
+            mod_archive2_odbc:handle_query(Query, State)
+    end.

@@ -210,7 +210,7 @@ mysql_test_select2() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_message where (direction = 0) order by "
-                 "name, asc offset 1 limit 2",
+                 "name asc offset 1 limit 2",
                  {selected, [], [{1, null, "1999-11-30 19:01:02", "0",
                                   "Hi there!", "smb", null}]}},
                 {}])
@@ -232,7 +232,7 @@ mysql_test_select3() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_message where (direction = 0) order by "
-                 "name, desc offset 1 limit 2",
+                 "name desc offset 1 limit 2",
                  {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
                                   "Hi!", "me", null}]}},
                 {}])
@@ -272,7 +272,7 @@ mysql_test_select5() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_message where (direction = 0) "
-                 "order by utc, asc limit 1",
+                 "order by utc asc limit 1",
                  {selected, [], [{1}]}},
                 {}])
         end),
@@ -294,7 +294,7 @@ mysql_test_select6() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_message where (direction = 0) "
-                 "order by name, asc offset 1",
+                 "order by name asc offset 1",
                  {selected, [], [{1}]}},
                 {}])
         end),
@@ -315,7 +315,7 @@ mysql_test_select7() ->
             ejabberd_odbc:start([
                 {},
                 {"select min(body) from archive_message where (direction = 0) "
-                 "order by name, desc limit 1",
+                 "order by name desc limit 1",
                  {selected, [], [{"Hi there!"}]}},
                 {}])
         end),
@@ -337,7 +337,7 @@ mysql_test_select8() ->
             ejabberd_odbc:start([
                 {},
                 {"select max(utc) from archive_message where (direction = 0) "
-                "order by utc, asc limit 1",
+                "order by utc asc limit 1",
                  {selected, [], [{"1999-11-30 19:01:02"}]}},
                 {}])
         end),
@@ -359,7 +359,7 @@ mysql_test_select9() ->
             ejabberd_odbc:start([
                 {},
                 {"select body, name from archive_message order by "
-                 "name, asc",
+                 "name asc",
                  {selected, [], [{"Hi!", "me"}, {"Hi there!", "smb"}]}},
                 {}])
         end),
@@ -382,7 +382,7 @@ mysql_test_select10() ->
             ejabberd_odbc:start([
                 {},
                 {"select body, name from archive_message order by "
-                 "name, desc",
+                 "name desc",
                  {selected, [], [{"Hi there!", "smb"}, {"Hi!", "me"}]}},
                 {}])
         end),
@@ -479,7 +479,7 @@ mysql_test_update2() ->
                 {"update archive_message set direction = 1 where (direction = 0)",
                  {updated, 2}},
                 {"select direction, name from archive_message order by "
-                 "name, asc",
+                 "name asc",
                  {selected, [], [{"1", "other"}, {"1", "smb"}]}},
                 {}])
         end),

@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([list/3]).
+-export([list/2]).
 
 -include("mod_archive2.hrl").
 
@@ -48,8 +48,9 @@
 %% Lists collections according to specified parameters
 %%--------------------------------------------------------------------
 
-list(From, #iq{payload = SubEl} = IQ, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(archive_collection, DbInfo),
+list(From, #iq{payload = SubEl} = IQ) ->
+    TableInfo = mod_archive2_utils:get_table_info(archive_collection,
+                                                  ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
             Range = parse_cmd_range(SubEl),
             InRSM =
@@ -57,7 +58,6 @@ list(From, #iq{payload = SubEl} = IQ, DbInfo) ->
                     none -> #rsm_in{};
                     R -> R
                 end,
-            CombiRange = combine_ranges(Range, InRSM),
             MSHead = mod_archive2_utils:get_full_ms_head(TableInfo),
             {selected, [{Count}]} =
                 mod_archive2_storage:select(
@@ -65,50 +65,53 @@ list(From, #iq{payload = SubEl} = IQ, DbInfo) ->
                       get_range_matching_conditions(From, Range, TableInfo),
                       [ok]}],
                     [{aggregate, count}]),
-            Opts = get_range_opts(InRSM, #archive_collection.utc),
-            Fields = [id, with_user, with_server, with_resource, utc, version],
-            {selected, Rows} =
-                mod_archive2_storage:select(
-                    [{MSHead,
-                      get_range_matching_conditions(From, CombiRange, TableInfo),
-                      mod_archive2_utils:get_ms_body(Fields, TableInfo)}], Opts),
-            Items =
-                if InRSM#rsm_in.direction =:= before ->
-                    lists:reverse(Rows);
+            Results =
+                if Count > 0 ->
+                    CombiRange = combine_ranges(Range, InRSM),
+                    Opts = get_range_opts(InRSM, #archive_collection.utc),
+                    Fields = [id, with_user, with_server, with_resource, utc, version],
+                    {selected, Rows} =
+                        mod_archive2_storage:select(
+                            [{MSHead,
+                            get_range_matching_conditions(From, CombiRange, TableInfo),
+                            mod_archive2_utils:get_ms_body(Fields, TableInfo)}], Opts),
+                    Items =
+                        if InRSM#rsm_in.direction =:= before ->
+                            lists:reverse(Rows);
+                           true ->
+                            Rows
+                        end,
+                    OutRSM =
+                        case Items of
+                            [] ->
+                                jlib:rsm_encode(#rsm_out{count = Count});
+                            _ ->
+                                [{First, _, _, _, ActualStart, _} | _] = Items,
+                                {Last, _, _, _, ActualEnd, _} = lists:last(Items),
+                                StartRange = Range#range{start_id = undefined,
+                                                         end_time = ActualStart,
+                                                         end_id = First},
+                                {selected, [{Index}]} =
+                                    mod_archive2_storage:select(
+                                        [{MSHead,
+                                         get_range_matching_conditions(From, StartRange,
+                                                                       TableInfo),
+                                         [ok]}],
+                                        [{aggregate, count}]),
+                                jlib:rsm_encode(#rsm_out{count = Count, index = Index,
+                                    first = encode_rsm_position({ActualStart, First}),
+                                    last = encode_rsm_position({ActualEnd, Last})})
+                        end,
+                    [mod_archive2_xml:collection_to_xml(chat,
+                     mod_archive2_utils:to_record(C, Fields, TableInfo)) ||
+                     C <- Items] ++ OutRSM;
                    true ->
-                    Rows
-                end,
-            OutRSM =
-                case Items of
-                    [] ->
-                        jlib:rsm_encode(#rsm_out{count = Count});
-                    _ ->
-                        [{First, _, _, _, ActualStart, _} | _] = Items,
-                        {Last, _, _, _, ActualEnd, _} = lists:last(Items),
-                        StartRange = Range#range{start_id = undefined,
-                                                 end_time = ActualStart,
-                                                 end_id = First},
-                        {selected, [{Index}]} =
-                            mod_archive2_storage:select(
-                                [{MSHead,
-                                 get_range_matching_conditions(From, StartRange,
-                                                               TableInfo),
-                                 [ok]}],
-                                [{aggregate, count}]),
-                        jlib:rsm_encode(#rsm_out{count = Count, index = Index,
-                            first = encode_rsm_position({ActualStart, First}),
-                            last = encode_rsm_position({ActualEnd, Last})})
+                    []
                 end,
             exmpp_iq:result(IQ,
-                exmpp_xml:element(
-                    ?NS_ARCHIVING,
-                    list,
-                    [],
-                    [mod_archive2_xml:collection_to_xml(chat,
-                         mod_archive2_utils:to_record(C, Fields, TableInfo)) ||
-                     C <- Items] ++ OutRSM))
-        end,
-    mod_archive2_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+                exmpp_xml:element(?NS_ARCHIVING, list, [], Results))
+            end,
+        mod_archive2_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 get_range_matching_conditions(From, R, TableInfo) ->
     Cond = [MC ||

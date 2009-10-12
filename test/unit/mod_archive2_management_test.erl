@@ -83,12 +83,6 @@ mod_archive2_management_mnesia_test_() ->
     ]
 }.
 
-get_backend() ->
-    #backend{name = mod_archive_odbc,
-             host = ?HOST,
-             rdbms = mysql,
-             schema = ?MOD_ARCHIVE2_SCHEMA}.
-
 % Note: to ensure that we set mock data in the same process we're going to read
 % them all calls to ejabberd_odbc:start should be placed in transaction.
 
@@ -101,11 +95,6 @@ mysql_test_list_empty(Pid) ->
                  "(us = 'client@localhost') and (with_user = 'juliet') and "
                  "(with_server = 'capulet.com')",
                  {selected, [], [{0}]}},
-                {"select id, with_user, with_server, with_resource, utc, version "
-                 "from archive_collection where (us = 'client@localhost') and "
-                 "(with_user = 'juliet') and (with_server = 'capulet.com') "
-                 "order by utc, asc",
-                 {selected, [], []}},
                 {}])
         end),
     common_test_list_empty(Pid).
@@ -118,8 +107,7 @@ common_test_list_empty(_Pid) ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute("with", "juliet@capulet.com")],
-                        []))),
-            get_backend()).
+                        [])))).
 
 mysql_test_insert1() ->
     mod_archive2_storage:transaction(?HOST,
@@ -165,7 +153,7 @@ mysql_test_list_all() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc, asc",
+                 "order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1},
                                  {3, "benvolio", "montague.net", undefined,
@@ -186,8 +174,7 @@ common_test_list_all() ->
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
-            get_backend()).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 mysql_test_list_max() ->
     mod_archive2_storage:transaction(?HOST,
@@ -199,7 +186,7 @@ mysql_test_list_max() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc, asc limit 1",
+                 "order by utc asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -234,8 +221,7 @@ get_list_range(Max, Index) ->
                                             [exmpp_xml:cdata(Index)]);
                                        true ->
                                         undefined
-                                    end], E =/= undefined])]))),
-        get_backend()).
+                                    end], E =/= undefined])])))).
 
 mysql_test_list_index() ->
     mod_archive2_storage:transaction(?HOST,
@@ -247,7 +233,7 @@ mysql_test_list_index() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc, asc offset 1 limit 1",
+                 "order by utc asc offset 1 limit 1",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -271,7 +257,7 @@ mysql_test_list_after() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc, asc limit 1",
+                 "order by utc asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -285,7 +271,7 @@ mysql_test_list_after() ->
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
                  "((utc > '1469-07-21 02:56:15') or ((utc = '1469-07-21 02:56:15') "
-                 "and (id > 1))) order by utc, asc limit 2",
+                 "and (id > 1))) order by utc asc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1},
                                  {2, "balcony", "house.capulet.com", undefined,
@@ -314,8 +300,7 @@ common_test_list_after() ->
                             [exmpp_xml:element(undefined, 'after', [],
                                                [exmpp_xml:cdata(Last)]),
                              exmpp_xml:element(undefined, max, [],
-                                               [exmpp_xml:cdata("2")])])]))),
-            get_backend()).
+                                               [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_before() ->
     mod_archive2_storage:transaction(?HOST,
@@ -327,7 +312,7 @@ mysql_test_list_before() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc, asc offset 2 limit 1",
+                 "order by utc asc offset 2 limit 1",
                  {selected, [], [{2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -341,7 +326,7 @@ mysql_test_list_before() ->
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
                  "((utc < '1469-07-21 03:16:37') or ((utc = '1469-07-21 03:16:37') "
-                 "and (id < 2))) order by utc, desc limit 2",
+                 "and (id < 2))) order by utc desc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1},
                                  {1, "juliet", "capulet.com", "chamber",
@@ -370,8 +355,7 @@ common_test_list_before() ->
                             [exmpp_xml:element(undefined, 'before', [],
                                                [exmpp_xml:cdata(First)]),
                              exmpp_xml:element(undefined, max, [],
-                                               [exmpp_xml:cdata("2")])])]))),
-            get_backend()).
+                                               [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_start_end() ->
     mod_archive2_storage:transaction(?HOST,
@@ -385,7 +369,7 @@ mysql_test_list_start_end() ->
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
                  "(utc >= '1469-07-21 03:01:54') and (utc < '1469-07-21 03:16:37') "
-                 "order by utc, asc",
+                 "order by utc asc",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -405,8 +389,7 @@ common_test_list_start_end() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute(start, "1469-07-21T03:01:54Z"),
-                         exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], []))),
-            get_backend()).
+                         exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], [])))).
 
 mysql_test_list_with() ->
     mod_archive2_storage:transaction(?HOST,
@@ -420,7 +403,7 @@ mysql_test_list_with() ->
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
                  "(utc < '1469-07-21 03:16:37') and (with_user = 'juliet') and "
-                 "(with_server = 'capulet.com') order by utc, asc",
+                 "(with_server = 'capulet.com') order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -440,8 +423,7 @@ common_test_list_with() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute('end', "1469-07-21T03:16:37Z"),
-                         exmpp_xml:attribute(with, "juliet@capulet.com")], []))),
-            get_backend()).
+                         exmpp_xml:attribute(with, "juliet@capulet.com")], [])))).
 
 mysql_test_list_exactmatch() ->
     mod_archive2_storage:transaction(?HOST,
@@ -453,12 +435,6 @@ mysql_test_list_exactmatch() ->
                  "and (with_user = 'juliet') and (with_server = 'capulet.com') "
                  "and (with_resource = null)",
                  {selected, [], [{0}]}},
-                {"select id, with_user, with_server, with_resource, utc, version "
-                 "from archive_collection where (us = 'client@localhost') and "
-                 "(utc < '1469-07-21 03:16:37') and (with_user = 'juliet') and "
-                 "(with_server = 'capulet.com') and (with_resource = null) "
-                 "order by utc, asc",
-                 {selected, [], []}},
                 {}])
         end),
     common_test_list_exactmatch().
@@ -472,8 +448,7 @@ common_test_list_exactmatch() ->
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute('end', "1469-07-21T03:16:37Z"),
                          exmpp_xml:attribute(with, "juliet@capulet.com"),
-                         exmpp_xml:attribute(exactmatch, "1")], []))),
-            get_backend()).
+                         exmpp_xml:attribute(exactmatch, "1")], [])))).
 
 get_child(undefined, _) ->
     undefined;

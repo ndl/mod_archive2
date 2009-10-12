@@ -2,11 +2,7 @@
     {atomic,
         {iq,response,result,<<"stanza-",_/binary>>,
             ?NS_ARCHIVING,
-            {xmlel,?NS_ARCHIVING,[],list,[],
-                [{xmlel,'http://jabber.org/protocol/rsm',[],set,[],
-                     [{xmlel,'http://jabber.org/protocol/rsm',[],
-                          count,[],
-                          [{xmlcdata,<<"0">>}]}]}]},
+            {xmlel,?NS_ARCHIVING,[],list,[],[]},
             undefined,undefined,'jabber:client'}}).
 
 -define(MGMT_TC2_RETRIEVE_RESULT,
@@ -195,9 +191,5 @@
 -define(MGMT_TC9_RETRIEVE_RESULT,
     {atomic,
         {iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
-            {xmlel,?NS_ARCHIVING,[],list,[],
-                [{xmlel,'http://jabber.org/protocol/rsm',[],set,[],
-                     [{xmlel,'http://jabber.org/protocol/rsm',[],count,
-                          [],
-                          [{xmlcdata,<<"0">>}]}]}]},
+            {xmlel,?NS_ARCHIVING,[],list,[], []},
             undefined,undefined,'jabber:client'}}).
