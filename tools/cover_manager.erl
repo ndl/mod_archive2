@@ -54,13 +54,19 @@ stop() ->
 %%--------------------------------------------------------------------
 
 init(Args) ->
-    [PackageName, SrcPath, DataFile, XmlFile, FileMask] =
+    [PackageName, SrcPath, DataFile, XmlFile | FilesMasks] =
     	lists:map(fun(Value) when is_atom(Value) ->
                       atom_to_list(Value);
                      (Value) ->
                          Value
                      end, Args),
-    Files = filelib:wildcard(filename:join(SrcPath, FileMask)),
+    Files =
+        lists:foldl(
+            fun(FileMask, Acc) ->
+                filelib:wildcard(filename:join(SrcPath, FileMask)) ++ Acc
+            end,
+        [],
+        FilesMasks),
     lists:foreach(
         fun(File) -> cover:compile_beam(File) end,
 	Files),
