@@ -31,6 +31,7 @@
 
 -include("testing.hrl").
 -include("mod_archive2.hrl").
+-include("mod_archive2_storage.hrl").
 
 -define(HOST, "localhost").
 
@@ -43,12 +44,12 @@ common_tests_setup(RDBMS) ->
         true -> ok
     end,
     {ok, Pid} =
-        mod_archive2_storage:start(
+        ejabberd_storage:start(
             ?HOST, [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     Pid.
 
 common_tests_teardown(_Pid) ->
-    mod_archive2_storage:stop(?HOST).
+    ejabberd_storage:stop(?HOST).
 
 mysql_tests_setup() ->
     common_tests_setup(mysql).

@@ -218,7 +218,7 @@ test_message3_from_xml(_) ->
         mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START).
 
 mysql_test_links(Pid) ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -260,9 +260,9 @@ mysql_test_links(Pid) ->
 
 common_test_links(_Pid) ->
     {atomic, ?ARCHIVE_COLLECTION_WITH_LINKS_XML} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:insert([?ARCHIVE_COLLECTION1,
+                ejabberd_storage:insert([?ARCHIVE_COLLECTION1,
                                              ?ARCHIVE_COLLECTION2,
                                              ?ARCHIVE_COLLECTION3]),
                 mod_archive2_xml:collection_to_xml(chat,

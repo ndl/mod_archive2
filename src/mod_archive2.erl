@@ -98,6 +98,7 @@
          iq_archive/3]).
 
 -include("mod_archive2.hrl").
+-include("mod_archive2_storage.hrl").
 
 -record(state, {host,
                 options,
@@ -123,7 +124,7 @@ start_link(Host, Opts) ->
 start(Host, Opts) ->
     % Start our storage manager first
     RDBMS = gen_mod:get_opt(rdbms, Opts, mnesia),
-    mod_archive2_storage:start(Host,
+    ejabberd_storage:start(Host,
         [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     % Now start ourselves
     Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
@@ -142,7 +143,7 @@ stop(Host) ->
     gen_server:call(Proc, stop),
     supervisor:delete_child(ejabberd_sup, Proc),
     % Stop our storage manager
-    mod_archive2_storage:stop(Host).
+    ejabberd_storage:stop(Host).
 
 %%====================================================================
 %% gen_server callbacks
@@ -243,26 +244,29 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
     F =
         fun() ->
 	        case Name of
-                'pref' -> mod_archive2_prefs:pref(From, IQ);
-			    'auto' -> mod_archive2_auto:auto(From, IQ,
-                                                 State#state.sessions);
+                %'pref' -> mod_archive2_prefs:pref(From, IQ);
+			    %'auto' -> mod_archive2_auto:auto(From, IQ,
+                %                                 State#state.sessions);
 			    'list' -> mod_archive2_management:list(From, IQ);
-			    'retrieve' -> mod_archive2_management:retrieve(From, IQ);
-			    'save' -> mod_archive2_management:save(From, IQ);
-			    'remove' -> mod_archive2_management:remove(From, IQ,
-                                State#state.sessions);
-			    'modified' -> mod_archive2_replication:modified(From, IQ);
+			    %'retrieve' -> mod_archive2_management:retrieve(From, IQ);
+			    'save' -> mod_archive2_manual:save(From, IQ);
+			    %'remove' -> mod_archive2_management:remove(From, IQ,
+                %                State#state.sessions);
+			    %'modified' -> mod_archive2_replication:modified(From, IQ);
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end
         end,
-    %% All IQ processing functions should return {atomic, NewIQ, Sessions} or
-    %% {atomic, ResIQ} - other returns mean smth is seriously wrong with the
-    %% code itself.
+    %% All IQ processing functions should return {atomic, NewIQ, Sessions},
+    %% {atomic, ResIQ} or {error, Error} - other returns mean smth is seriously
+    %% wrong with the code itself.
     case catch F() of
         {atomic, R, NewSessions} ->
             {reply, R, State#state{sessions = NewSessions}};
         {atomic, R} ->
             {reply, R, State};
+        {error, Error} ->
+            ?INFO_MSG("error while executing archiving request: ~p", [Error]),
+            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {'EXIT', Ex} ->
             ?ERROR_MSG("catched unhandled exception: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};
@@ -357,14 +361,14 @@ remove_user(User, Server) ->
     JID = exmpp_jid:make(User, Server),
     Host = exmpp_jid:prep_domain_as_list(JID),
     US = exmpp_jid:prep_bare_to_list(JID),
-    mod_archive2_storage:transaction(
+    ejabberd_storage:transaction(
         Host,
         fun() ->
-            mod_archive2_storage:delete(
+            ejabberd_storage:delete(
                 ets:fun2ms(fun(#archive_jid_prefs{us = US1}) when US1 =:= US -> ok end)),
-            mod_archive2_storage:delete(
+            ejabberd_storage:delete(
                 ets:fun2ms(fun(#archive_global_prefs{us = US1}) when US1 =:= US -> ok end)),
-            mod_archive2_storage:delete(
+            ejabberd_storage:delete(
                 ets:fun2ms(fun(#archive_collection{us = US1}) when US1 =:= US -> ok end))
         end).
 
@@ -374,8 +378,8 @@ expire_collections(_Host, _Opts, mnesia) ->
 
 expire_collections(Host, Opts, RDBMS) ->
     UTCField = "archive_collection.utc",
-    Now = mod_archive2_odbc:encode(calendar:now_to_datetime(now()),
-        mod_archive2_utils:get_table_info(archive_collection, ?MOD_ARCHIVE2_SCHEMA)),
+    Now = ejabberd_storage_odbc:encode(calendar:now_to_datetime(now()),
+        ejabberd_storage_utils:get_table_info(archive_collection, ?MOD_ARCHIVE2_SCHEMA)),
     ExpireByDefault =
     	case gen_mod:get_opt(default_expire, Opts, infinity) of
             infinity ->
@@ -424,14 +428,14 @@ expire_collections(Host, Opts, RDBMS) ->
               bare_jid_prefs.expire is null and ",
       get_expired_condition(RDBMS, "archive_global_prefs.expire", UTCField), " < ", Now,
       ExpireByDefault],
-    mod_archive2_storage:transaction(Host,
+    ejabberd_storage:transaction(Host,
         fun() ->
-	        mod_archive2_storage:sql_query(Query),
+	        ejabberd_storage:sql_query(Query),
             case gen_mod:get_opt(replication_expire, Opts, 31536000) of
 		        infinity ->
                     ok;
 		        N1 when is_integer(N1) ->
-			        mod_archive2_storage:sql_query(
+			        ejabberd_storage:sql_query(
                         ["delete from archive_collection "
 				         "where deleted = 1 "
 				         "and ",

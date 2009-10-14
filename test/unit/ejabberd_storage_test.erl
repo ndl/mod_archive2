@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_storage_test.erl
+%%% File    : ejabberd_storage_test.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : mod_archive2 universal storage unit testing
 %%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,7 +23,7 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(mod_archive2_storage_test).
+-module(ejabberd_storage_test).
 -author('ejabberd@ndl.kiev.ua').
 
 -include("mod_archive2.hrl").
@@ -35,7 +35,7 @@
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
-mod_archive2_storage_mysql_test_() ->
+ejabberd_storage_mysql_test_() ->
 {
     foreach,
     local,
@@ -69,7 +69,7 @@ mod_archive2_storage_mysql_test_() ->
     ]
 }.
 
-mod_archive2_storage_mnesia_test_() ->
+ejabberd_storage_mnesia_test_() ->
 {
     foreach,
     local,
@@ -130,7 +130,7 @@ mod_archive2_storage_mnesia_test_() ->
 % them all calls to ejabberd_odbc:start should be placed in transaction.
 
 mysql_test_read(Pid) ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -149,18 +149,18 @@ mysql_test_read(Pid) ->
 
 common_test_read(_Pid) ->
     {atomic, {deleted, 1}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
                 {inserted, 1, Key} =
-                    mod_archive2_storage:insert([?RECORD1]),
+                    ejabberd_storage:insert([?RECORD1]),
                 {selected, [?RECORD1]} =
-                    mod_archive2_storage:read(#archive_message{id = Key}),
+                    ejabberd_storage:read(#archive_message{id = Key}),
                 {deleted, 1} =
-                    mod_archive2_storage:delete(#archive_message{id = Key})
+                    ejabberd_storage:delete(#archive_message{id = Key})
             end).
 
 mysql_test_insert1() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -177,13 +177,13 @@ mysql_test_insert1() ->
 
 common_test_insert1() ->
     {atomic, {inserted, 2, _Key}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:insert([?RECORD1, ?RECORD2])
+                ejabberd_storage:insert([?RECORD1, ?RECORD2])
             end).
 
 mysql_test_select1() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -197,15 +197,15 @@ mysql_test_select1() ->
     common_test_select1().
 
 common_test_select1() ->
-        case mod_archive2_storage:transaction(?HOST,
-                fun() -> mod_archive2_storage:select(?DIRMS) end) of
+        case ejabberd_storage:transaction(?HOST,
+                fun() -> ejabberd_storage:select(?DIRMS) end) of
             {atomic, {selected, [?RECORD1, ?RECORD2]}} -> ok;
             {atomic, {selected, [?RECORD2, ?RECORD1]}} -> ok;
              _ -> throw({error, badmatch})
         end.
 
 mysql_test_select2() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -219,15 +219,15 @@ mysql_test_select2() ->
 
 common_test_select2() ->
     {atomic, {selected, [?RECORD2]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{order_by, {#archive_message.name, asc}},
                      {offset, 1}, {limit, 2}])
             end).
 
 mysql_test_select3() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -241,15 +241,15 @@ mysql_test_select3() ->
 
 common_test_select3() ->
     {atomic, {selected, [?RECORD1]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{order_by, {#archive_message.name, desc}},
                      {offset, 1}, {limit, 2}])
             end).
 
 mysql_test_select4() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -261,13 +261,13 @@ mysql_test_select4() ->
 
 common_test_select4() ->
     {atomic, {selected, [{2}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS, [{aggregate, count}])
+                ejabberd_storage:select(?DIRMS, [{aggregate, count}])
             end).
 
 mysql_test_select5() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -280,16 +280,16 @@ mysql_test_select5() ->
 
 common_test_select5() ->
     {atomic, {selected, [{1}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{aggregate, count},
                      {order_by, {#archive_message.utc, asc}},
                      {limit, 1}])
             end).
 
 mysql_test_select6() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -302,15 +302,15 @@ mysql_test_select6() ->
 
 common_test_select6() ->
     {atomic, {selected, [{1}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{order_by, {#archive_message.name, asc}},
                      {offset, 1}, {aggregate, count}])
             end).
 
 mysql_test_select7() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -323,16 +323,16 @@ mysql_test_select7() ->
 
 common_test_select7() ->
     {atomic, {selected, [{"Hi there!"}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{order_by, {#archive_message.name, desc}},
                      {limit, 1},
                      {aggregate, {min, #archive_message.body}}])
             end).
 
 mysql_test_select8() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -345,16 +345,16 @@ mysql_test_select8() ->
 
 common_test_select8() ->
     {atomic, {selected, [{{{1999, 11, 30}, {19, 01, 02}}}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(?DIRMS,
+                ejabberd_storage:select(?DIRMS,
                     [{order_by, {#archive_message.utc, asc}},
                      {limit, 1},
                      {aggregate, {max, #archive_message.utc}}])
             end).
 
 mysql_test_select9() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -367,9 +367,9 @@ mysql_test_select9() ->
 
 common_test_select9() ->
     {atomic, {selected, [{"Hi!", "me"}, {"Hi there!", "smb"}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(
+                ejabberd_storage:select(
                     ets:fun2ms(
                         fun(#archive_message{body = Body, name = Name}) ->
                             {Body, Name}
@@ -377,7 +377,7 @@ common_test_select9() ->
             end).
 
 mysql_test_select10() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -390,9 +390,9 @@ mysql_test_select10() ->
 
 common_test_select10() ->
     {atomic, {selected, [{"Hi there!", "smb"}, {"Hi!", "me"}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(
+                ejabberd_storage:select(
                     ets:fun2ms(
                         fun(#archive_message{body = Body, name = Name}) ->
                             {Body, Name}
@@ -400,7 +400,7 @@ common_test_select10() ->
             end).
 
 mysql_test_select11() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -412,9 +412,9 @@ mysql_test_select11() ->
 
 common_test_select11() ->
     {atomic, {selected, [{"Hi!", "me"}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:select(
+                ejabberd_storage:select(
                     ets:fun2ms(
                         fun(#archive_message{body = Body, name = Name})
                             when Name =:= "me" ->
@@ -423,7 +423,7 @@ common_test_select11() ->
             end).
 
 mysql_test_delete1() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -435,14 +435,14 @@ mysql_test_delete1() ->
 
 common_test_delete1() ->
     {atomic, {deleted, 2}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:delete(?DIRMS)
+                ejabberd_storage:delete(?DIRMS)
             end).
 
 
 mysql_test_update1() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -457,22 +457,22 @@ mysql_test_update1() ->
 
 common_test_update1() ->
     {atomic, {updated, 1}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
                 {selected, [Record]} =
-                    mod_archive2_storage:select(
+                    ejabberd_storage:select(
                         ets:fun2ms(fun(#archive_message{name = "me"} = R) ->
                                         R
                                    end)),
                 ?RECORD1 = Record,
                 {updated, 1} =
-                    mod_archive2_storage:update(
+                    ejabberd_storage:update(
                         #archive_message{id = Record#archive_message.id,
                                          name = "other"})
             end).
 
 mysql_test_update2() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -487,16 +487,16 @@ mysql_test_update2() ->
 
 common_test_update2() ->
     {atomic, {selected, [{to, "other"}, {to, "smb"}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
                 {updated, 2} =
-                    mod_archive2_storage:update(
+                    ejabberd_storage:update(
                         #archive_message{direction = to},
                         ets:fun2ms(
                             fun(#archive_message{direction = from} = R) ->
                                 R
                             end)),
-                mod_archive2_storage:select(
+                ejabberd_storage:select(
                     ets:fun2ms(
                         fun(#archive_message{name = Name, direction = Dir}) ->
                             {Dir, Name}
@@ -504,7 +504,7 @@ common_test_update2() ->
             end).
 
 mysql_test_insert2() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -518,13 +518,13 @@ mysql_test_insert2() ->
 
 common_test_insert2() ->
     {atomic, {inserted, 1, _Key}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:insert([?RECORD3])
+                ejabberd_storage:insert([?RECORD3])
             end).
 
 mysql_test_update3() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -539,16 +539,16 @@ mysql_test_update3() ->
 
 common_test_update3() ->
     {atomic, {selected, [{true, prefer}]}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
                 {updated, 1} =
-                    mod_archive2_storage:update(
+                    ejabberd_storage:update(
                         #archive_jid_prefs{save = true, otr = prefer},
                         ets:fun2ms(
                             fun(#archive_jid_prefs{} = R) ->
                                 R
                             end)),
-                mod_archive2_storage:select(
+                ejabberd_storage:select(
                     ets:fun2ms(
                         fun(#archive_jid_prefs{with_user = "juliet",
                                                save = Save, otr = OTR}) ->
@@ -557,7 +557,7 @@ common_test_update3() ->
             end).
 
 mysql_test_delete2() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -569,8 +569,8 @@ mysql_test_delete2() ->
 
 common_test_delete2() ->
     {atomic, {deleted, 2}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:delete(
+                ejabberd_storage:delete(
                     ets:fun2ms(fun(#archive_message{} = R) -> R end))
             end).

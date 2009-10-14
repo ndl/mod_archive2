@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_mnesia.erl
+%%% File    : ejabberd_storage_mnesia.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : mod_archive2 Mnesia storage support
+%%% Purpose : ejabberd Mnesia storage support
 %%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
@@ -23,12 +23,12 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(mod_archive2_mnesia).
+-module(ejabberd_storage_mnesia).
 -author('ejabberd@ndl.kiev.ua').
 
 -export([handle_query/2]).
 
--include("mod_archive2_storage.hrl").
+-include("ejabberd_storage.hrl").
 
 -define(SELECT_NOBJECTS, 64).
 
@@ -54,13 +54,13 @@ handle_query({select, MS, Opts}, _DbInfo) ->
     {selected, select(MS, Opts)};
 
 handle_query({update, R}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     [OldR] = mnesia:read(element(1, R), element(2, R)),
     mnesia:write(update_values(OldR, R, TableInfo)),
     {updated, 1};
 
 handle_query({update, R, MS}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     {updated,
      update2(mnesia:select(element(1, R), MS, ?SELECT_NOBJECTS, write),
              R, TableInfo, 0)};
@@ -72,7 +72,7 @@ handle_query({insert, Records}, DbInfo) ->
     {Count, LastKey} =
         lists:foldl(
             fun(R, {N, _}) ->
-                TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+                TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
                 KeyType = lists:nth(1, TableInfo#table.types),
                 Key =
                     if element(2, R) =:= undefined andalso
@@ -160,11 +160,9 @@ append_results(Results, {AccType, AccStruct}, {Range, Order, _Aggregate}) ->
         count ->
             {count, update_count(Results, AccStruct)};
         {min, Index} ->
-            {AccType, update_minmax(Results, fun mod_archive2_utils:min/1,
-                                    Index, AccStruct)};
+            {AccType, update_minmax(Results, fun lists:min/1, Index, AccStruct)};
         {max, Index} ->
-            {AccType, update_minmax(Results, fun mod_archive2_utils:max/1,
-                                    Index, AccStruct)}
+            {AccType, update_minmax(Results, fun lists:max/1, Index, AccStruct)}
     end.
 
 append_results_to_tree(Results, Acc, Range, {FieldPos, OrderType}) ->
@@ -186,9 +184,14 @@ update_count(Results, Acc) -> Acc + length(Results).
 
 update_minmax(Results, MinMaxFun, Index, Acc) ->
     Values = [element(Index, Value) || Value <- Results],
-    case Acc of
-        undefined -> MinMaxFun(Values);
-        _ -> MinMaxFun([Acc | Values])
+    case Values of
+        [] ->
+            undefined;
+        _ ->
+            case Acc of
+                undefined -> MinMaxFun(Values);
+                _ -> MinMaxFun([Acc | Values])
+            end
     end.
 
 finalize_results({AccType, AccStruct}, {Range, Order, Aggregate}) ->
@@ -270,8 +273,8 @@ correct_field_index([{MatchHead, _MatchConditions, MatchBody}], Index) ->
         ['$_'] ->
             Index;
 	    [{MatchBodyRecord}] ->
-            mod_archive2_utils:elem_index(MatchVar,
-                                          tuple_to_list(MatchBodyRecord))
+            ejabberd_storage_utils:elem_index(MatchVar,
+                tuple_to_list(MatchBodyRecord))
     end.
 
 %%--------------------------------------------------------------------

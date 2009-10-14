@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_storage.hrl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : mod_archive2 common declarations for storage support
-%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Purpose : mod_archive2 storage-related declarations
+%%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -23,8 +23,26 @@
 %%%
 %%%----------------------------------------------------------------------
 
-%% Table information.
--record(table, {name, rdbms, fields, types, enums, keys}).
-
-%% Storage backend information.
--record(backend, {name, host, rdbms, schema}).
+-define(MOD_ARCHIVE2_SCHEMA,
+        [#table{name = archive_jid_prefs,
+                fields = record_info(fields, archive_jid_prefs),
+                types = [string, string, string, string, bool, integer, enum],
+                enums = [approve, concede, forbid, oppose, prefer, require],
+                keys = 4},
+         #table{name = archive_global_prefs,
+                fields = record_info(fields, archive_global_prefs),
+                types = [string, bool, integer, enum, enum, enum, enum, bool],
+                enums = [approve, concede, forbid, oppose, prefer, require],
+                keys = 1},
+         #table{name = archive_collection,
+                fields = record_info(fields, archive_collection),
+                types = [autoid, integer, integer, string, string, string,
+                         string, time, time, integer, bool, string, string,
+                         bool, xml],
+                enums = [],
+                keys = 1},
+         #table{name = archive_message,
+                fields = record_info(fields, archive_message),
+                types = [autoid, integer, time, enum, string, string, string],
+                enums = [from, to, note],
+                keys = 1}]).

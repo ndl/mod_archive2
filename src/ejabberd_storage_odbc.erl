@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_odbc.erl
+%%% File    : ejabberd_storage_odbc.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : mod_archive2 ODBC storage support
+%%% Purpose : ejabberd ODBC storage support
 %%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
@@ -23,10 +23,11 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(mod_archive2_odbc).
+-module(ejabberd_storage_odbc).
 -author('ejabberd@ndl.kiev.ua').
 
--include("mod_archive2_storage.hrl").
+-include_lib("exmpp/include/exmpp.hrl").
+-include("ejabberd_storage.hrl").
 
 -export([handle_query/2, encode/2, ms_to_sql/2]).
 
@@ -38,7 +39,7 @@
 %%--------------------------------------------------------------------
 
 handle_query({delete, R}, DbInfo) when is_tuple(R) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     {updated, Count} =
         sql_query(
             join_non_empty(
@@ -49,7 +50,7 @@ handle_query({delete, R}, DbInfo) when is_tuple(R) ->
     {deleted, Count};
 
 handle_query({delete, MS}, DbInfo) when is_list(MS) ->
-    TableInfo = mod_archive2_utils:get_table_info(MS, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, _BodyMS} =
         ms_to_sql(MS, TableInfo),
     {updated, Count} =
@@ -61,7 +62,7 @@ handle_query({delete, MS}, DbInfo) when is_list(MS) ->
     {deleted, Count};
 
 handle_query({read, R}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     {selected, _, Rows} =
         sql_query(
             join_non_empty(
@@ -72,7 +73,7 @@ handle_query({read, R}, DbInfo) ->
     {selected, convert_rows(Rows, TableInfo#table.fields, TableInfo, undefined)};
 
 handle_query({select, MS, Opts}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(MS, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, BodyMS} = ms_to_sql(MS, TableInfo),
     {OrderBy, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
@@ -123,7 +124,7 @@ handle_query({select, MS, Opts}, DbInfo) ->
     {selected, convert_rows(Rows, BodyMS, TableInfo, Aggregate)};
 
 handle_query({update, R}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {updated, Count} =
         sql_query(
@@ -137,7 +138,7 @@ handle_query({update, R}, DbInfo) ->
     {updated, Count};
 
 handle_query({update, R, MS}, DbInfo) ->
-    TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {WhereMS, _BodyMS} = ms_to_sql(MS, TableInfo),
     {updated, Count} =
@@ -155,7 +156,7 @@ handle_query({insert, Records}, DbInfo) ->
     {Count, TableInfo} =
         lists:foldl(
             fun(R, {N, _}) ->
-                TableInfo = mod_archive2_utils:get_table_info(R, DbInfo),
+                TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
                 {updated, _} =
                     sql_query(
                         join_non_empty(
@@ -190,7 +191,7 @@ handle_query({sql_query, Query}, _DbInfo) ->
     sql_query(Query);
 
 handle_query({transaction, F}, DbInfo) ->
-    ejabberd_odbc:sql_transaction(DbInfo#backend.host, F).
+    ejabberd_odbc:sql_transaction(DbInfo#storage_backend.host, F).
 
 %%--------------------------------------------------------------------
 %%
@@ -214,7 +215,7 @@ handle_query({transaction, F}, DbInfo) ->
 %% - The only recognized forms of match expression body are the tuple of matching
 %%   variables, single matching variable for the whole record or 'ok' atom for
 %%   queries returning no results: no variables that are not part of tuple,
-%%   constants, lists or whatever are allowed, as tuple of variables is the
+%%   constants, lists or whatever are allowed, as values tuples is the
 %%   only way SQL will return us its results.
 %%
 %% - The set of supported functions and operators is also quite limited: if you
@@ -272,6 +273,7 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
         end,
     {string:join(Conditions, " and "), Body}.
 
+% Atoms support: should decide between enums and matching variables.
 parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
     case dict:find(Value, MatchVarsDict) of
         {ok, Field} ->
@@ -280,21 +282,26 @@ parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
             encode(Value, TableInfo)
     end;
 
+% Constants support.
 parse_match_condition(Value, {_MatchVarsDict, TableInfo})
     when is_list(Value) orelse is_integer(Value) orelse is_float(Value) ->
     encode(Value, TableInfo);
 
+% Variable tuples/records support.
 parse_match_condition({element, N, {const, R}}, Context)
     when is_integer(N) andalso is_tuple(R) ->
-    parse_match_condition(mod_archive2_utils:encode_brackets(element(N, R)),
+    parse_match_condition(ejabberd_storage_utils:encode_brackets(element(N, R)),
                           Context);
 
+% Variables support.
 parse_match_condition({const, Value}, Context) ->
-    parse_match_condition(mod_archive2_utils:encode_brackets(Value), Context);
+    parse_match_condition(ejabberd_storage_utils:encode_brackets(Value), Context);
 
+% Record support: currently used for DateTime only.
 parse_match_condition({_} = R, {_, TableInfo}) ->
-    encode(mod_archive2_utils:decode_brackets(R), TableInfo);
+    encode(ejabberd_storage_utils:decode_brackets(R), TableInfo);
 
+% Unary operations support.
 parse_match_condition({GuardFun, Op1}, Context) ->
     OpName =
     case GuardFun of
@@ -303,6 +310,7 @@ parse_match_condition({GuardFun, Op1}, Context) ->
     end,
     generate_unary_op(OpName, Op1, Context);
 
+% Binary operations support.
 parse_match_condition({GuardFun, Op1, Op2}, Context) ->
     OpName = 
     case GuardFun of
@@ -443,7 +451,7 @@ convert_row(Values, Fields, TableInfo) ->
      {Value, Field} <- lists:zip(Values, Fields)].
 
 convert_value(Value, Field, TableInfo) ->
-    Index = mod_archive2_utils:elem_index(Field, TableInfo#table.fields),
+    Index = ejabberd_storage_utils:elem_index(Field, TableInfo#table.fields),
     decode(Value, lists:nth(Index, TableInfo#table.types), TableInfo).
 
 %%--------------------------------------------------------------------
@@ -478,6 +486,9 @@ encode({{Year, Month, Day}, {Hour, Minute, Second}}, _) ->
         io_lib:format("'~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w'",
                       [Year, Month, Day, Hour, Minute, Second]));
 
+encode(#xmlel{} = XML, TableInfo) ->
+    encode(exmpp_xml:document_to_list(XML), TableInfo);
+
 %% RDBMS-specific escaping.
 
 %% Noone seems to follow standards these days :-(
@@ -492,10 +503,10 @@ encode(Str, _) when is_list(Str) ->
 	"'" ++ ejabberd_odbc:escape(Str) ++ "'";
 
 encode(Value, TableInfo) when is_atom(Value) ->
-    case mod_archive2_utils:elem_index(Value, TableInfo#table.enums) of
+    case ejabberd_storage_utils:elem_index(Value, TableInfo#table.enums) of
         N when is_integer(N) ->
             integer_to_list(
-                mod_archive2_utils:elem_index(Value, TableInfo#table.enums) - 1);
+                ejabberd_storage_utils:elem_index(Value, TableInfo#table.enums) - 1);
         _ -> atom_to_list(Value)
     end.
 
@@ -525,6 +536,9 @@ decode(Value, bool, TableInfo) ->
 
 decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
+
+decode(Value, xml, _TableInfo) ->
+    exmpp_xml:parse_document_fragment(Value);
 
 decode(Value, enum, TableInfo) ->
     lists:nth(decode(Value, integer, TableInfo) + 1, TableInfo#table.enums).

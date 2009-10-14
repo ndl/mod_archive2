@@ -49,7 +49,11 @@ sql_transaction(_Host, F) ->
 
 sql_query_t(Query) ->
     ?DEBUG_FMT("Got query: ~p~n", [Query]),
-    {Query, Answer} = next_element(),
+    {StoredQuery, Answer} = next_element(),
+    case StoredQuery of
+        ignore -> ok;
+        _ -> StoredQuery = Query
+    end,
     Answer.
 
 next_element() ->

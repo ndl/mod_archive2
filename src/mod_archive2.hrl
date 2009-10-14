@@ -30,7 +30,7 @@
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 
--include("mod_archive2_storage.hrl").
+-include("ejabberd_storage.hrl").
 
 -define(NS_ARCHIVING_AUTO, 'urn:xmpp:archive:auto').
 -define(NS_ARCHIVING_AUTO_s, "urn:xmpp:archive:auto").
@@ -40,6 +40,10 @@
 -define(NS_ARCHIVING_MANUAL_s, "urn:xmpp:archive:manual").
 -define(NS_ARCHIVING_PREF, 'urn:xmpp:archive:pref').
 -define(NS_ARCHIVING_PREF_s, "urn:xmpp:archive:pref").
+
+% Common functionality missing from standard Erlang library: we do not want
+% to mess with module name each time we use it.
+-import(mod_archive2_utils, [filter_undef/1, list_to_bool/1]).
 
 -record(archive_jid_prefs,
         {us,
@@ -85,27 +89,3 @@
          body,
          name,
          jid}).
-
--define(MOD_ARCHIVE2_SCHEMA,
-        [#table{name = archive_jid_prefs,
-                fields = record_info(fields, archive_jid_prefs),
-                types = [string, string, string, string, bool, integer, enum],
-                enums = [approve, concede, forbid, oppose, prefer, require],
-                keys = 4},
-         #table{name = archive_global_prefs,
-                fields = record_info(fields, archive_global_prefs),
-                types = [string, bool, integer, enum, enum, enum, enum, bool],
-                enums = [approve, concede, forbid, oppose, prefer, require],
-                keys = 1},
-         #table{name = archive_collection,
-                fields = record_info(fields, archive_collection),
-                types = [autoid, integer, integer, string, string, string,
-                         string, time, time, integer, bool, string, string,
-                         bool, blob],
-                enums = [],
-                keys = 1},
-         #table{name = archive_message,
-                fields = record_info(fields, archive_message),
-                types = [autoid, integer, time, enum, string, string, string],
-                enums = [from, to, note],
-                keys = 1}]).

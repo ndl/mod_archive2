@@ -87,7 +87,7 @@ mod_archive2_management_mnesia_test_() ->
 % them all calls to ejabberd_odbc:start should be placed in transaction.
 
 mysql_test_list_empty(Pid) ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -110,7 +110,7 @@ common_test_list_empty(_Pid) ->
                         [])))).
 
 mysql_test_insert1() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -136,15 +136,15 @@ mysql_test_insert1() ->
 
 common_test_insert1() ->
     {atomic, {inserted, 3, _Key}} =
-        mod_archive2_storage:transaction(?HOST,
+        ejabberd_storage:transaction(?HOST,
             fun() ->
-                mod_archive2_storage:insert([?ARCHIVE_COLLECTION1,
+                ejabberd_storage:insert([?ARCHIVE_COLLECTION1,
                                              ?ARCHIVE_COLLECTION2,
                                              ?ARCHIVE_COLLECTION3])
             end).
 
 mysql_test_list_all() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -177,7 +177,7 @@ common_test_list_all() ->
                     exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 mysql_test_list_max() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -210,21 +210,22 @@ get_list_range(Max, Index) ->
                     [exmpp_xml:element("http://jabber.org/protocol/rsm",
                         set,
 	                    [],
-                        [E || E <- [if Max =/= undefined ->
-                                        exmpp_xml:element(undefined, max, [],
-                                            [exmpp_xml:cdata(Max)]);
-                                       true ->
-                                        undefined
-                                    end,
-                                    if Index =/= undefined ->
-                                        exmpp_xml:element(undefined, index, [],
-                                            [exmpp_xml:cdata(Index)]);
-                                       true ->
-                                        undefined
-                                    end], E =/= undefined])])))).
+                        filter_undef([
+                            if Max =/= undefined ->
+                                exmpp_xml:element(undefined, max, [],
+                                    [exmpp_xml:cdata(Max)]);
+                               true ->
+                                undefined
+                            end,
+                            if Index =/= undefined ->
+                                exmpp_xml:element(undefined, index, [],
+                                    [exmpp_xml:cdata(Index)]);
+                               true ->
+                                undefined
+                            end]))])))).
 
 mysql_test_list_index() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -248,7 +249,7 @@ common_test_list_index() ->
     ?MGMT_TC4_RETRIEVE_RESULT = get_list_range(1, 1).
 
 mysql_test_list_after() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -303,7 +304,7 @@ common_test_list_after() ->
                                                [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_before() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -358,7 +359,7 @@ common_test_list_before() ->
                                                [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_start_end() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -392,7 +393,7 @@ common_test_list_start_end() ->
                          exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], [])))).
 
 mysql_test_list_with() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -426,7 +427,7 @@ common_test_list_with() ->
                          exmpp_xml:attribute(with, "juliet@capulet.com")], [])))).
 
 mysql_test_list_exactmatch() ->
-    mod_archive2_storage:transaction(?HOST,
+    ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},

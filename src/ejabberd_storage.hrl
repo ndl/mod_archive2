@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_utils.erl
+%%% File    : ejabberd_storage.hrl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : mod_archive2 helper functionality
-%%% Created : 04 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Purpose : ejabberd common declarations for storage support
+%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -23,16 +23,8 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(mod_archive2_utils).
--author('ejabberd@ndl.kiev.ua').
+%% Table information.
+-record(table, {name, rdbms, fields, types, enums, keys}).
 
--export([list_to_bool/1, filter_undef/1]).
-
-list_to_bool("false") -> false;
-list_to_bool("true") -> true;
-list_to_bool("0") -> false;
-list_to_bool("1") -> true;
-list_to_bool(undefined) -> undefined.
-
-filter_undef(List) ->
-    [Element || Element <- List, Element =/= undefined].
+%% Storage backend information.
+-record(storage_backend, {name, host, rdbms, schema}).
