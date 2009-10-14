@@ -32,12 +32,14 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([collection_from_xml/2, collection_to_xml/2, datetime_from_xml/1]).
+-export([collection_from_xml/2, collection_to_xml/2,
+         message_from_xml/2, message_to_xml/2,
+         datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
 
 %%--------------------------------------------------------------------
-%% Conversions to/from XML.
+%% Collections conversion to/from XML.
 %%--------------------------------------------------------------------
 
 collection_to_xml(_, undefined) ->
@@ -114,6 +116,60 @@ collection_from_xml(From, XC) ->
         crypt = mod_archive2_utils:list_to_bool(
             exmpp_xml:get_attribute_as_list(XC, crypt, undefined)),
         extra = Extra}.
+
+%%--------------------------------------------------------------------
+%% Messages conversion to/from XML.
+%%--------------------------------------------------------------------
+
+message_to_xml(#archive_message{} = M, Start) ->
+    Secs =
+        calendar:datetime_to_gregorian_seconds(M#archive_message.utc) -
+        calendar:datetime_to_gregorian_seconds(Start),
+    exmpp_xml:element(undefined, M#archive_message.direction,
+        [Value || Value <-
+            [if M#archive_message.direction == note orelse Secs < 0 ->
+                 exmpp_xml:attribute(utc,
+                      datetime_to_utc_string(M#archive_message.utc));
+                true ->
+                 exmpp_xml:attribute(secs, Secs)
+             end,
+             case M#archive_message.name of
+                 undefined -> undefined;
+                 Name -> exmpp_xml:attribute(name, Name)
+             end,
+             case M#archive_message.jid of
+                 undefined -> undefined;
+                 JID -> exmpp_xml:attribute(jid, JID)
+             end], Value =/= undefined],
+        [if M#archive_message.direction == note ->
+             exmpp_xml:cdata(M#archive_message.body);
+            true ->
+             exmpp_xml:element(undefined, body, [],
+                               [exmpp_xml:cdata(M#archive_message.body)])
+		 end]).
+
+message_from_xml(#xmlel{name = Name} = XM, Start) ->
+    #archive_message{
+        direction = Name,
+        utc =
+            case exmpp_xml:get_attribute_as_list(XM, secs, undefined) of
+                undefined ->
+                    datetime_from_xml(
+                        exmpp_xml:get_attribute_as_list(XM, utc, undefined));
+                Secs ->
+                    calendar:gregorian_seconds_to_datetime(
+                        calendar:datetime_to_gregorian_seconds(Start) +
+                        list_to_integer(Secs))
+            end,
+        body =
+            case Name of
+                note ->
+                    exmpp_xml:get_cdata_as_list(XM);
+                _ ->
+                    exmpp_xml:get_cdata_as_list(exmpp_xml:get_element(XM, body))
+            end,
+        name = exmpp_xml:get_attribute_as_list(XM, name, undefined),
+        jid = exmpp_xml:get_attribute_as_list(XM, jid, undefined)}.
 
 %%--------------------------------------------------------------------
 %% Conversion utility functions.

@@ -36,7 +36,7 @@
 -define(JID, "client@localhost").
 -define(HOST, "localhost").
 
--define(RECORD,
+-define(ARCHIVE_COLLECTION_NO_LINKS,
         #archive_collection{
             us = ?JID,
             with_user = "juliet",
@@ -50,7 +50,7 @@
             crypt = true,
             extra = #xmlel{name=x,children=[#xmlel{name=test}]}}).
 
--define(RECORD_XML,
+-define(ARCHIVE_COLLECTION_NO_LINKS_XML,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
           {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
@@ -60,7 +60,7 @@
           {xmlattr,undefined,version,<<"1">>}],
          [{xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
--define(RECORD_XML_WITH_LINKS,
+-define(ARCHIVE_COLLECTION_WITH_LINKS_XML,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
           {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
@@ -78,6 +78,47 @@
                                      <<"1469-07-21T03:01:54.000000Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
+-define(ARCHIVE_MESSAGE1,
+        #archive_message{
+            direction = from,
+            utc = {{1469, 07, 21}, {02, 56, 15}},
+            body = "Art thou not Romeo, and a Montague?"}).
+
+-define(ARCHIVE_MESSAGE1_XML,
+        {xmlel,undefined,[],from,
+         [{xmlattr,undefined,secs,<<"0">>}],
+         [{xmlel,undefined,[],body,[],
+              [{xmlcdata,<<"Art thou not Romeo, and a Montague?">>}]}]}).
+
+-define(ARCHIVE_MESSAGE2,
+        #archive_message{
+            direction = to,
+            utc = {{1469, 07, 21}, {02, 56, 26}},
+            name = "romeo",
+            jid = "romeo@montague.net",
+            body = "Neither, fair saint, if either thee dislike."}).
+
+-define(ARCHIVE_MESSAGE2_XML,
+        {xmlel,undefined,[],to,
+         [{xmlattr,undefined,secs,<<"11">>},
+          {xmlattr,undefined,name,<<"romeo">>},
+          {xmlattr,undefined,jid,<<"romeo@montague.net">>}],
+         [{xmlel,undefined,[],body,[],
+               [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}).
+
+-define(ARCHIVE_MESSAGE3,
+        #archive_message{
+            direction = note,
+            utc = {{1469, 07, 21}, {03, 04, 35}},
+            body = "I think she might fancy me."}).
+
+-define(ARCHIVE_MESSAGE3_XML,
+        {xmlel,undefined,[],note,
+         [{xmlattr,undefined,utc,<<"1469-07-21T03:04:35.000000Z">>}],
+         [{xmlcdata,<<"I think she might fancy me.">>}]}).
+
+-define(START, {{1469, 07, 21}, {02, 56, 15}}).
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_xml_test_() ->
@@ -89,7 +130,13 @@ mod_archive2_xml_test_() ->
     [
         ?test_gen1(test_collection_to_xml),
         ?test_gen1(test_collection_from_xml),
-        ?test_gen1(test_collection_xml_each)
+        ?test_gen1(test_collection_xml_each),
+        ?test_gen1(test_message1_to_xml),
+        ?test_gen1(test_message1_from_xml),
+        ?test_gen1(test_message2_to_xml),
+        ?test_gen1(test_message2_from_xml),
+        ?test_gen1(test_message3_to_xml),
+        ?test_gen1(test_message3_from_xml)
     ]
  }.
 
@@ -120,12 +167,13 @@ xml_tests_setup() -> exmpp:start().
 xml_tests_teardown(_) -> ok.
 
 test_collection_to_xml(_) ->
-    ?RECORD_XML = mod_archive2_xml:collection_to_xml(chat, ?RECORD).
+    ?ARCHIVE_COLLECTION_NO_LINKS_XML =
+        mod_archive2_xml:collection_to_xml(chat, ?ARCHIVE_COLLECTION_NO_LINKS).
 
 test_collection_from_xml(_) ->
-    ?RECORD = (mod_archive2_xml:collection_from_xml(
-        exmpp_jid:parse(?JID), ?RECORD_XML))#archive_collection{
-            change_utc = undefined}.
+    ?ARCHIVE_COLLECTION_NO_LINKS = (mod_archive2_xml:collection_from_xml(
+        exmpp_jid:parse(?JID),
+        ?ARCHIVE_COLLECTION_NO_LINKS_XML))#archive_collection{change_utc = undefined}.
 
 test_collection_xml_each(_) ->
     lists:foreach(
@@ -134,7 +182,7 @@ test_collection_xml_each(_) ->
                Index =/= #archive_collection.us andalso
                Index =/= #archive_collection.utc andalso
                Index =/= #archive_collection.deleted ->
-                R = setelement(Index, ?RECORD, undefined),
+                R = setelement(Index, ?ARCHIVE_COLLECTION_NO_LINKS, undefined),
                 OutR = (mod_archive2_xml:collection_from_xml(exmpp_jid:parse(?JID),
                      mod_archive2_xml:collection_to_xml(chat, R)))#archive_collection{
                         change_utc = undefined},
@@ -143,7 +191,31 @@ test_collection_xml_each(_) ->
                    ok
             end
         end,
-        lists:seq(5, tuple_size(?RECORD))).
+        lists:seq(5, tuple_size(?ARCHIVE_COLLECTION_NO_LINKS))).
+
+test_message1_to_xml(_) ->
+    ?ARCHIVE_MESSAGE1_XML =
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE1, ?START).
+
+test_message1_from_xml(_) ->
+    ?ARCHIVE_MESSAGE1 =
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE1_XML, ?START).
+
+test_message2_to_xml(_) ->
+    ?ARCHIVE_MESSAGE2_XML =
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE2, ?START).
+
+test_message2_from_xml(_) ->
+    ?ARCHIVE_MESSAGE2 =
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE2_XML, ?START).
+
+test_message3_to_xml(_) ->
+    ?ARCHIVE_MESSAGE3_XML =
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE3, ?START).
+
+test_message3_from_xml(_) ->
+    ?ARCHIVE_MESSAGE3 =
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START).
 
 mysql_test_links(Pid) ->
     mod_archive2_storage:transaction(?HOST,
@@ -187,7 +259,7 @@ mysql_test_links(Pid) ->
     common_test_links(Pid).
 
 common_test_links(_Pid) ->
-    {atomic, ?RECORD_XML_WITH_LINKS} =
+    {atomic, ?ARCHIVE_COLLECTION_WITH_LINKS_XML} =
         mod_archive2_storage:transaction(?HOST,
             fun() ->
                 mod_archive2_storage:insert([?ARCHIVE_COLLECTION1,
@@ -195,5 +267,6 @@ common_test_links(_Pid) ->
                                              ?ARCHIVE_COLLECTION3]),
                 mod_archive2_xml:collection_to_xml(chat,
                     mod_archive2_xml:collection_from_xml(
-                        exmpp_jid:parse(?JID), ?RECORD_XML_WITH_LINKS))
+                        exmpp_jid:parse(?JID),
+                        ?ARCHIVE_COLLECTION_WITH_LINKS_XML))
             end).

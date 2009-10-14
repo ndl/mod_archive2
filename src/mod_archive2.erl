@@ -356,7 +356,7 @@ add_packet(Type, Host, From, To, Packet) ->
 remove_user(User, Server) ->
     JID = exmpp_jid:make(User, Server),
     Host = exmpp_jid:prep_domain_as_list(JID),
-    US = exmpp_jid:prep_bare_as_list(JID),
+    US = exmpp_jid:prep_bare_to_list(JID),
     mod_archive2_storage:transaction(
         Host,
         fun() ->
