@@ -70,7 +70,13 @@ mod_archive2_manual_mysql_test_() ->
     fun testing:mysql_tests_setup/0,
     fun testing:mysql_tests_teardown/1,
     [
-        ?test_gen1(mysql_test_upload)
+        [
+            ?test_gen0(mysql_test_upload),
+            ?test_gen0(mysql_test_retrieve_all),
+            ?test_gen0(mysql_test_update),
+            ?test_gen0(mysql_test_retrieve_max),
+            ?test_gen0(mysql_test_retrieve_empty)
+        ]
     ]
 }.
 
@@ -81,24 +87,32 @@ mod_archive2_manual_mnesia_test_() ->
     fun testing:mnesia_tests_setup/0,
     fun testing:mnesia_tests_teardown/1,
     [
-        ?test_gen1(common_test_upload)
+        [
+            ?test_gen0(common_test_upload),
+            ?test_gen0(common_test_retrieve_all),
+            ?test_gen0(common_test_update),
+            ?test_gen0(common_test_retrieve_max),
+            ?test_gen0(common_test_retrieve_empty)
+        ]
     ]
 }.
 
-mysql_test_upload(Pid) ->
+mysql_test_upload() ->
     ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"select id from archive_collection where (with_user = 'balcony') "
-                 "and (with_server = 'house.capulet.com') and (with_resource = null) "
-                 "and (utc = '1469-07-21 03:16:37')",
+                {"select id from archive_collection where (us = 'client@localhost') "
+                "and (with_user = 'balcony') and (with_server = 'house.capulet.com') "
+                "and (with_resource = null) and (utc = '1469-07-21 03:16:37')",
                  {selected, [], []}},
-                {"select id from archive_collection where (with_user = 'benvolio') "
+                {"select id from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource = null) "
                  "and (utc = '1469-07-21 03:01:54')",
                  {selected, [], []}},
-                {"select id from archive_collection where (with_user = 'juliet') "
+                {"select id, version from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'juliet') "
                  "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
                  "and (utc = '1469-07-21 02:56:15')",
                  {selected, [], []}},
@@ -116,9 +130,9 @@ mysql_test_upload(Pid) ->
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {}])
         end),
-    common_test_upload(Pid).
+    common_test_upload().
 
-common_test_upload(_Pid) ->
+common_test_upload() ->
     ?MANUAL_TC1_SAVE_RESULT =
         mod_archive2_manual:save(
             exmpp_jid:parse(?JID),
@@ -127,3 +141,164 @@ common_test_upload(_Pid) ->
                     exmpp_xml:element(?NS_ARCHIVING, save,
                         [],
                         [?ARCHIVE_COLLECTION_COMPLETE])))).
+
+mysql_test_retrieve_all() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select * from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
+                 "(with_resource = 'chamber') and (utc = '1469-07-21 02:56:15')",
+                 {selected, [],
+                    [{1, null, null, "client@localhost",
+                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
+                      "2009-10-15 07:53:19", 0, "0", "Subject", "12345", 1,
+                      "<x><test/></x>"}]}},
+                {"select count(*) from archive_message where (coll_id = 1)",
+                 {selected, [], [{3}]}},
+                {"select * from archive_message where (coll_id = 1) "
+                 "order by utc asc",
+                 {selected, [],
+                  [{1, 1, "1469-07-21 02:56:15", 0,
+                     "Art thou not Romeo, and a Montague?", undefined,
+                     undefined},
+                   {2, 1, "1469-07-21 02:56:26", 1,
+                    "Neither, fair saint, if either thee dislike.", null, null},
+                   {3, 1, "1469-07-21 03:04:35", "2",
+                    "I think she might fancy me.", null, null}]}},
+                {"select count(*) from archive_message where (coll_id = 1) and "
+                 "((utc < '1469-07-21 02:56:15') or "
+                 "((utc = '1469-07-21 02:56:15') and (id < 1)))",
+                 {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_retrieve_all().
+
+common_test_retrieve_all() ->
+    ?MANUAL_TC2_RETRIEVE_RESULT =
+        mod_archive2_management:retrieve(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, retrieve,
+                        [exmpp_xml:attribute(with, "juliet@capulet.com/chamber"),
+                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [])))).
+
+mysql_test_update() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select id from archive_collection where (us = 'client@localhost') "
+                "and (with_user = 'balcony') "
+                 "and (with_server = 'house.capulet.com') and (with_resource = null) "
+                 "and (utc = '1469-07-21 03:16:37')",
+                 {selected, [], []}},
+                {"select id from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'benvolio') "
+                 "and (with_server = 'montague.net') and (with_resource = null) "
+                 "and (utc = '1469-07-21 03:01:54')",
+                 {selected, [], []}},
+                {},
+                {"select id, version from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'juliet') "
+                 "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
+                 "and (utc = '1469-07-21 02:56:15')",
+                 {selected, [], [{1, 0}]}},
+                {ignore, {updated, 1}},
+                {}])
+        end),
+    common_test_update().
+
+common_test_update() ->
+    F = fun() ->
+        C = mod_archive2_xml:collection_from_xml(exmpp_jid:parse(?JID),
+            ?ARCHIVE_COLLECTION_COMPLETE),
+        mod_archive2_xml:collection_to_xml(chat,
+            C#archive_collection{
+                subject = "Subject2",
+                crypt = false,
+                extra = exmpp_xml:element(undefined, x, [], [])})
+    end,
+    {atomic, XC} =
+        ejabberd_storage:transaction(?HOST, F),
+    ?MANUAL_TC3_UPDATE_RESULT =
+        mod_archive2_manual:save(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, save,
+                        [],
+                        [XC])))).
+
+mysql_test_retrieve_max() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select * from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'juliet') "
+                 "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
+                 "and (utc = '1469-07-21 02:56:15')",
+                 {selected, [],
+                    [{1, null, null, "client@localhost",
+                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
+                      "2009-10-15 07:53:19", 1, "0", "Subject2", "12345", 0,
+                      undefined}]}},
+                {"select count(*) from archive_message where (coll_id = 1)",
+                 {selected, [], [{3}]}},
+                {"select * from archive_message where (coll_id = 1) "
+                 "order by utc asc offset 1 limit 2",
+                 {selected, [],
+                  [{2, 1, "1469-07-21 02:56:26", 1,
+                    "Neither, fair saint, if either thee dislike.", null, null},
+                   {3, 1, "1469-07-21 03:04:35", "2",
+                    "I think she might fancy me.", null, null}]}},
+                {"select count(*) from archive_message where (coll_id = 1) and "
+                 "((utc < '1469-07-21 02:56:26') or "
+                 "((utc = '1469-07-21 02:56:26') and (id < 2)))",
+                 {selected, [], [{1}]}},
+                {}])
+        end),
+    common_test_retrieve_max().
+
+common_test_retrieve_max() ->
+    ?MANUAL_TC4_RETRIEVE_RESULT =
+        mod_archive2_management:retrieve(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, retrieve,
+                        [exmpp_xml:attribute(with, "juliet@capulet.com/chamber"),
+                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [exmpp_xml:element("http://jabber.org/protocol/rsm",
+                         set,
+	                     [],
+                         [exmpp_xml:element(undefined, index, [], [exmpp_xml:cdata(1)]),
+                          exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])])))).
+
+mysql_test_retrieve_empty() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select * from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
+                 "(with_resource = 'NOT_EXISTING') and (utc = '1469-07-21 02:56:15')",
+                 {selected, [], []}},
+                {}])
+        end),
+    common_test_retrieve_empty().
+
+common_test_retrieve_empty() ->
+    {atomic,{error,'item-not-found'}} =
+        mod_archive2_management:retrieve(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, retrieve,
+                        [exmpp_xml:attribute(with, "juliet@capulet.com/NOT_EXISTING"),
+                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [])))).

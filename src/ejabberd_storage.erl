@@ -152,7 +152,10 @@ update(R, MS) ->
 %% Inserts all records in the list to their respective tables, records are
 %% assumed to not exist, keys are auto-generated, all other fields not set to
 %% "undefined" are used. Returns last inserted ID, but it is meaningful only
-%% if Records contained single record.
+%% if Records contained exactly one record.
+insert([]) ->
+    undefined;
+
 insert(Records) ->
     forward_query({insert, Records}).
 

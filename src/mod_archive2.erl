@@ -248,7 +248,7 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
 			    %'auto' -> mod_archive2_auto:auto(From, IQ,
                 %                                 State#state.sessions);
 			    'list' -> mod_archive2_management:list(From, IQ);
-			    %'retrieve' -> mod_archive2_management:retrieve(From, IQ);
+			    'retrieve' -> mod_archive2_management:retrieve(From, IQ);
 			    'save' -> mod_archive2_manual:save(From, IQ);
 			    %'remove' -> mod_archive2_management:remove(From, IQ,
                 %                State#state.sessions);
@@ -257,16 +257,16 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
 		    end
         end,
     %% All IQ processing functions should return {atomic, NewIQ, Sessions},
-    %% {atomic, ResIQ} or {error, Error} - other returns mean smth is seriously
-    %% wrong with the code itself.
+    %% {atomic, ResIQ} or {atomic, {error, Error}} - other returns mean smth is
+    %% seriously wrong with the code itself.
     case catch F() of
+        {atomic, {error, Error}} ->
+            ?INFO_MSG("error while executing archiving request: ~p", [Error]),
+            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {atomic, R, NewSessions} ->
             {reply, R, State#state{sessions = NewSessions}};
         {atomic, R} ->
             {reply, R, State};
-        {error, Error} ->
-            ?INFO_MSG("error while executing archiving request: ~p", [Error]),
-            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {'EXIT', Ex} ->
             ?ERROR_MSG("catched unhandled exception: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};

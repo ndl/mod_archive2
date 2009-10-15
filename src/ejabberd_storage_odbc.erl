@@ -70,11 +70,15 @@ handle_query({read, R}, DbInfo) ->
                  atom_to_list(TableInfo#table.name),
                  "where",
                  encode_keys(R, TableInfo)], " ")),
-    {selected, convert_rows(Rows, TableInfo#table.fields, TableInfo, undefined)};
+    Fields = TableInfo#table.fields,
+    {selected, convert_rows(Rows,
+        {Fields, [{value, TableInfo#table.name} |
+            [{field, Field} || Field <- Fields]]},
+        TableInfo, undefined)};
 
 handle_query({select, MS, Opts}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
-    {WhereMS, BodyMS} = ms_to_sql(MS, TableInfo),
+    {WhereMS, {RequestedFields, _} = BodyMS} = ms_to_sql(MS, TableInfo),
     {OrderBy, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
     Offset = proplists:get_value(offset, Opts, undefined),
@@ -110,10 +114,11 @@ handle_query({select, MS, Opts}, DbInfo) ->
                 "(" ++
                 atom_to_list(lists:nth(Index - 1, TableInfo#table.fields)) ++
                 ")";
-            _ when BodyMS =:= TableInfo#table.fields ->
+            _ when RequestedFields =:= TableInfo#table.fields ->
                 "*";
             _ ->
-                string:join([atom_to_list(Field) || Field <- BodyMS], ", ")
+                string:join([atom_to_list(Field) ||
+                    Field <- RequestedFields], ", ")
         end,
     {selected, _, Rows} =
         sql_query(
@@ -212,10 +217,15 @@ handle_query({transaction, F}, DbInfo) ->
 %%   clauses may lead to specification of different output results in different
 %%   clauses, which is not supported by SQL.
 %%
-%% - The only recognized forms of match expression body are the tuple of matching
-%%   variables, single matching variable for the whole record or 'ok' atom for
-%%   queries returning no results: no variables that are not part of tuple,
-%%   constants, lists or whatever are allowed, as values tuples is the
+%% - The only recognized forms of match expression body are:
+%%    * Tuple of matching variables, f.e. '{utc, with_server, with_user}'.
+%%    * Record with matching variables, f.e. '#archive_collection{utc = UTC}'
+%%      where UTC is bound in fun head.
+%%    * Single matching variable that matches the whole record, f.e.
+%%      'C' where C is bound in fun head to the whole record.
+%%    * 'ok' atom for queries returning no results.
+%%   No other forms are allowed: specifically, no variables that are not part
+%%%  of tuple, constants, lists or whatever are allowed, as values tuples is the
 %%   only way SQL will return us its results.
 %%
 %% - The set of supported functions and operators is also quite limited: if you
@@ -259,17 +269,24 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
         lists:reverse(HeadMatches) ++
         [parse_match_condition(MC, {MatchVarsDict, TableInfo}) ||
          MC <- MatchConditions],
-    % Generate the list of fields requested.
+    % Generate the list of fields requested and result body.
     Body =
         case MatchBody of
             ['$_'] ->
-                TableInfo#table.fields;
+                {TableInfo#table.fields,
+                 [{value, TableInfo#table.name} |
+                    [{field, Field} || Field <- TableInfo#table.fields]]};
             ['ok'] ->
-                [];
+                {[], [{value, ok}]};
             _ ->
-	            [{MatchBodyRecord}] = MatchBody,
-                [parse_match_body(Expr, MatchVarsDict) ||
-                 Expr <- tuple_to_list(MatchBodyRecord)]
+                [SingleMBR] = MatchBody,
+                MBR = ejabberd_storage_utils:decode_brackets(SingleMBR),
+                BodyResults =
+                    [parse_match_body(Expr, MatchVarsDict) ||
+                        Expr <- tuple_to_list(MBR)],
+                RequestFields =
+                    [Field || {Type, Field} <- BodyResults, Type =:= field],
+                {RequestFields, BodyResults}
         end,
     {string:join(Conditions, " and "), Body}.
 
@@ -343,8 +360,12 @@ generate_binary_op(OpName, Op1, Op2, Context) ->
         parse_match_condition(Op2, Context) ++ ")".
 
 parse_match_body(Expr, MatchVarsDict) ->
-    {ok, Field} = dict:find(Expr, MatchVarsDict),
-    Field.
+    case dict:find(Expr, MatchVarsDict) of
+        {ok, Field} ->
+            {field, Field};
+        _ ->
+            {value, Expr}
+    end.
 
 is_match_variable(Variable) when is_atom(Variable) ->
     VarName = atom_to_list(Variable),
@@ -436,23 +457,27 @@ convert_rows(Rows, BodyMS, TableInfo, Aggregate) ->
                                 lists:nth(Index - 1, TableInfo#table.types),
                                 TableInfo)]
                 end,
-            list_to_tuple(
-                if BodyMS =:= TableInfo#table.fields andalso
-                    Aggregate =:= undefined ->
-                    [TableInfo#table.name | Values];
-                   true ->
-                    Values
-                end)
+            list_to_tuple(Values)
          end,
          Rows).
 
-convert_row(Values, Fields, TableInfo) ->
-    [convert_value(Value, Field, TableInfo) ||
-     {Value, Field} <- lists:zip(Values, Fields)].
+convert_row(Values, {RequestedFields, BodyResults}, TableInfo) ->
+    [convert_value(Values, RequestedFields, Result, TableInfo) ||
+        Result <- BodyResults].
 
-convert_value(Value, Field, TableInfo) ->
-    Index = ejabberd_storage_utils:elem_index(Field, TableInfo#table.fields),
-    decode(Value, lists:nth(Index, TableInfo#table.types), TableInfo).
+convert_value(Values, RequestedFields, Result, TableInfo) ->
+    case Result of
+        {field, Field} ->
+            TypeIndex =
+                ejabberd_storage_utils:elem_index(Field,
+                    TableInfo#table.fields),
+            ValueIndex =
+                ejabberd_storage_utils:elem_index(Field, RequestedFields),
+            decode(lists:nth(ValueIndex, Values),
+                lists:nth(TypeIndex, TableInfo#table.types), TableInfo);
+        {value, Value} ->
+            Value
+    end.
 
 %%--------------------------------------------------------------------
 %%
@@ -513,6 +538,9 @@ encode(Value, TableInfo) when is_atom(Value) ->
 decode(null, _Type, _TableInfo) ->
     undefined;
 
+decode(undefined, _Type, _TableInfo) ->
+    undefined;
+
 decode("null", _Type, _TableInfo) ->
     undefined;
 
@@ -538,7 +566,10 @@ decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
 
 decode(Value, xml, _TableInfo) ->
-    exmpp_xml:parse_document_fragment(Value);
+    case exmpp_xml:parse_document_fragment(Value, [{root_depth, 0}]) of
+        [#xmlel{} = R] -> R;
+        _ -> undefined
+    end;
 
 decode(Value, enum, TableInfo) ->
     lists:nth(decode(Value, integer, TableInfo) + 1, TableInfo#table.enums).

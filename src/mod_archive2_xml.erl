@@ -47,8 +47,17 @@ collection_to_xml(_, undefined) ->
 
 collection_to_xml(Name, #archive_collection{} = C) ->
     [PrevLink, NextLink] =
-        mod_archive2_storage:get_collection_links(
-            [C#archive_collection.prev_id, C#archive_collection.next_id]),
+        [case ID of
+             undefined ->
+                undefined;
+             null ->
+                undefined;
+             _ ->
+                mod_archive2_storage:get_collection(
+                     #archive_collection{id = ID}, by_id,
+                     [with_user, with_server, with_resource, utc])
+         end ||
+         ID <- [C#archive_collection.prev_id, C#archive_collection.next_id]],
     PrevLinkXML = collection_to_xml(previous, PrevLink),
     NextLinkXML = collection_to_xml(next, NextLink),
     ExtraXML =
@@ -74,6 +83,8 @@ collection_to_xml(Name, #archive_collection{} = C) ->
             end,
             if C#archive_collection.crypt =:= true ->
                 exmpp_xml:attribute(crypt, true);
+               C#archive_collection.crypt =:= false ->
+                exmpp_xml:attribute(crypt, false);
                true ->
                 undefined
             end,
@@ -90,21 +101,24 @@ collection_from_xml(_From, undefined) ->
 collection_from_xml(From, XC) ->
     LinkPrevXML = exmpp_xml:get_element(XC, previous),
     LinkNextXML = exmpp_xml:get_element(XC, next),
-    Extra = exmpp_xml:get_element(XC, x),
+    Extra =
+        case exmpp_xml:get_element(XC, x) of
+            undefined -> undefined;
+            #xmlel{attrs = [], children = []} -> null;
+            XML -> XML
+        end,
     FromUser = exmpp_jid:prep_node_as_list(From),
     FromServer = exmpp_jid:prep_domain_as_list(From),
     With = exmpp_jid:parse(exmpp_xml:get_attribute_as_list(XC, with, undefined)),
     #archive_collection{
-        prev_id = mod_archive2_storage:get_collection_id(
-            collection_from_xml(From, LinkPrevXML)),
-        next_id = mod_archive2_storage:get_collection_id(
-            collection_from_xml(From, LinkNextXML)),
+        prev_id = get_collection_id(collection_from_xml(From, LinkPrevXML)),
+        next_id = get_collection_id(collection_from_xml(From, LinkNextXML)),
         us = exmpp_jid:prep_to_list(exmpp_jid:make(FromUser, FromServer)),
         with_user = exmpp_jid:prep_node_as_list(With),
         with_server = exmpp_jid:prep_domain_as_list(With),
         with_resource = exmpp_jid:prep_resource_as_list(With),
-        utc = datetime_from_xml(exmpp_xml:get_attribute_as_list(XC, start,
-                                                                undefined)),
+        utc = datetime_from_xml(
+            exmpp_xml:get_attribute_as_list(XC, start, undefined)),
         change_utc = calendar:now_to_datetime(now()),
         version =
             case exmpp_xml:get_attribute_as_list(XC, version, undefined) of
@@ -118,6 +132,14 @@ collection_from_xml(From, XC) ->
             exmpp_xml:get_attribute_as_list(XC, crypt, undefined)),
         extra = Extra}.
 
+get_collection_id(undefined) ->
+    undefined;
+
+get_collection_id(C) ->
+    case mod_archive2_storage:get_collection(C, by_link, [id]) of
+        undefined -> null;
+        #archive_collection{id = ID} -> ID
+    end.
 %%--------------------------------------------------------------------
 %% Messages conversion to/from XML.
 %%--------------------------------------------------------------------

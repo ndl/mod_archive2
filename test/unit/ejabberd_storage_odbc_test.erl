@@ -42,15 +42,24 @@ mod_archive2_match_to_sql_test_() ->
         ?test_gen0(test_match_to_sql4),
         ?test_gen0(test_match_to_sql5),
         ?test_gen0(test_match_to_sql6),
-        ?test_gen0(test_match_to_sql7)
+        ?test_gen0(test_match_to_sql7),
+        ?test_gen0(test_match_to_sql8)
      ].
 
 -define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01')))").
--define(QUERY_RES1, {?WHERE_CLAUSE1, [id, utc, body]}).
 
-get_table_info(Table) ->
+-define(QUERY_RES1,
+    {?WHERE_CLAUSE1,
+        {[id, utc, body],
+            [{field, id}, {field, utc}, {field, body}]}}).
+
+query_body_full(TableInfo) ->
+    Fields = TableInfo#table.fields,
+    {Fields, [{value, TableInfo#table.name} | [{field, Field} || Field <- Fields]]}.
+
+get_table_info(TableName) ->
     TableSchema =
-        lists:keyfind(Table, #table.name, ?MOD_ARCHIVE2_SCHEMA),
+        lists:keyfind(TableName, #table.name, ?MOD_ARCHIVE2_SCHEMA),
     TableSchema#table{rdbms = mysql}.
 
 %% Direct MS test.
@@ -88,7 +97,7 @@ test_match_to_sql3() ->
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
 		    R
 		end), TableInfo)
-	=:= {?WHERE_CLAUSE1, TableInfo#table.fields}).
+	=:= {?WHERE_CLAUSE1, query_body_full(TableInfo)}).
 
 %% Head matching test.
 test_match_to_sql4() ->
@@ -99,7 +108,7 @@ test_match_to_sql4() ->
 	        fun(#archive_message{id = 1, utc = "2000-01-01"} = R) ->
 		    R
 		end), TableInfo)
-	=:= {"(id = 1) and (utc = '2000-01-01')", TableInfo#table.fields}).
+	=:= {"(id = 1) and (utc = '2000-01-01')", query_body_full(TableInfo)}).
 
 %% Partial body plus head matching test.
 test_match_to_sql5() ->
@@ -111,7 +120,7 @@ test_match_to_sql5() ->
                                        save = Save, otr = OTR}) ->
                     {Save, OTR}
                 end), TableInfo)
-    =:= {"(with_user = 'juliet')",[save,otr]}).
+    =:= {"(with_user = 'juliet')",{[save,otr], [{field, save}, {field, otr}]}}).
 
 %% All supported functions test.
 test_match_to_sql6() ->
@@ -143,8 +152,9 @@ test_match_to_sql6() ->
          "(((expire & otr) = otr) and ((expire | otr) = otr)))))) or "
          "(((expire + otr) > expire) or (((expire - otr) < expire) or "
          "(((expire * otr) = expire) or ((expire / otr) <> expire)))))))",
-         TableInfo#table.fields}).
+         query_body_full(TableInfo)}).
 
+%% Tuples decoding test.
 test_match_to_sql7() ->
     TableInfo = get_table_info(archive_collection),
     ?assert(
@@ -157,4 +167,37 @@ test_match_to_sql7() ->
                        end), TableInfo)
     =:=
         {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') or "
-         "((utc = '1469-07-21 02:56:15') and (id < 1)))", []}).
+         "((utc = '1469-07-21 02:56:15') and (id < 1)))", {[], [{value, ok}]}}).
+
+%% Partial records in body result test.
+test_match_to_sql8() ->
+    TableInfo = get_table_info(archive_collection),
+    ?assert(
+        ejabberd_storage_odbc:ms_to_sql(
+            ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
+                           US =:= "client@localhost",
+                           UTC < {{1469,7,21},{2,56,15}} orelse
+                           UTC =:= {{1469,7,21},{2,56,15}} andalso
+                           ID < 1 ->
+                            #archive_collection{id = ID, utc = UTC}
+                       end), TableInfo)
+    =:=
+        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') or "
+         "((utc = '1469-07-21 02:56:15') and (id < 1)))",
+         {[id,utc],
+          [{value,archive_collection},
+           {field,id},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {field,utc},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined},
+           {value,undefined}]}}).

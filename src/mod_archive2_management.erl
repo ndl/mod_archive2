@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([list/2]).
+-export([list/2, retrieve/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -51,73 +51,126 @@
 
 list(From, #iq{payload = SubEl} = IQ) ->
     TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
-                                                  ?MOD_ARCHIVE2_SCHEMA),
+        ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
             Range = parse_cmd_range(SubEl),
-            InRSM =
-                case jlib:rsm_decode(IQ) of
-                    none -> #rsm_in{};
-                    R -> R
-                end,
-            MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
-            {selected, [{Count}]} =
-                ejabberd_storage:select(
-                    [{MSHead,
-                      get_range_matching_conditions(From, Range, TableInfo),
-                      [ok]}],
-                    [{aggregate, count}]),
+            Fields = [id, with_user, with_server, with_resource, utc, version],
             Results =
-                if Count > 0 ->
-                    CombiRange = combine_ranges(Range, InRSM),
-                    Opts = get_range_opts(InRSM, #archive_collection.utc),
-                    Fields = [id, with_user, with_server, with_resource, utc, version],
-                    {selected, Rows} =
-                        ejabberd_storage:select(
-                            [{MSHead,
-                            get_range_matching_conditions(From, CombiRange, TableInfo),
-                            ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}], Opts),
-                    Items =
-                        if InRSM#rsm_in.direction =:= before ->
-                            lists:reverse(Rows);
-                           true ->
-                            Rows
-                        end,
-                    OutRSM =
-                        case Items of
-                            [] ->
-                                jlib:rsm_encode(#rsm_out{count = Count});
-                            _ ->
-                                [{First, _, _, _, ActualStart, _} | _] = Items,
-                                {Last, _, _, _, ActualEnd, _} = lists:last(Items),
-                                StartRange = Range#range{start_id = undefined,
-                                                         end_time = ActualStart,
-                                                         end_id = First},
-                                {selected, [{Index}]} =
-                                    ejabberd_storage:select(
-                                        [{MSHead,
-                                         get_range_matching_conditions(From, StartRange,
-                                                                       TableInfo),
-                                         [ok]}],
-                                        [{aggregate, count}]),
-                                jlib:rsm_encode(#rsm_out{count = Count, index = Index,
-                                    first = encode_rsm_position({ActualStart, First}),
-                                    last = encode_rsm_position({ActualEnd, Last})})
-                        end,
-                    [mod_archive2_xml:collection_to_xml(chat,
-                     ejabberd_storage_utils:to_record(C, Fields, TableInfo)) ||
-                     C <- Items] ++ OutRSM;
-                   true ->
-                    []
+                case get_items_ranged(IQ, TableInfo,
+                    Range, get_with_conditions(From, Range),
+                    #archive_collection.utc, Fields) of
+                    {[], undefined} ->
+                        [];
+                    {Items, OutRSM} ->
+                        [mod_archive2_xml:collection_to_xml(chat, C) ||
+                            C <- Items] ++ OutRSM
                 end,
             exmpp_iq:result(IQ,
                 exmpp_xml:element(?NS_ARCHIVING, list, [], Results))
-            end,
-        ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+        end,
+    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
-get_range_matching_conditions(From, R, TableInfo) ->
-    Cond =
+%%--------------------------------------------------------------------
+%% Retrieves collection and its messages
+%%--------------------------------------------------------------------
+
+retrieve(From, #iq{payload = SubEl} = IQ) ->
+    F = fun() ->
+            InC = mod_archive2_xml:collection_from_xml(From, SubEl),
+            case mod_archive2_storage:get_collection(InC, by_link) of
+                undefined ->
+                    {error, 'item-not-found'};
+                C ->
+                    TableInfo =
+                        ejabberd_storage_utils:get_table_info(archive_message,
+                            ?MOD_ARCHIVE2_SCHEMA),
+                    Fields = TableInfo#table.fields,
+                    Range = #range{exactmatch = false},
+                    Results =
+                        case get_items_ranged(IQ, TableInfo,
+                            Range, [{'=:=', coll_id,
+                                     ejabberd_storage_utils:encode_brackets(
+                                         C#archive_collection.id)}],
+                            #archive_message.utc, Fields) of
+                            {[], undefined} ->
+                                [];
+                            {Items, OutRSM} ->
+                                [exmpp_xml:append_children(
+                                    mod_archive2_xml:collection_to_xml(chat, C),
+                                    [mod_archive2_xml:message_to_xml(M,
+                                        C#archive_collection.utc) ||
+                                     M <- Items] ++ OutRSM)]
+                        end,
+                    exmpp_iq:result(IQ,
+                        exmpp_xml:element(?NS_ARCHIVING, retrieve, [], Results))
+            end
+        end,
+    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+
+%%--------------------------------------------------------------------
+%% Helper functions for range requests
+%%--------------------------------------------------------------------
+get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
+    InRSM =
+        case jlib:rsm_decode(IQ) of
+            none -> #rsm_in{};
+            R -> R
+        end,
+    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
+    {selected, [{Count}]} =
+        ejabberd_storage:select(
+            [{MSHead,
+              get_range_matching_conditions(Range, Conditions, TableInfo),
+              [ok]}],
+            [{aggregate, count}]),
+    if Count > 0 ->
+        CombiRange = combine_ranges(Range, InRSM),
+        Opts = get_range_opts(InRSM, UTCField),
+        {selected, Rows} =
+            ejabberd_storage:select(
+                [{MSHead,
+                  get_range_matching_conditions(CombiRange, Conditions,
+                      TableInfo),
+                ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}], Opts),
+        Items =
+            if InRSM#rsm_in.direction =:= before ->
+                lists:reverse(Rows);
+               true ->
+                Rows
+            end,
+        OutRSM =
+            case Items of
+                [] ->
+                    jlib:rsm_encode(#rsm_out{count = Count});
+                _ ->
+                    [FirstRecord | _] = Items,
+                    First = element(2, FirstRecord),
+                    ActualStart = element(UTCField, FirstRecord),
+                    LastRecord = lists:last(Items),
+                    Last = element(2, LastRecord),
+                    ActualEnd = element(UTCField, LastRecord),
+                    StartRange = Range#range{start_id = undefined,
+                                             end_time = ActualStart,
+                                             end_id = First},
+                    {selected, [{Index}]} =
+                        ejabberd_storage:select(
+                            [{MSHead,
+                              get_range_matching_conditions(StartRange,
+                                  Conditions, TableInfo),
+                             [ok]}],
+                            [{aggregate, count}]),
+                    jlib:rsm_encode(#rsm_out{count = Count, index = Index,
+                        first = encode_rsm_position({ActualStart, First}),
+                        last = encode_rsm_position({ActualEnd, Last})})
+            end,
+        {Items, OutRSM};
+       true ->
+        {[], undefined}
+    end.
+
+get_range_matching_conditions(R, Conditions, TableInfo) ->
+    RangeConditions =
         filter_undef([
-            {'=:=', us, exmpp_jid:prep_bare_to_list(From)},
             if R#range.start_time =/= undefined ->
                 Start =
                     ejabberd_storage_utils:encode_brackets(R#range.start_time),
@@ -151,31 +204,34 @@ get_range_matching_conditions(From, R, TableInfo) ->
                true ->
                 undefined
             end]),
-    CondWith =
-        if R#range.with =/= undefined ->
-            User = exmpp_jid:prep_node_as_list(R#range.with),
-            Server = exmpp_jid:prep_domain_as_list(R#range.with),
-            Resource = exmpp_jid:prep_resource_as_list(R#range.with),
-            filter_undef([
-                if User =/= undefined orelse R#range.exactmatch ->
-                    {'=:=', with_user, User};
-                   true ->
-                    undefined
-                end,
-                if Server =/= undefined orelse R#range.exactmatch ->
-                    {'=:=', with_server, Server};
-                   true ->
-                    undefined
-                end,
-                if Resource =/= undefined orelse R#range.exactmatch ->
-                    {'=:=', with_resource, Resource};
-                   true ->
-                    undefined
-                end]);
-           true ->
-               []
-        end,
-    ejabberd_storage_utils:resolve_fields_names(Cond ++ CondWith, TableInfo).
+    ejabberd_storage_utils:resolve_fields_names(Conditions ++ RangeConditions,
+        TableInfo).
+
+get_with_conditions(From, R) ->
+    [{'=:=', us, exmpp_jid:prep_bare_to_list(From)}] ++
+    if R#range.with =/= undefined ->
+        User = exmpp_jid:prep_node_as_list(R#range.with),
+        Server = exmpp_jid:prep_domain_as_list(R#range.with),
+        Resource = exmpp_jid:prep_resource_as_list(R#range.with),
+        filter_undef([
+            if User =/= undefined orelse R#range.exactmatch ->
+                {'=:=', with_user, User};
+               true ->
+                undefined
+            end,
+            if Server =/= undefined orelse R#range.exactmatch ->
+                {'=:=', with_server, Server};
+               true ->
+                undefined
+            end,
+            if Resource =/= undefined orelse R#range.exactmatch ->
+                {'=:=', with_resource, Resource};
+               true ->
+                undefined
+            end]);
+       true ->
+           []
+    end.
 
 parse_cmd_range(#xmlel{} = Range) ->
     #range{

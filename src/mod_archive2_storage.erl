@@ -32,61 +32,56 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([get_collection_links/1, get_collection_id/1]).
+-export([get_collection/2, get_collection/3]).
 
 -include("mod_archive2.hrl").
+-include("mod_archive2_storage.hrl").
 
 %%--------------------------------------------------------------------
 %% Retrieve collection links from minimally filled list of archive_collection
 %% records. Required fields are 'with_*' and 'utc'.
 %%--------------------------------------------------------------------
 
-get_collection_links(LinksIDs) when is_list(LinksIDs) ->
-    [get_collection_link(ID) || ID <- LinksIDs].
-
-get_collection_link(undefined) ->
+get_collection(undefined, _) ->
     undefined;
 
-get_collection_link(ID) ->
-    case ejabberd_storage:select(
-        ets:fun2ms(fun(#archive_collection{id = ID1,
-                                           with_user = WithUser,
-                                           with_server = WithServer,
-                                           with_resource = WithResource,
-                                           utc = UTC}) when ID1 =:= ID ->
-                        {WithUser, WithServer, WithResource, UTC}
-                   end)) of
-        {selected, [{WithUser, WithServer, WithResource, UTC}]} ->
-            #archive_collection{with_user = WithUser,
-                                with_server = WithServer,
-                                with_resource = WithResource,
-                                utc = UTC};
+get_collection(#archive_collection{} = C, Type) ->
+    TableInfo = ejabberd_storage_utils:get_table_info(
+        archive_collection, ?MOD_ARCHIVE2_SCHEMA),
+    get_collection(C, Type, TableInfo#table.fields).
+
+get_collection(undefined, _, _) ->
+    undefined;
+
+get_collection(#archive_collection{} = C, Type, Fields) ->
+    TableInfo = ejabberd_storage_utils:get_table_info(
+        archive_collection, ?MOD_ARCHIVE2_SCHEMA),
+    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
+    case ejabberd_storage:select([{MSHead,
+        get_collection_conditions(C, Type, TableInfo),
+        ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}]) of
+        {selected, [#archive_collection{} = OutC]} ->
+            OutC;
         _ ->
             undefined
     end.
 
-%%--------------------------------------------------------------------
-%% Retrieve collection ID from minimally filled archive_collection
-%% record. Required fields are 'with_*' and 'utc'.
-%%--------------------------------------------------------------------
+%% Retrieve collection from minimally filled archive_collection
+%% record: the only required field is 'id'.
+get_collection_conditions(C, by_id, TableInfo) ->
+    Conditions =
+        [{'=:=', id,
+          ejabberd_storage_utils:encode_brackets(C#archive_collection.id)}],
+    ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo);
 
-get_collection_id(#archive_collection{} = C) ->
-    case ejabberd_storage:select(
-        ets:fun2ms(fun(#archive_collection{id = ID,
-                       with_user = WithUser,
-                       with_server = WithServer,
-                       with_resource = WithResource,
-                       utc = UTC}) when
-                           WithUser =:= C#archive_collection.with_user,
-                           WithServer =:= C#archive_collection.with_server,
-                           WithResource =:= C#archive_collection.with_resource,
-                           UTC =:= C#archive_collection.utc ->
-                       {ID}
-                   end)) of
-        {selected, [{ID}]} ->
-            ID;
-        _ ->
-            undefined
-    end;
-
-get_collection_id(undefined) -> undefined.
+%% Retrieve collection from minimally filled archive_collection
+%% record: required fields are 'us', 'with_*' and 'utc'.
+get_collection_conditions(C, by_link, TableInfo) ->
+    Conditions =
+        [{'=:=', us, C#archive_collection.us},
+         {'=:=', with_user, C#archive_collection.with_user},
+         {'=:=', with_server, C#archive_collection.with_server},
+         {'=:=', with_resource, C#archive_collection.with_resource},
+         {'=:=', utc,
+          ejabberd_storage_utils:encode_brackets(C#archive_collection.utc)}],
+    ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo).

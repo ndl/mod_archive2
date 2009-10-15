@@ -238,13 +238,15 @@ mysql_test_links(Pid) ->
                  "null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
-                {"select id from archive_collection where (with_user = 'balcony') "
+                {"select id from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'balcony') "
                  "and (with_server = 'house.capulet.com') and (with_resource = null) "
                  "and (utc = '1469-07-21 03:16:37')",
                  {selected, [], [{2}]}},
-                {"select id from archive_collection where (with_user = 'benvolio') "
-                "and (with_server = 'montague.net') and (with_resource = null) "
-                "and (utc = '1469-07-21 03:01:54')",
+                {"select id from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'benvolio') "
+                 "and (with_server = 'montague.net') and (with_resource = null) "
+                 "and (utc = '1469-07-21 03:01:54')",
                  {selected, [], [{3}]}},
                 {"select with_user, with_server, with_resource, utc from "
                  "archive_collection where (id = 2)",

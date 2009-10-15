@@ -29,8 +29,7 @@
 -include("ejabberd_storage.hrl").
 
 -export([elem_index/2, get_table_info/2, get_full_ms_head/1, get_ms_body/2,
-         resolve_fields_names/2, to_record/3, encode_brackets/1,
-         decode_brackets/1]).
+         resolve_fields_names/2, encode_brackets/1, decode_brackets/1]).
 
 %%
 %% Missing functionality from lists module: get element index in list.
@@ -63,7 +62,14 @@ get_full_ms_head(TableInfo) ->
          Var <- lists:seq(1, length(TableInfo#table.fields))]]).
 
 get_ms_body(Fields, TableInfo) ->
-    [{list_to_tuple(resolve_fields_names(Fields, TableInfo))}].
+    [{list_to_tuple([TableInfo#table.name |
+        [case lists:member(Field, Fields) of
+            false ->
+                undefined;
+            true ->
+                list_to_atom("$" ++ integer_to_list(
+                    elem_index(Field, TableInfo#table.fields)))
+        end || Field <- TableInfo#table.fields]])}].
 
 resolve_fields_names({Op, Value}, TableInfo) ->
     {Op, resolve_fields_names(Value, TableInfo)};
@@ -83,21 +89,6 @@ resolve_fields_names(Value, TableInfo) when is_atom(Value) ->
 
 resolve_fields_names(Value, _TableInfo) ->
     Value.
-
-to_record(R, Fields, TableInfo) ->
-    Values = tuple_to_list(R),
-    list_to_tuple(
-        [TableInfo#table.name |
-         lists:map(
-             fun(Index) ->
-                 ElemIndex = elem_index(
-                    lists:nth(Index, TableInfo#table.fields),
-                    Fields),
-                 if ElemIndex =/= undefined -> lists:nth(ElemIndex, Values);
-                    true -> undefined
-                 end
-             end,
-             lists:seq(1, length(TableInfo#table.fields)))]).
 
 encode_brackets(R) when is_tuple(R) ->
     {list_to_tuple([encode_brackets(Value) || Value <- tuple_to_list(R)])};

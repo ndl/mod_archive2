@@ -398,19 +398,19 @@ mysql_test_list_with() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost') and (utc < '1469-07-21 03:16:37') "
-                 "and (with_user = 'juliet') and (with_server = 'capulet.com')",
+                 "(us = 'client@localhost') and (with_user = 'juliet') and "
+                 "(with_server = 'capulet.com') and (utc < '1469-07-21 03:16:37')",
                  {selected, [], [{1}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
-                 "(utc < '1469-07-21 03:16:37') and (with_user = 'juliet') and "
-                 "(with_server = 'capulet.com') order by utc asc",
+                 "(with_user = 'juliet') and (with_server = 'capulet.com') and "
+                 "(utc < '1469-07-21 03:16:37') order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') "
-                  "or ((utc = '1469-07-21 02:56:15') and (id < 1))) and "
-                  "(with_user = 'juliet') and (with_server = 'capulet.com')",
+                  "(us = 'client@localhost') and (with_user = 'juliet') and "
+                  "(with_server = 'capulet.com') and ((utc < '1469-07-21 02:56:15') "
+                  "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {}])
         end),
@@ -432,9 +432,9 @@ mysql_test_list_exactmatch() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost') and (utc < '1469-07-21 03:16:37') "
-                 "and (with_user = 'juliet') and (with_server = 'capulet.com') "
-                 "and (with_resource = null)",
+                 "(us = 'client@localhost') and "
+                 "(with_user = 'juliet') and (with_server = 'capulet.com') "
+                 "and (with_resource = null) and (utc < '1469-07-21 03:16:37')",
                  {selected, [], [{0}]}},
                 {}])
         end),

@@ -53,15 +53,17 @@ save(From, #iq{payload = SubEl} = IQ) ->
                  M#xmlel.name =:= from orelse
                  M#xmlel.name =:= note],
             OutC =
-                case mod_archive2_storage:get_collection_id(InC) of
+                case mod_archive2_storage:get_collection(InC, by_link,
+                    [id, version]) of
                     undefined ->
                         NewC = InC#archive_collection{version = 0},
                         {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
                         NewC#archive_collection{id = ID};
-                    ID ->
+                    #archive_collection{id = ID, version = OldVersion} ->
                         NewC =
-                            InC#archive_collection{id = ID,
-                                version = InC#archive_collection.version + 1},
+                            InC#archive_collection{
+                                id = ID,
+                                version = OldVersion + 1},
                         ejabberd_storage:update(NewC),
                         NewC
                 end,
