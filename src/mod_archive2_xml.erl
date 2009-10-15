@@ -102,6 +102,8 @@ collection_from_xml(From, XC) ->
     LinkPrevXML = exmpp_xml:get_element(XC, previous),
     LinkNextXML = exmpp_xml:get_element(XC, next),
     Extra =
+        % Empty 'x' element is used to clear 'extra' value from storage,
+        % so we return 'null' here to allow this.
         case exmpp_xml:get_element(XC, x) of
             undefined -> undefined;
             #xmlel{attrs = [], children = []} -> null;
@@ -109,36 +111,49 @@ collection_from_xml(From, XC) ->
         end,
     FromUser = exmpp_jid:prep_node_as_list(From),
     FromServer = exmpp_jid:prep_domain_as_list(From),
-    With = exmpp_jid:parse(exmpp_xml:get_attribute_as_list(XC, with, undefined)),
-    #archive_collection{
-        prev_id = get_collection_id(collection_from_xml(From, LinkPrevXML)),
-        next_id = get_collection_id(collection_from_xml(From, LinkNextXML)),
-        us = exmpp_jid:prep_to_list(exmpp_jid:make(FromUser, FromServer)),
-        with_user = exmpp_jid:prep_node_as_list(With),
-        with_server = exmpp_jid:prep_domain_as_list(With),
-        with_resource = exmpp_jid:prep_resource_as_list(With),
-        utc = datetime_from_xml(
-            exmpp_xml:get_attribute_as_list(XC, start, undefined)),
-        change_utc = calendar:now_to_datetime(now()),
-        version =
-            case exmpp_xml:get_attribute_as_list(XC, version, undefined) of
-                undefined -> undefined;
-                R -> list_to_integer(R)
-            end,
-        deleted = 0,
-        subject = exmpp_xml:get_attribute_as_list(XC, subject, undefined),
-        thread = exmpp_xml:get_attribute_as_list(XC, thread, undefined),
-        crypt = list_to_bool(
-            exmpp_xml:get_attribute_as_list(XC, crypt, undefined)),
-        extra = Extra}.
+    % We assume that empty 'with' indicates empty previous/next element,
+    % therefore we return 'null' so that we clear these elements from storage.
+    case exmpp_xml:get_attribute_as_list(XC, with, undefined) of
+        undefined ->
+            null;
+        JID ->
+            With = exmpp_jid:parse(JID),
+            #archive_collection{
+                prev_id =
+                    get_collection_id(collection_from_xml(From, LinkPrevXML)),
+                next_id =
+                    get_collection_id(collection_from_xml(From, LinkNextXML)),
+                us = exmpp_jid:prep_to_list(
+                    exmpp_jid:make(FromUser, FromServer)),
+                with_user = exmpp_jid:prep_node_as_list(With),
+                with_server = exmpp_jid:prep_domain_as_list(With),
+                with_resource = exmpp_jid:prep_resource_as_list(With),
+                utc = datetime_from_xml(
+                    exmpp_xml:get_attribute_as_list(XC, start, undefined)),
+                change_utc = calendar:now_to_datetime(now()),
+                version =
+                    case exmpp_xml:get_attribute_as_list(XC, version, undefined) of
+                        undefined -> undefined;
+                        R -> list_to_integer(R)
+                    end,
+                deleted = 0,
+                subject = exmpp_xml:get_attribute_as_list(XC, subject, undefined),
+                thread = exmpp_xml:get_attribute_as_list(XC, thread, undefined),
+                crypt = list_to_bool(
+                    exmpp_xml:get_attribute_as_list(XC, crypt, undefined)),
+                extra = Extra}
+        end.
 
 get_collection_id(undefined) ->
     undefined;
 
+get_collection_id(null) ->
+    null;
+
 get_collection_id(C) ->
     case mod_archive2_storage:get_collection(C, by_link, [id]) of
-        undefined -> null;
-        #archive_collection{id = ID} -> ID
+        #archive_collection{id = ID} when ID =/= undefined -> ID;
+        _ -> null
     end.
 %%--------------------------------------------------------------------
 %% Messages conversion to/from XML.

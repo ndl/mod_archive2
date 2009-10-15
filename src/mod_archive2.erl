@@ -256,17 +256,20 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end
         end,
-    %% All IQ processing functions should return {atomic, NewIQ, Sessions},
-    %% {atomic, ResIQ} or {atomic, {error, Error}} - other returns mean smth is
-    %% seriously wrong with the code itself.
     case catch F() of
         {atomic, {error, Error}} ->
             ?INFO_MSG("error while executing archiving request: ~p", [Error]),
-            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
+            if is_atom(Error) ->
+                {reply, exmpp_iq:error(IQ, Error), State};
+               true ->
+                {reply, exmpp_iq:error(IQ, 'bad-request'), State}
+            end;
         {atomic, R, NewSessions} ->
             {reply, R, State#state{sessions = NewSessions}};
         {atomic, R} ->
             {reply, R, State};
+        {aborted, _} ->
+            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {'EXIT', Ex} ->
             ?ERROR_MSG("catched unhandled exception: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};

@@ -354,10 +354,21 @@ generate_unary_op(OpName, Op1, Context) ->
     OpName ++ "(" ++ parse_match_condition(Op1, Context) ++ ")".
 
 generate_binary_op(OpName, Op1, Op2, Context) ->
-    "(" ++
-        parse_match_condition(Op1, Context) ++
-        " " ++ OpName ++ " " ++
-        parse_match_condition(Op2, Context) ++ ")".
+    Val1 = parse_match_condition(Op1, Context),
+    Val2 = parse_match_condition(Op2, Context),
+    FixedOpName =
+        case Val2 of
+            "null" ->
+                case OpName of
+                    "=" ->
+                        "is";
+                    "<>" ->
+                        "is not"
+                end;
+            _ ->
+                OpName
+        end,
+    "(" ++ Val1 ++ " " ++ FixedOpName ++ " " ++ Val2 ++ ")".
 
 parse_match_body(Expr, MatchVarsDict) ->
     case dict:find(Expr, MatchVarsDict) of

@@ -78,6 +78,18 @@
                                      <<"1469-07-21T03:01:54.000000Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
+-define(ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML,
+        {xmlel,undefined,[],chat,
+         [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
+          {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,subject,<<"Subject">>},
+          {xmlattr,undefined,thread,<<"12345">>},
+          {xmlattr,undefined,crypt,<<"true">>},
+          {xmlattr,undefined,version,<<"1">>}],
+         [{xmlel,undefined,[],previous,[], []},
+          {xmlel,undefined,[],next,[], []},
+          {xmlel,undefined,[],x,[],[]}]}).
+
 -define(ARCHIVE_MESSAGE1,
         #archive_message{
             direction = from,
@@ -131,6 +143,7 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_collection_to_xml),
         ?test_gen1(test_collection_from_xml),
         ?test_gen1(test_collection_xml_each),
+        ?test_gen1(test_collection_from_xml_empty_links),
         ?test_gen1(test_message1_to_xml),
         ?test_gen1(test_message1_from_xml),
         ?test_gen1(test_message2_to_xml),
@@ -174,6 +187,14 @@ test_collection_from_xml(_) ->
     ?ARCHIVE_COLLECTION_NO_LINKS = (mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
         ?ARCHIVE_COLLECTION_NO_LINKS_XML))#archive_collection{change_utc = undefined}.
+
+test_collection_from_xml_empty_links(_) ->
+    {archive_collection,undefined,null,null,"client@localhost","juliet",
+     "capulet.com","chamber", {{1469,7,21},{2,56,15}},
+     _,1,0,"Subject","12345",true,null} =
+    mod_archive2_xml:collection_from_xml(
+        exmpp_jid:parse(?JID),
+        ?ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML).
 
 test_collection_xml_each(_) ->
     lists:foreach(
@@ -240,12 +261,12 @@ mysql_test_links(Pid) ->
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'balcony') "
-                 "and (with_server = 'house.capulet.com') and (with_resource = null) "
+                 "and (with_server = 'house.capulet.com') and (with_resource is null) "
                  "and (utc = '1469-07-21 03:16:37')",
                  {selected, [], [{2}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
-                 "and (with_server = 'montague.net') and (with_resource = null) "
+                 "and (with_server = 'montague.net') and (with_resource is null) "
                  "and (utc = '1469-07-21 03:01:54')",
                  {selected, [], [{3}]}},
                 {"select with_user, with_server, with_resource, utc from "

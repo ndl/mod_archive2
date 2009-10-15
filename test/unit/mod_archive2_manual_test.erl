@@ -104,11 +104,11 @@ mysql_test_upload() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                 "and (with_user = 'balcony') and (with_server = 'house.capulet.com') "
-                "and (with_resource = null) and (utc = '1469-07-21 03:16:37')",
+                "and (with_resource is null) and (utc = '1469-07-21 03:16:37')",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
-                 "and (with_server = 'montague.net') and (with_resource = null) "
+                 "and (with_server = 'montague.net') and (with_resource is null) "
                  "and (utc = '1469-07-21 03:01:54')",
                  {selected, [], []}},
                 {"select id, version from archive_collection where (us = 'client@localhost') "
@@ -193,12 +193,12 @@ mysql_test_update() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                 "and (with_user = 'balcony') "
-                 "and (with_server = 'house.capulet.com') and (with_resource = null) "
+                 "and (with_server = 'house.capulet.com') and (with_resource is null) "
                  "and (utc = '1469-07-21 03:16:37')",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
-                 "and (with_server = 'montague.net') and (with_resource = null) "
+                 "and (with_server = 'montague.net') and (with_resource is null) "
                  "and (utc = '1469-07-21 03:01:54')",
                  {selected, [], []}},
                 {},

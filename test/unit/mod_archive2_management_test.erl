@@ -434,7 +434,7 @@ mysql_test_list_exactmatch() ->
                 {"select count(*) from archive_collection where "
                  "(us = 'client@localhost') and "
                  "(with_user = 'juliet') and (with_server = 'capulet.com') "
-                 "and (with_resource = null) and (utc < '1469-07-21 03:16:37')",
+                 "and (with_resource is null) and (utc < '1469-07-21 03:16:37')",
                  {selected, [], [{0}]}},
                 {}])
         end),
