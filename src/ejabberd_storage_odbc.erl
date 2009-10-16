@@ -40,26 +40,26 @@
 
 handle_query({delete, R}, DbInfo) when is_tuple(R) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
-    {updated, Count} =
+    Result =
         sql_query(
             join_non_empty(
                 ["delete from",
                  atom_to_list(TableInfo#table.name),
                  "where",
                  encode_keys(R, TableInfo)], " ")),
-    {deleted, Count};
+    convert_change_query_result(Result, deleted, DbInfo);
 
 handle_query({delete, MS}, DbInfo) when is_list(MS) ->
     TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, _BodyMS} =
         ms_to_sql(MS, TableInfo),
-    {updated, Count} =
+    Result =
         sql_query(
             join_non_empty(
                 ["delete from",
                  atom_to_list(TableInfo#table.name),
                  get_if_not_empty("where", WhereMS)], " ")),
-    {deleted, Count};
+    convert_change_query_result(Result, deleted, DbInfo);
 
 handle_query({read, R}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
@@ -131,7 +131,7 @@ handle_query({select, MS, Opts}, DbInfo) ->
 handle_query({update, R}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
-    {updated, Count} =
+    Result =
         sql_query(
             join_non_empty(
                 ["update",
@@ -140,13 +140,13 @@ handle_query({update, R}, DbInfo) ->
                  Set,
                  "where",
                  encode_keys(R, TableInfo)], " ")),
-    {updated, Count};
+    convert_change_query_result(Result, updated, DbInfo);
 
 handle_query({update, R, MS}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {WhereMS, _BodyMS} = ms_to_sql(MS, TableInfo),
-    {updated, Count} =
+    Result =
         sql_query(
             join_non_empty(
                 ["update",
@@ -154,7 +154,7 @@ handle_query({update, R, MS}, DbInfo) ->
                  "set",
                  Set,
                  get_if_not_empty("where", WhereMS)], " ")),
-    {updated, Count};
+    convert_change_query_result(Result, updated, DbInfo);
 
 handle_query({insert, Records}, DbInfo) ->
     % TODO: optimize for those RDBMS that have multiple insert!
@@ -162,14 +162,20 @@ handle_query({insert, Records}, DbInfo) ->
         lists:foldl(
             fun(R, {N, _}) ->
                 TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
-                {updated, _} =
+                Result =
                     sql_query(
                         join_non_empty(
                         ["insert into",
                          atom_to_list(TableInfo#table.name),
+                         get_insert_fields(TableInfo),
                          "values",
-                         get_record_values(R, TableInfo)], " ")),
-                {N + 1, TableInfo}
+                         get_insert_values(R, TableInfo)], " ")),
+                case Result of
+                    {error, _} ->
+                        throw(Result);
+                    _ ->
+                    {N + 1, TableInfo}
+                end
             end,
             {0, undefined},
             Records),
@@ -410,6 +416,23 @@ sql_query(Query) ->
 	    R
     end.
 
+convert_change_query_result(Result, Op, DbInfo) ->
+    case DbInfo#storage_backend.rdbms of
+        sqlite ->
+            case Result of
+                {selected, [], []} ->
+                    {Op, undefined};
+                _ -> Result
+            end;
+        _ ->
+            case Result of
+                {updated, Count} when is_integer(Count) ->
+                    {Op, Count};
+                _ ->
+                    Result
+            end
+    end.
+
 %% Returns joined Prefix and Text if Text is not empty and "" otherwise.
 get_if_not_empty(Prefix, Text) ->
     if Text =/= [] -> Prefix ++ " " ++ Text;
@@ -432,13 +455,23 @@ get_update_set_stmt(R, TableInfo) ->
          (Value = element(N, R)) =/= undefined], ", ").
 
 %%
-%% Compose VALUES clause for INSERT command based on record fields.
+%% Compose FIELDS and VALUES clause for INSERT command based on record fields.
 %%
-get_record_values(R, TableInfo) ->
-    "(" ++
-    string:join([encode(Value, TableInfo) ||
-                 Value <- lists:nthtail(1, tuple_to_list(R))], ", ") ++
-    ")".
+
+get_insert_fields(TableInfo) ->
+    Fields =
+        [atom_to_list(Field) || {Type, Field} <- lists:zip(
+            TableInfo#table.types,
+            TableInfo#table.fields), Type =/= autoid],
+    "(" ++ string:join(Fields, ", ") ++ ")".
+
+get_insert_values(R, TableInfo) ->
+    Values =
+        [encode(Value, TableInfo) ||
+            {Type, Value} <- lists:zip(
+                TableInfo#table.types,
+                lists:nthtail(1, tuple_to_list(R))), Type =/= autoid],
+    "(" ++ string:join(Values, ", ") ++ ")".
 
 %%
 %% Composes WHERE part of SQL command from record keys.
@@ -572,6 +605,11 @@ decode(Value, bool, TableInfo) ->
         0 -> false;
         1 -> true
     end;
+
+% Some SQL drivers (currently erlang pgsql only?) do us a favor and parse time
+% structure on their own.
+decode({{_, _, _}, {_, _, _}} = Value, time, _TableInfo) ->
+    Value;
 
 decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);

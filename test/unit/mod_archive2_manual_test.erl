@@ -118,13 +118,16 @@ mysql_test_upload() ->
                  {selected, [], []}},
                 {ignore, {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
-                {"insert into archive_message values (null, 1, '1469-07-21 02:56:15', "
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (1, '1469-07-21 02:56:15', "
                  "0, 'Art thou not Romeo, and a Montague?', null, null)",
                  {updated, 1}},
-                {"insert into archive_message values (null, 1, '1469-07-21 02:56:26', "
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (1, '1469-07-21 02:56:26', "
                  "1, 'Neither, fair saint, if either thee dislike.', null, null)",
                  {updated, 1}},
-                {"insert into archive_message values (null, 1, '1469-07-21 03:04:35', "
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (1, '1469-07-21 03:04:35', "
                  "2, 'I think she might fancy me.', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},

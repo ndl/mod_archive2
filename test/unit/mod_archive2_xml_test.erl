@@ -243,17 +243,23 @@ mysql_test_links(Pid) ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"insert into archive_collection values (null, null, null, "
+                {"insert into archive_collection (prev_id, next_id, us, with_user, "
+                 "with_server, with_resource, utc, change_utc, version, deleted, "
+                 "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
                  "'1469-07-21 02:56:15', '1469-07-21 02:56:15', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
-                {"insert into archive_collection values (null, null, null, "
+                {"insert into archive_collection (prev_id, next_id, us, with_user, "
+                 "with_server, with_resource, utc, change_utc, version, deleted, "
+                 "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
                  "'1469-07-21 03:16:37', '1469-07-21 03:16:37', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
-                {"insert into archive_collection values (null, null, null, "
+                {"insert into archive_collection (prev_id, next_id, us, with_user, "
+                 "with_server, with_resource, utc, change_utc, version, deleted, "
+                 "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
                  "'1469-07-21 03:01:54', '1469-07-21 03:01:54', 1, 0, null, "
                  "null, null, null)",

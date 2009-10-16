@@ -1,5 +1,3 @@
-DROP TABLE archive_collection;
-
 CREATE TABLE archive_collection(id SERIAL not null,
                                 prev_id INTEGER,
                                 next_id INTEGER,
@@ -25,7 +23,6 @@ CREATE INDEX IDX_archive_colls_with_resource ON archive_collection(with_resource
 CREATE INDEX IDX_archive_colls_utc ON archive_collection(utc);
 CREATE INDEX IDX_archive_colls_change_utc ON archive_collection(change_utc);
 
-DROP TABLE archive_message;
 CREATE TABLE archive_message(id SERIAL NOT NULL,
                              coll_id INTEGER NOT NULL,
                              utc timestamp NOT NULL,
@@ -37,7 +34,6 @@ CREATE TABLE archive_message(id SERIAL NOT NULL,
 CREATE INDEX IDX_archive_msgs_coll_id ON archive_message(coll_id);
 CREATE INDEX IDX_archive_msgs_utc ON archive_message(utc);
 
-DROP TABLE archive_jid_prefs;
 CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
                                with_user VARCHAR(1023) NOT NULL,
                                with_server VARCHAR(1023) NOT NULL,
@@ -47,7 +43,6 @@ CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
                                otr INTEGER,
                                PRIMARY KEY(us, with_user, with_server, with_resource));
 
-DROP TABLE archive_global_prefs;
 CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
                                   save INTEGER,
                                   expire INTEGER,
@@ -58,18 +53,18 @@ CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
                                   auto_save INTEGER,
                                   PRIMARY KEY(us));
 
-CREATE TRIGGER archive_collection_delete BEFORE DELETE ON archive_collection
-FOR EACH ROW
-BEGIN
+CREATE RULE archive_collection_delete AS ON DELETE
+TO archive_collection DO
+(
   DELETE FROM archive_message WHERE coll_id = OLD.id;
   UPDATE archive_collection SET prev_id = null WHERE prev_id = OLD.id;
   UPDATE archive_collection SET next_id = null WHERE next_id = OLD.id;
-END;
+);
 
-CREATE TRIGGER archive_collection_update BEFORE UPDATE ON archive_collection
-FOR EACH ROW WHEN NEW.deleted = 1
-BEGIN
+CREATE RULE archive_collection_update AS ON UPDATE
+TO archive_collection WHERE NEW.deleted = 1 DO
+(
   DELETE FROM archive_message WHERE coll_id = NEW.id;
   UPDATE archive_collection SET prev_id = null WHERE prev_id = NEW.id;
   UPDATE archive_collection SET next_id = null WHERE next_id = NEW.id;
-END;
+);

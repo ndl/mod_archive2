@@ -134,8 +134,8 @@ mysql_test_read(Pid) ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"insert into archive_message values (null, null, "
-                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_message where id = 1",
@@ -164,11 +164,12 @@ mysql_test_insert1() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"insert into archive_message values (null, null, "
-                 "'2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
                  {updated, 1}},
-                {"insert into archive_message values (null, null, "
-                 "'1999-11-30 19:01:02', 0, 'Hi there!', 'smb', null)",
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (null, '1999-11-30 19:01:02', 0, 'Hi there!', "
+                 "'smb', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {}])
@@ -508,7 +509,8 @@ mysql_test_insert2() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"insert into archive_jid_prefs values ('test@example.com', "
+                {"insert into archive_jid_prefs (us, with_user, with_server, "
+                 "with_resource, save, expire, otr) values ('test@example.com', "
                  "'juliet', 'example.com', null, 0, 3600, 2)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{"0"}]}},

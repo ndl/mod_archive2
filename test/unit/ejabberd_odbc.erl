@@ -52,7 +52,12 @@ sql_query_t(Query) ->
     {StoredQuery, Answer} = next_element(),
     case StoredQuery of
         ignore -> ok;
-        _ -> StoredQuery = Query
+        _ ->
+            if StoredQuery =/= Query ->
+                ?debugFmt("Queries mismatch: stored query is '~p', received query is '~p'~n", [StoredQuery, Query]);
+               true -> ok
+            end,
+            StoredQuery = Query
     end,
     Answer.
 
