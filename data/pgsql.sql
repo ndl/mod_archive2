@@ -53,18 +53,28 @@ CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
                                   auto_save INTEGER,
                                   PRIMARY KEY(us));
 
-CREATE RULE archive_collection_delete AS ON DELETE
-TO archive_collection DO
-(
+CREATE FUNCTION archive_collection_delete() RETURNS trigger AS $archive_collection_delete$
+BEGIN
   DELETE FROM archive_message WHERE coll_id = OLD.id;
   UPDATE archive_collection SET prev_id = null WHERE prev_id = OLD.id;
   UPDATE archive_collection SET next_id = null WHERE next_id = OLD.id;
-);
+  RETURN NEW;
+END;
+$archive_collection_delete$ LANGUAGE plpgsql;
 
-CREATE RULE archive_collection_update AS ON UPDATE
-TO archive_collection WHERE NEW.deleted = 1 DO
-(
-  DELETE FROM archive_message WHERE coll_id = NEW.id;
-  UPDATE archive_collection SET prev_id = null WHERE prev_id = NEW.id;
-  UPDATE archive_collection SET next_id = null WHERE next_id = NEW.id;
-);
+CREATE TRIGGER archive_collection_delete BEFORE DELETE ON archive_collection
+FOR EACH ROW EXECUTE PROCEDURE archive_collection_delete();
+
+CREATE FUNCTION archive_collection_update() RETURNS trigger AS $archive_collection_update$
+BEGIN
+  IF (NEW.deleted = 1) THEN
+    DELETE FROM archive_message WHERE coll_id = NEW.id;
+    UPDATE archive_collection SET prev_id = null WHERE prev_id = NEW.id;
+    UPDATE archive_collection SET next_id = null WHERE next_id = NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$archive_collection_update$ LANGUAGE plpgsql;
+
+CREATE TRIGGER archive_collection_update BEFORE UPDATE ON archive_collection
+FOR EACH ROW EXECUTE PROCEDURE archive_collection_update();
