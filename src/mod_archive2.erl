@@ -162,6 +162,13 @@ init([Host, Opts]) ->
     IQDisc = gen_mod:get_opt(iqdisc, Opts, one_queue),
     SessionDuration = gen_mod:get_opt(session_duration, Opts, 1800),
     WipeOutInterval = gen_mod:get_opt(wipeout_interval, Opts, 86400),
+    % Initialize mnesia tables, if needed.
+    case gen_mod:get_opt(rdbms, Opts, mnesia) of
+        mnesia ->
+            init_mnesia_tables();
+        _ ->
+            ok
+    end,
     % Add all necessary hooks
     gen_iq_handler:add_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING, ?MODULE,
                                   iq_archive, IQDisc),
@@ -198,6 +205,33 @@ init([Host, Opts]) ->
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer}}.
+
+init_mnesia_tables() ->
+    mnesia:create_table(archive_collection,
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, archive_collection)}]),
+    mnesia:add_table_index(archive_collection, prev_id),
+    mnesia:add_table_index(archive_collection, next_id),
+    mnesia:add_table_index(archive_collection, us),
+    mnesia:add_table_index(archive_collection, with_user),
+    mnesia:add_table_index(archive_collection, with_server),
+    mnesia:add_table_index(archive_collection, with_resource),
+    mnesia:add_table_index(archive_collection, utc),
+    mnesia:add_table_index(archive_collection, change_utc),
+    mnesia:create_table(archive_message,
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, archive_message)}]),
+    mnesia:add_table_index(archive_message, coll_id),
+    mnesia:add_table_index(archive_message, utc),
+    mnesia:create_table(archive_jid_prefs,
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, archive_jid_prefs)}]),
+    mnesia:add_table_index(archive_jid_prefs, with_user),
+    mnesia:add_table_index(archive_jid_prefs, with_server),
+    mnesia:add_table_index(archive_jid_prefs, with_resource),
+    mnesia:create_table(archive_global_prefs,
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, archive_global_prefs)}]).
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
