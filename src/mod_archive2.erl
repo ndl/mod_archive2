@@ -288,8 +288,7 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
 			    'save' ->
                     mod_archive2_manual:save(From, IQ);
 			    'remove' ->
-                    Opts = gen_mod:get_opt(options, State#state.options, []),
-                    RDBMS = gen_mod:get_opt(rdbms, Opts, mnesia),
+                    RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
                     mod_archive2_management:remove(From, IQ, RDBMS,
                         State#state.sessions);
 			    %'modified' -> mod_archive2_replication:modified(From, IQ);

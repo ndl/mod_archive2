@@ -561,7 +561,7 @@ mnesia_test_remove_single_non_existing(_) ->
     common_test_list_all().
 
 common_test_remove_single_non_existing(RDBMS) ->
-    {atomic, {error, 'item-not-found'}, _} =
+    {atomic, {error, 'item-not-found'}} =
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(

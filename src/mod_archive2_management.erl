@@ -229,8 +229,24 @@ remove_normal(From, IQ, R, RDBMS) ->
     end.
 
 remove_collections(MS, RDBMS) ->
-    {updated, Count} =
+    InCount =
+        case RDBMS of
+            sqlite ->
+                {selected, [{C}]} =
+                    ejabberd_storage:select(MS, [{aggregate, count}]),
+                C;
+            _ ->
+                undefined
+        end,
+    {updated, UpdatedCount} =
         ejabberd_storage:update(#archive_collection{deleted = true}, MS),
+    Count =
+        case UpdatedCount of
+            undefined ->
+                InCount;
+            Result ->
+                Result
+        end,
     if (is_integer(Count) andalso Count > 0) orelse (Count =:= undefined) ->
         case RDBMS of
             mysql ->
