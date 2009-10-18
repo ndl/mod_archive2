@@ -44,7 +44,7 @@
             with_resource = "chamber",
             utc = {{1469, 07, 21}, {02, 56, 15}},
             version = 1,
-            deleted = 0,
+            deleted = false,
             subject = "Subject",
             thread = "12345",
             crypt = true,
@@ -191,7 +191,7 @@ test_collection_from_xml(_) ->
 test_collection_from_xml_empty_links(_) ->
     {archive_collection,undefined,null,null,"client@localhost","juliet",
      "capulet.com","chamber", {{1469,7,21},{2,56,15}},
-     _,1,0,"Subject","12345",true,null} =
+     _,1,false,"Subject","12345",true,null} =
     mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
         ?ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML).
@@ -268,19 +268,19 @@ mysql_test_links(Pid) ->
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'balcony') "
                  "and (with_server = 'house.capulet.com') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:16:37')",
+                 "and (utc = '1469-07-21 03:16:37') and (deleted <> 1)",
                  {selected, [], [{2}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54')",
+                 "and (utc = '1469-07-21 03:01:54') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select with_user, with_server, with_resource, utc from "
-                 "archive_collection where (id = 2)",
+                 "archive_collection where (id = 2) and (deleted <> 1)",
                  {selected, [], [{"balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37"}]}},
                 {"select with_user, with_server, with_resource, utc from "
-                 "archive_collection where (id = 3)",
+                 "archive_collection where (id = 3) and (deleted <> 1)",
                  {selected, [], [{"benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54"}]}},
                 {}])

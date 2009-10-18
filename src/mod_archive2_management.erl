@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([list/2, retrieve/2]).
+-export([list/2, remove/4, retrieve/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -57,7 +57,8 @@ list(From, #iq{payload = SubEl} = IQ) ->
             Fields = [id, with_user, with_server, with_resource, utc, version],
             Results =
                 case get_items_ranged(IQ, TableInfo,
-                    Range, get_with_conditions(From, Range),
+                    Range, get_with_conditions(From, Range) ++
+                    [{'=/=', deleted, true}],
                     #archive_collection.utc, Fields) of
                     {[], undefined} ->
                         [];
@@ -69,6 +70,213 @@ list(From, #iq{payload = SubEl} = IQ) ->
                 exmpp_xml:element(?NS_ARCHIVING, list, [], Results))
         end,
     ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+
+%%--------------------------------------------------------------------
+%% Removes specified collections and their messages
+%%--------------------------------------------------------------------
+
+remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
+    InR = parse_cmd_range(SubEl),
+    % Enforce 'exactmatch' in 'single item remove request' case.
+    R =
+        if InR#range.start_time =/= undefined andalso
+            InR#range.end_time =:= undefined ->
+            InR#range{exactmatch = true};
+           true ->
+            InR
+        end,
+    case exmpp_xml:get_attribute(SubEl, open, undefined) of
+        true ->
+            F = fun() ->
+                    remove_auto_archived(R, true, RDBMS, Sessions)
+                end,
+            case ejabberd_storage:transaction(
+                exmpp_jid:prep_domain_as_list(From), F) of
+                % FIXME: if no collections were removed, we should have returned
+                % 'item-not-found', but comparing Sessions to NewSessions might
+                % be too expensive and we also do not want to mess with side
+                % effects or extra flag passed to filter to determine the number
+                % of removed collections, so for now we'd better return OK in
+                % all cases.
+                {atomic, NewSessions} ->
+                    Result =
+                        exmpp_iq:result(IQ,
+                            exmpp_xml:element(?NS_ARCHIVING, remove, [], [])),
+                    {atomic, Result, NewSessions};
+                Result ->
+                    Result
+            end;
+        _ ->
+            NewSessions =
+                remove_auto_archived(R, false, RDBMS, Sessions),
+            F = fun() ->
+                    remove_normal(From, IQ, R, RDBMS)
+                end,
+            case ejabberd_storage:transaction(
+                exmpp_jid:prep_domain_as_list(From), F) of
+                {atomic, Result} ->
+                    {atomic, Result, NewSessions};
+                Result ->
+                    Result
+            end
+    end.
+
+remove_auto_archived(R, RemoveAlsoInDb, RDBMS, Sessions) ->
+    % TODO: is using non side effects free predicate for dict:filter dangerous?
+    F =
+        fun(BareJID, Session) ->
+            WithResult =
+                if R#range.with =/= undefined ->
+                    WithUser = exmpp_jid:prep_node_as_list(R#range.with),
+                    WithServer = exmpp_jid:prep_domain_as_list(R#range.with),
+                    WithResource = exmpp_jid:prep_resource_as_list(R#range.with),
+                    SessionWithUser = exmpp_jid:prep_node_as_list(BareJID),
+                    SessionWithServer = exmpp_jid:prep_domain_as_list(BareJID),
+                    SessionWithResource = Session#session.resource,
+                    if (WithUser =:= SessionWithUser orelse
+                        WithUser =:= undefined andalso
+                        not R#range.exactmatch) andalso
+                       (WithServer =:= SessionWithServer
+                        orelse WithServer =:= undefined andalso
+                        not R#range.exactmatch) andalso
+                       (WithResource =:= SessionWithResource orelse
+                        WithResource =:= undefined andalso
+                        not R#range.exactmatch) ->
+                        true;
+                       true ->
+                        false
+                    end
+                end,
+            TimeStartResult =
+                if R#range.start_time =:= undefined orelse
+                    R#range.end_time =:= undefined andalso
+                    R#range.start_time =:= Session#session.utc orelse
+                    R#range.end_time =/= undefined andalso
+                    R#range.start_time =< Session#session.utc ->
+                    true;
+                   true ->
+                    false
+                end,
+            TimeEndResult =
+                if R#range.end_time =:= undefined orelse
+                    R#range.end_time > Session#session.utc ->
+                    true;
+                   true ->
+                    false
+                end,
+            FilterResult =
+                WithResult andalso TimeStartResult andalso TimeEndResult,
+            case FilterResult of
+                false ->
+                    false;
+                true ->
+                    if RemoveAlsoInDb ->
+                        MS = ets:fun2ms(
+                            fun(#archive_collection{id = ID})
+                                when ID =:= Session#session.id ->
+                                ok
+                            end),
+                        remove_collections(MS, RDBMS);
+                       true ->
+                        ok
+                    end,
+                    true
+            end
+        end,
+    mod_archive2_auto:filter_sessions(F, Sessions).
+
+remove_normal(From, IQ, R, RDBMS) ->
+    TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
+        ?MOD_ARCHIVE2_SCHEMA),
+    TimeConditions =
+        filter_undef([
+            if R#range.start_time =/= undefined ->
+                Start =
+                    ejabberd_storage_utils:encode_brackets(R#range.start_time),
+                % Ugly special case: if end time is undefined but start is
+                % defined, 'remove' command is in 'single-collection' mode,
+                % otherwise it's in range mode.
+                if R#range.end_time =/= undefined ->
+                    {'>=', utc, Start};
+                   true ->
+                    {'=:=', utc, Start}
+                end;
+               true ->
+                undefined
+            end,
+            if R#range.end_time =/= undefined ->
+                End = ejabberd_storage_utils:encode_brackets(R#range.end_time),
+                {'<', utc, End};
+               true ->
+                undefined
+            end]),
+    WithConditions = get_with_conditions(From, R),
+    Conditions =
+        ejabberd_storage_utils:resolve_fields_names(TimeConditions ++
+            WithConditions ++ [{'=/=', deleted, true}], TableInfo),
+    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
+    MS = [{MSHead, Conditions, [ok]}],
+    Count = remove_collections(MS, RDBMS),
+    if (is_integer(Count) andalso Count > 0) orelse (Count =:= undefined) ->
+        exmpp_iq:result(IQ,
+            exmpp_xml:element(?NS_ARCHIVING, remove, [], []));
+       true ->
+        {error, 'item-not-found'}
+    end.
+
+remove_collections(MS, RDBMS) ->
+    {updated, Count} =
+        ejabberd_storage:update(#archive_collection{deleted = true}, MS),
+    if (is_integer(Count) andalso Count > 0) orelse (Count =:= undefined) ->
+        case RDBMS of
+            mysql ->
+                update_collections_links(MS);
+            mnesia ->
+                delete_messages(MS),
+                update_collections_links(MS);
+            _ -> ok
+        end;
+       true -> ok
+    end,
+    Count.
+
+delete_messages(MS) ->
+    IDs = get_collections_ids(MS),
+    lists:foreach(
+        fun({ID}) ->
+            ejabberd_storage:delete(
+                ets:fun2ms(
+                    fun(#archive_message{coll_id = ID1})
+                        when ID1 =:= ID ->
+                        ok
+                    end))
+        end, IDs).
+
+update_collections_links(MS) ->
+    IDs = get_collections_ids(MS),
+    lists:foreach(
+        fun({ID}) ->
+            ejabberd_storage:update(
+                #archive_collection{prev_id = null},
+                ets:fun2ms(
+                    fun(#archive_collection{prev_id = ID1})
+                        when ID1 =:= ID ->
+                        ok
+                    end)),
+            ejabberd_storage:update(
+                #archive_collection{next_id = null},
+                ets:fun2ms(
+                    fun(#archive_collection{next_id = ID1})
+                        when ID1 =:= ID ->
+                            ok
+                    end))
+        end, IDs).
+
+get_collections_ids([{MSHead, Conditions, _}]) ->
+    MS = [{MSHead, Conditions, [{{'$1'}}]}],
+    % NOTE: here we read in potentially very large piece of data :-(
+    {selected, IDs} = ejabberd_storage:select(MS),
+    IDs.
 
 %%--------------------------------------------------------------------
 %% Retrieves collection and its messages

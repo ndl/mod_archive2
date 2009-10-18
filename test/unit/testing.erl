@@ -60,18 +60,19 @@ mysql_tests_teardown(Pid) ->
 mnesia_tests_setup() ->
     mnesia:start(),
     mnesia:create_schema([node()]),
-    mnesia:create_table(archive_message,
-                        [{ram_copies, [node()]},
-                         {attributes, record_info(fields, archive_message)}]),
     mnesia:create_table(archive_collection,
                         [{ram_copies, [node()]},
                          {attributes, record_info(fields, archive_collection)}]),
+    mnesia:create_table(archive_message,
+                        [{ram_copies, [node()]},
+                         {attributes, record_info(fields, archive_message)}]),
     mnesia:create_table(archive_jid_prefs,
                         [{ram_copies, [node()]},
                          {attributes, record_info(fields, archive_jid_prefs)}]),
     common_tests_setup(mnesia).
 
 mnesia_tests_teardown(Pid) ->
+    mnesia:clear_table(archive_collection),
     mnesia:clear_table(archive_message),
     mnesia:clear_table(archive_jid_prefs),
     common_tests_teardown(Pid).

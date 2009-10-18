@@ -281,11 +281,17 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
                 %'pref' -> mod_archive2_prefs:pref(From, IQ);
 			    %'auto' -> mod_archive2_auto:auto(From, IQ,
                 %                                 State#state.sessions);
-			    'list' -> mod_archive2_management:list(From, IQ);
-			    'retrieve' -> mod_archive2_management:retrieve(From, IQ);
-			    'save' -> mod_archive2_manual:save(From, IQ);
-			    %'remove' -> mod_archive2_management:remove(From, IQ,
-                %                State#state.sessions);
+			    'list' ->
+                    mod_archive2_management:list(From, IQ);
+			    'retrieve' ->
+                    mod_archive2_management:retrieve(From, IQ);
+			    'save' ->
+                    mod_archive2_manual:save(From, IQ);
+			    'remove' ->
+                    Opts = gen_mod:get_opt(options, State, []),
+                    RDBMS = gen_mod:get_opt(rdbms, Opts, mnesia),
+                    mod_archive2_management:remove(From, IQ, RDBMS,
+                        State#state.sessions);
 			    %'modified' -> mod_archive2_replication:modified(From, IQ);
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end

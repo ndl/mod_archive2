@@ -103,13 +103,15 @@ mysql_test_upload() ->
             ejabberd_odbc:start([
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
-                "and (with_user = 'balcony') and (with_server = 'house.capulet.com') "
-                "and (with_resource is null) and (utc = '1469-07-21 03:16:37')",
+                 "and (with_user = 'balcony') and (with_server = 'house.capulet.com') "
+                 "and (with_resource is null) and (utc = '1469-07-21 03:16:37') "
+                 "and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54')",
+                 "and (utc = '1469-07-21 03:01:54') "
+                 "and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id, version from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') "
@@ -152,7 +154,8 @@ mysql_test_retrieve_all() ->
                 {},
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
-                 "(with_resource = 'chamber') and (utc = '1469-07-21 02:56:15')",
+                 "(with_resource = 'chamber') and (utc = '1469-07-21 02:56:15') "
+                 "and (deleted <> 1)",
                  {selected, [],
                     [{1, null, null, "client@localhost",
                       "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
@@ -197,12 +200,12 @@ mysql_test_update() ->
                 {"select id from archive_collection where (us = 'client@localhost') "
                 "and (with_user = 'balcony') "
                  "and (with_server = 'house.capulet.com') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:16:37')",
+                 "and (utc = '1469-07-21 03:16:37') and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54')",
+                 "and (utc = '1469-07-21 03:01:54') and (deleted <> 1)",
                  {selected, [], []}},
                 {},
                 {"select id, version from archive_collection where (us = 'client@localhost') "
@@ -244,7 +247,7 @@ mysql_test_retrieve_max() ->
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') "
                  "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
-                 "and (utc = '1469-07-21 02:56:15')",
+                 "and (utc = '1469-07-21 02:56:15') and (deleted <> 1)",
                  {selected, [],
                     [{1, null, null, "client@localhost",
                       "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
@@ -289,7 +292,8 @@ mysql_test_retrieve_empty() ->
                 {},
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
-                 "(with_resource = 'NOT_EXISTING') and (utc = '1469-07-21 02:56:15')",
+                 "(with_resource = 'NOT_EXISTING') and (utc = '1469-07-21 02:56:15') "
+                 "and (deleted <> 1)",
                  {selected, [], []}},
                 {}])
         end),

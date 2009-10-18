@@ -89,3 +89,5 @@
          body,
          name,
          jid}).
+
+-record(session, {utc, last_access, id, resource}).

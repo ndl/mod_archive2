@@ -59,8 +59,11 @@ handle_query({update, R}, DbInfo) ->
     mnesia:write(update_values(OldR, R, TableInfo)),
     {updated, 1};
 
-handle_query({update, R, MS}, DbInfo) ->
+handle_query({update, R, [{MatchHead, MatchConditions, _}]}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    % Make sure MS body is what we need, not what user specified - he will not
+    % see its result anyway ...
+    MS = [{MatchHead, MatchConditions, ['$_']}],
     {updated,
      update2(mnesia:select(element(1, R), MS, ?SELECT_NOBJECTS, write),
              R, TableInfo, 0)};

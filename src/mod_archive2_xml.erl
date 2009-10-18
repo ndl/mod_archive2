@@ -54,7 +54,7 @@ collection_to_xml(Name, #archive_collection{} = C) ->
                 undefined;
              _ ->
                 mod_archive2_storage:get_collection(
-                     #archive_collection{id = ID}, by_id,
+                     #archive_collection{id = ID}, by_id, existing,
                      [with_user, with_server, with_resource, utc])
          end ||
          ID <- [C#archive_collection.prev_id, C#archive_collection.next_id]],
@@ -136,7 +136,7 @@ collection_from_xml(From, XC) ->
                         undefined -> undefined;
                         R -> list_to_integer(R)
                     end,
-                deleted = 0,
+                deleted = false,
                 subject = exmpp_xml:get_attribute_as_list(XC, subject, undefined),
                 thread = exmpp_xml:get_attribute_as_list(XC, thread, undefined),
                 crypt = list_to_bool(
@@ -151,7 +151,7 @@ get_collection_id(null) ->
     null;
 
 get_collection_id(C) ->
-    case mod_archive2_storage:get_collection(C, by_link, [id]) of
+    case mod_archive2_storage:get_collection(C, by_link, existing, [id]) of
         #archive_collection{id = ID} when ID =/= undefined -> ID;
         _ -> null
     end.

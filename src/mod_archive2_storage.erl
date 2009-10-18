@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([get_collection/2, get_collection/3]).
+-export([get_collection/2, get_collection/4]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -48,17 +48,17 @@ get_collection(undefined, _) ->
 get_collection(#archive_collection{} = C, Type) ->
     TableInfo = ejabberd_storage_utils:get_table_info(
         archive_collection, ?MOD_ARCHIVE2_SCHEMA),
-    get_collection(C, Type, TableInfo#table.fields).
+    get_collection(C, Type, existing, TableInfo#table.fields).
 
-get_collection(undefined, _, _) ->
+get_collection(undefined, _, _, _) ->
     undefined;
 
-get_collection(#archive_collection{} = C, Type, Fields) ->
+get_collection(#archive_collection{} = C, Type, Filter, Fields) ->
     TableInfo = ejabberd_storage_utils:get_table_info(
         archive_collection, ?MOD_ARCHIVE2_SCHEMA),
     MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
     case ejabberd_storage:select([{MSHead,
-        get_collection_conditions(C, Type, TableInfo),
+        get_collection_conditions(C, Type, Filter, TableInfo),
         ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}]) of
         {selected, [#archive_collection{} = OutC]} ->
             OutC;
@@ -68,20 +68,34 @@ get_collection(#archive_collection{} = C, Type, Fields) ->
 
 %% Retrieve collection from minimally filled archive_collection
 %% record: the only required field is 'id'.
-get_collection_conditions(C, by_id, TableInfo) ->
+get_collection_conditions(C, by_id, Filter, TableInfo) ->
     Conditions =
-        [{'=:=', id,
-          ejabberd_storage_utils:encode_brackets(C#archive_collection.id)}],
+        filter_undef(
+            [{'=:=', id,
+                ejabberd_storage_utils:encode_brackets(C#archive_collection.id)},
+             case Filter of
+                 existing ->
+                     {'=/=', deleted, true};
+                 all ->
+                     undefined
+             end]),
     ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo);
 
 %% Retrieve collection from minimally filled archive_collection
 %% record: required fields are 'us', 'with_*' and 'utc'.
-get_collection_conditions(C, by_link, TableInfo) ->
+get_collection_conditions(C, by_link, Filter, TableInfo) ->
     Conditions =
-        [{'=:=', us, C#archive_collection.us},
-         {'=:=', with_user, C#archive_collection.with_user},
-         {'=:=', with_server, C#archive_collection.with_server},
-         {'=:=', with_resource, C#archive_collection.with_resource},
-         {'=:=', utc,
-          ejabberd_storage_utils:encode_brackets(C#archive_collection.utc)}],
+        filter_undef(
+            [{'=:=', us, C#archive_collection.us},
+             {'=:=', with_user, C#archive_collection.with_user},
+             {'=:=', with_server, C#archive_collection.with_server},
+             {'=:=', with_resource, C#archive_collection.with_resource},
+             {'=:=', utc,
+                ejabberd_storage_utils:encode_brackets(C#archive_collection.utc)},
+             case Filter of
+                 existing ->
+                     {'=/=', deleted, true};
+                 all ->
+                     undefined
+             end]),
     ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo).

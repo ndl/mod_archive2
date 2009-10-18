@@ -57,7 +57,10 @@ mod_archive2_management_mysql_test_() ->
             ?test_gen0(mysql_test_list_start_end),
             ?test_gen0(mysql_test_list_with),
             ?test_gen0(mysql_test_list_exactmatch)
-        ]
+        ],
+        ?test_gen1(mysql_test_remove_single),
+        ?test_gen1(mysql_test_remove_single_non_existing),
+        ?test_gen1(mysql_test_remove_range)
     ]
 }.
 
@@ -79,7 +82,10 @@ mod_archive2_management_mnesia_test_() ->
             ?test_gen0(common_test_list_start_end),
             ?test_gen0(common_test_list_with),
             ?test_gen0(common_test_list_exactmatch)
-        ]
+        ],
+        ?test_gen1(mnesia_test_remove_single),
+        ?test_gen1(mnesia_test_remove_single_non_existing),
+        ?test_gen1(mnesia_test_remove_range)
     ]
 }.
 
@@ -93,7 +99,7 @@ mysql_test_list_empty(Pid) ->
                 {},
                 {"select count(*) from archive_collection where "
                  "(us = 'client@localhost') and (with_user = 'juliet') and "
-                 "(with_server = 'capulet.com')",
+                 "(with_server = 'capulet.com') and (deleted <> 1)",
                  {selected, [], [{0}]}},
                 {}])
         end),
@@ -155,11 +161,11 @@ mysql_test_list_all() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc asc",
+                 "and (deleted <> 1) order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1},
                                  {3, "benvolio", "montague.net", undefined,
@@ -167,7 +173,8 @@ mysql_test_list_all() ->
                                  {2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 02:56:15') "
                   "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {}])
@@ -188,15 +195,16 @@ mysql_test_list_max() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
-                 "from archive_collection where (us = 'client@localhost') "
-                 "order by utc asc limit 1",
+                 "from archive_collection where (us = 'client@localhost') and "
+                 "(deleted <> 1) order by utc asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') "
+                  "(us = 'client@localhost') and (deleted <> 1) "
+                  "and ((utc < '1469-07-21 02:56:15') "
                   "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {}])
@@ -236,15 +244,16 @@ mysql_test_list_index() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc asc offset 1 limit 1",
+                 "and (deleted <> 1) order by utc asc offset 1 limit 1",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 03:01:54') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 03:01:54') "
                   "or ((utc = '1469-07-21 03:01:54') and (id < 3)))",
                   {selected, [], [{1}]}},
                 {}])
@@ -260,23 +269,25 @@ mysql_test_list_after() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc asc limit 1",
+                 "and (deleted <> 1) order by utc asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 02:56:15') "
                   "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
+                 "(deleted <> 1) and "
                  "((utc > '1469-07-21 02:56:15') or ((utc = '1469-07-21 02:56:15') "
                  "and (id > 1))) order by utc asc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
@@ -284,7 +295,8 @@ mysql_test_list_after() ->
                                  {2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 03:01:54') "
+                  "(us = 'client@localhost') and (deleted <> 1) "
+                  "and ((utc < '1469-07-21 03:01:54') "
                   "or ((utc = '1469-07-21 03:01:54') and (id < 3)))",
                   {selected, [], [{1}]}},
                 {}])
@@ -315,23 +327,25 @@ mysql_test_list_before() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by utc asc offset 2 limit 1",
+                 "and (deleted <> 1) order by utc asc offset 2 limit 1",
                  {selected, [], [{2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 03:16:37') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 03:16:37') "
                   "or ((utc = '1469-07-21 03:16:37') and (id < 2)))",
                   {selected, [], [{1}]}},
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost')",
+                 "(us = 'client@localhost') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
+                 "(deleted <> 1) and "
                  "((utc < '1469-07-21 03:16:37') or ((utc = '1469-07-21 03:16:37') "
                  "and (id < 2))) order by utc desc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
@@ -339,7 +353,8 @@ mysql_test_list_before() ->
                                  {1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 02:56:15') "
                   "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {}])
@@ -370,17 +385,20 @@ mysql_test_list_start_end() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost') and (utc >= '1469-07-21 03:01:54') "
+                 "(us = 'client@localhost') and (deleted <> 1) and "
+                 "(utc >= '1469-07-21 03:01:54') "
                  "and (utc < '1469-07-21 03:16:37')",
                  {selected, [], [{1}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
+                 "(deleted <> 1) and "
                  "(utc >= '1469-07-21 03:01:54') and (utc < '1469-07-21 03:16:37') "
                  "order by utc asc",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and (utc >= '1469-07-21 03:01:54') "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "(utc >= '1469-07-21 03:01:54') "
                   "and ((utc < '1469-07-21 03:01:54') or "
                   "((utc = '1469-07-21 03:01:54') and (id < 3)))",
                   {selected, [], [{0}]}},
@@ -404,18 +422,23 @@ mysql_test_list_with() ->
             ejabberd_odbc:start([
                 {},
                 {"select count(*) from archive_collection where "
-                 "(us = 'client@localhost') and (with_user = 'juliet') and "
-                 "(with_server = 'capulet.com') and (utc < '1469-07-21 03:16:37')",
+                 "(us = 'client@localhost') "
+                 "and (with_user = 'juliet') and "
+                 "(with_server = 'capulet.com') and (deleted <> 1) and "
+                 "(utc < '1469-07-21 03:16:37')",
                  {selected, [], [{1}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
                  "(with_user = 'juliet') and (with_server = 'capulet.com') and "
+                 "(deleted <> 1) and "
                  "(utc < '1469-07-21 03:16:37') order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15", 1}]}},
                  {"select count(*) from archive_collection where "
-                  "(us = 'client@localhost') and (with_user = 'juliet') and "
-                  "(with_server = 'capulet.com') and ((utc < '1469-07-21 02:56:15') "
+                  "(us = 'client@localhost') and "
+                  "(with_user = 'juliet') and "
+                  "(with_server = 'capulet.com') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 02:56:15') "
                   "or ((utc = '1469-07-21 02:56:15') and (id < 1)))",
                   {selected, [], [{0}]}},
                 {}])
@@ -440,7 +463,8 @@ mysql_test_list_exactmatch() ->
                 {"select count(*) from archive_collection where "
                  "(us = 'client@localhost') and "
                  "(with_user = 'juliet') and (with_server = 'capulet.com') "
-                 "and (with_resource is null) and (utc < '1469-07-21 03:16:37')",
+                 "and (with_resource is null) and (deleted <> 1) and "
+                 "(utc < '1469-07-21 03:16:37')",
                  {selected, [], [{0}]}},
                 {}])
         end),
@@ -456,6 +480,157 @@ common_test_list_exactmatch() ->
                         [exmpp_xml:attribute('end', "1469-07-21T03:16:37Z"),
                          exmpp_xml:attribute(with, "juliet@capulet.com"),
                          exmpp_xml:attribute(exactmatch, "1")], [])))).
+
+mysql_test_remove_single(_) ->
+    mysql_test_insert1(),
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"update archive_collection set deleted = 1 where "
+                 "(utc = '1469-07-21 02:56:15') and (us = 'client@localhost') "
+                 "and (with_user = 'juliet') and (with_server = 'capulet.com') "
+                 "and (with_resource = 'chamber') and (deleted <> 1)", {updated, 1}},
+                 {"select id from archive_collection where "
+                  "(utc = '1469-07-21 02:56:15') and (us = 'client@localhost') "
+                  "and (with_user = 'juliet') and (with_server = 'capulet.com') "
+                  "and (with_resource = 'chamber') and (deleted <> 1)", {selected, [], [{1}]}},
+                 {"update archive_collection set prev_id = null where (prev_id = 1)",
+                  {updated, 0}},
+                 {"update archive_collection set next_id = null where (next_id = 1)",
+                  {updated, 0}},
+                {},
+                {"select count(*) from archive_collection where "
+                 "(us = 'client@localhost') and (deleted <> 1)",
+                 {selected, [], [{2}]}},
+                {"select id, with_user, with_server, with_resource, utc, version "
+                 "from archive_collection where (us = 'client@localhost') "
+                 "and (deleted <> 1) order by utc asc",
+                 {selected, [], [{3, "benvolio", "montague.net", undefined,
+                                  "1469-07-21 03:01:54", 1},
+                                 {2, "balcony", "house.capulet.com", undefined,
+                                  "1469-07-21 03:16:37", 1}]}},
+                 {"select count(*) from archive_collection where "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 03:01:54') "
+                  "or ((utc = '1469-07-21 03:01:54') and (id < 3)))",
+                  {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_remove_single(mysql).
+
+mnesia_test_remove_single(_) ->
+    common_test_insert1(),
+    common_test_remove_single(mnesia).
+
+common_test_remove_single(RDBMS) ->
+    ?MGMT_TC10_REMOVE_RESULT =
+        mod_archive2_management:remove(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, remove,
+                        [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
+                         exmpp_xml:attribute(with, "juliet@capulet.com/chamber")], []))),
+            RDBMS,
+            dict:new()),
+    ?MGMT_TC10_RETRIEVE_RESULT =
+        mod_archive2_management:list(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+
+mysql_test_remove_single_non_existing(_) ->
+    mysql_test_insert1(),
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"update archive_collection set deleted = 1 where "
+                 "(utc = '1469-07-21 02:56:14') and (us = 'client@localhost') "
+                 "and (deleted <> 1)", {updated, 0}},
+                {}])
+        end),
+    common_test_remove_single_non_existing(mysql),
+    mysql_test_list_all().
+
+mnesia_test_remove_single_non_existing(_) ->
+    common_test_insert1(),
+    common_test_remove_single_non_existing(mnesia),
+    common_test_list_all().
+
+common_test_remove_single_non_existing(RDBMS) ->
+    {atomic, {error, 'item-not-found'}, _} =
+        mod_archive2_management:remove(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, remove,
+                        [exmpp_xml:attribute('start', "1469-07-21T02:56:14Z")], []))),
+            RDBMS,
+            dict:new()).
+
+mysql_test_remove_range(_) ->
+    mysql_test_insert1(),
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"update archive_collection set deleted = 1 where "
+                 "(utc >= '1469-07-21 02:56:15') and (utc < '1469-07-21 03:16:37') "
+                 "and (us = 'client@localhost') and (deleted <> 1)", {updated, 2}},
+                 {"select id from archive_collection where "
+                  "(utc >= '1469-07-21 02:56:15') and (utc < '1469-07-21 03:16:37') "
+                  "and (us = 'client@localhost') "
+                  "and (deleted <> 1)", {selected, [], [{1}, {3}]}},
+                 {"update archive_collection set prev_id = null where (prev_id = 1)",
+                  {updated, 0}},
+                 {"update archive_collection set next_id = null where (next_id = 1)",
+                  {updated, 0}},
+                 {"update archive_collection set prev_id = null where (prev_id = 3)",
+                  {updated, 0}},
+                 {"update archive_collection set next_id = null where (next_id = 3)",
+                  {updated, 0}},
+                {},
+                {"select count(*) from archive_collection where "
+                 "(us = 'client@localhost') and (deleted <> 1)",
+                 {selected, [], [{1}]}},
+                {"select id, with_user, with_server, with_resource, utc, version "
+                 "from archive_collection where (us = 'client@localhost') "
+                 "and (deleted <> 1) order by utc asc",
+                 {selected, [], [{2, "balcony", "house.capulet.com", undefined,
+                                  "1469-07-21 03:16:37", 1}]}},
+                 {"select count(*) from archive_collection where "
+                  "(us = 'client@localhost') and (deleted <> 1) and "
+                  "((utc < '1469-07-21 03:16:37') "
+                  "or ((utc = '1469-07-21 03:16:37') and (id < 2)))",
+                  {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_remove_range(mysql).
+
+mnesia_test_remove_range(_) ->
+    common_test_insert1(),
+    common_test_remove_range(mnesia).
+
+common_test_remove_range(RDBMS) ->
+    ?MGMT_TC12_REMOVE_RESULT =
+        mod_archive2_management:remove(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, remove,
+                        [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
+                         exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], []))),
+            RDBMS,
+            dict:new()),
+    ?MGMT_TC12_RETRIEVE_RESULT =
+        mod_archive2_management:list(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 get_child(undefined, _) ->
     undefined;
