@@ -98,6 +98,8 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
                 % effects or extra flag passed to filter to determine the number
                 % of removed collections, so for now we'd better return OK in
                 % all cases.
+                {atomic, {error, _}} = Result ->
+                    Result;
                 {atomic, NewSessions} ->
                     Result =
                         exmpp_iq:result(IQ,
@@ -114,6 +116,8 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
                 end,
             case ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F) of
+                {atomic, {error, _}} = Result ->
+                    Result;
                 {atomic, Result} ->
                     {atomic, Result, NewSessions};
                 Result ->

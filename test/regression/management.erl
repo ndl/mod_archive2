@@ -40,10 +40,10 @@ management_test_() ->
             ?test_gen1(test_retrieve_list),
             ?test_gen1(test_retrieve_empty_list),
             ?test_gen1(test_retrieve_collection),
-            ?test_gen1(test_retrieve_non_existing_collection)
-%            ?test_gen1(test_remove_collections),
-%            ?test_gen1(test_remove_all_collections),
-%            ?test_gen1(test_remove_non_existing_collection)
+            ?test_gen1(test_retrieve_non_existing_collection),
+            ?test_gen1(test_remove_collections),
+            ?test_gen1(test_remove_all_collections),
+            ?test_gen1(test_remove_non_existing_collection)
         ]).
 
 test_retrieve_list(F) ->
@@ -140,7 +140,7 @@ test_remove_collections(F) ->
         exmpp_xml:attribute("with", "juliet@capulet.com"),
 	exmpp_xml:attribute("start", "1469-07-21T02:00:00Z")
     ], []))),
-   ?MANAGEMENT_TC5_RETRIEVE_RESULT2 =
+    ?MANAGEMENT_TC5_RETRIEVE_RESULT2 =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
 	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z"),
@@ -152,7 +152,7 @@ test_remove_collections(F) ->
 	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z"),
 	exmpp_xml:attribute("end", "2038-01-01T00:00:00Z")
     ], []))),
-   ?MANAGEMENT_TC5_RETRIEVE_RESULT3 =
+    ?MANAGEMENT_TC5_RETRIEVE_RESULT3 =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
 	exmpp_xml:attribute("start", "1469-07-21T03:16:37Z")
