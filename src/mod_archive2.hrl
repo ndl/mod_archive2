@@ -90,4 +90,6 @@
          name,
          jid}).
 
--record(session, {utc, last_access, id, resource}).
+-record(session, {utc, last_access, id, version, resource}).
+
+-record(external_message, {type, thread, subject, nick, jid, body}).

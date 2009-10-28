@@ -131,6 +131,29 @@
 
 -define(START, {{1469, 07, 21}, {02, 56, 15}}).
 
+-define(EXTERNAL_MESSAGE1_XML,
+    {xmlel,'jabber:client',
+        [{'jabber:client',none}],
+        message,
+        [{xmlattr,undefined,type,<<"chat">>},
+         {xmlattr,undefined,to,<<"client2@ndl-server">>},
+         {xmlattr,undefined,id,<<"session-182531630">>}],
+        [{xmlel,'jabber:client',[],subject,[],
+                [{xmlcdata,<<"Test">>}]},
+         {xmlel,'jabber:client',[],body,[],
+                [{xmlcdata,<<"This is test message.">>}]}]}).
+
+-define(EXTERNAL_MESSAGE2_XML,
+    {xmlel,'jabber:client',
+        [{'jabber:client',none}],
+        message,
+        [{xmlattr,undefined,type,<<"groupchat">>},
+         {xmlattr,undefined,from,<<"darkcave@chat.shakespeare.lit/thirdwitch">>},
+         {xmlattr,undefined,to,<<"crone1@shakespeare.lit/desktop">>},
+         {xmlattr,undefined,id,<<"session-182531630">>}],
+        [{xmlel,'jabber:client',[],body,[],
+                [{xmlcdata,<<"Harpier cries: 'tis time, 'tis time.">>}]}]}).
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_xml_test_() ->
@@ -149,7 +172,9 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_message2_to_xml),
         ?test_gen1(test_message2_from_xml),
         ?test_gen1(test_message3_to_xml),
-        ?test_gen1(test_message3_from_xml)
+        ?test_gen1(test_message3_from_xml),
+        ?test_gen1(test_external_message1_from_xml),
+        ?test_gen1(test_external_message2_from_xml)
     ]
  }.
 
@@ -237,6 +262,16 @@ test_message3_to_xml(_) ->
 test_message3_from_xml(_) ->
     ?ARCHIVE_MESSAGE3 =
         mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START).
+
+test_external_message1_from_xml(_) ->
+    {external_message,chat,undefined,"Test",undefined,undefined,
+     "This is test message."} =
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE1_XML).
+
+test_external_message2_from_xml(_) ->
+    {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
+     "Harpier cries: 'tis time, 'tis time."} =
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML).
 
 mysql_test_links(Pid) ->
     ejabberd_storage:transaction(?HOST,

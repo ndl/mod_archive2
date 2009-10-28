@@ -88,7 +88,7 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
     case exmpp_xml:get_attribute(SubEl, open, undefined) of
         true ->
             F = fun() ->
-                    remove_auto_archived(R, true, RDBMS, Sessions)
+                    remove_auto_archived(From, R, true, RDBMS, Sessions)
                 end,
             case ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F) of
@@ -110,7 +110,7 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
             end;
         _ ->
             NewSessions =
-                remove_auto_archived(R, false, RDBMS, Sessions),
+                remove_auto_archived(From, R, false, RDBMS, Sessions),
             F = fun() ->
                     remove_normal(From, IQ, R, RDBMS)
                 end,
@@ -125,10 +125,12 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
             end
     end.
 
-remove_auto_archived(R, RemoveAlsoInDb, RDBMS, Sessions) ->
+remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
     % TODO: is using non side effects free predicate for dict:filter dangerous?
     F =
-        fun(BareJID, Session) ->
+        fun({US, BareJID}, Session) ->
+            USResult =
+                exmpp_jid:compare(From, US),
             WithResult =
                 if R#range.with =/= undefined ->
                     WithUser = exmpp_jid:prep_node_as_list(R#range.with),
@@ -169,7 +171,10 @@ remove_auto_archived(R, RemoveAlsoInDb, RDBMS, Sessions) ->
                     false
                 end,
             FilterResult =
-                WithResult andalso TimeStartResult andalso TimeEndResult,
+                USResult andalso
+                WithResult andalso
+                TimeStartResult andalso
+                TimeEndResult,
             case FilterResult of
                 false ->
                     false;

@@ -81,7 +81,7 @@ handle_query({insert, Records}, DbInfo) ->
                     if element(2, R) =:= undefined andalso
                         TableInfo#table.keys =:= 1 andalso
                         KeyType =:= autoid ->
-                        {node(), now()};
+                        {node(), mod_archive2_time:now()};
                        true ->
                         element(2, R)
                     end,

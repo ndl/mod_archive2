@@ -34,6 +34,7 @@
 %% Our hooks
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/2,
+         external_message_from_xml/1,
          datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
@@ -130,7 +131,7 @@ collection_from_xml(From, XC) ->
                 with_resource = exmpp_jid:prep_resource_as_list(With),
                 utc = datetime_from_xml(
                     exmpp_xml:get_attribute_as_list(XC, start, undefined)),
-                change_utc = calendar:now_to_datetime(now()),
+                change_utc = calendar:now_to_datetime(mod_archive2_time:now()),
                 version =
                     case exmpp_xml:get_attribute_as_list(XC, version, undefined) of
                         undefined -> undefined;
@@ -208,6 +209,35 @@ message_from_xml(#xmlel{name = Name} = XM, Start) ->
             end,
         name = exmpp_xml:get_attribute_as_list(XM, name, undefined),
         jid = exmpp_xml:get_attribute_as_list(XM, jid, undefined)}.
+
+%%--------------------------------------------------------------------
+%% External messages conversion from XML.
+%%--------------------------------------------------------------------
+external_message_from_xml(#xmlel{name = message} = M) ->
+    Type = list_to_atom(exmpp_xml:get_attribute_as_list(M, type, undefined)),
+    Nick =
+        case Type of
+            groupchat ->
+                exmpp_jid:resource_as_list(
+                    exmpp_jid:parse(
+                        exmpp_xml:get_attribute_as_list(M, from, undefined)));
+             _ ->
+                undefined
+        end,
+    #external_message{
+        type = Type,
+        thread = get_cdata(exmpp_xml:get_element(M, thread)),
+        subject = get_cdata(exmpp_xml:get_element(M, subject)),
+        nick = Nick,
+        % Currently I see no way to get it easily :-(
+        jid = undefined,
+        body = get_cdata(exmpp_xml:get_element(M, body))
+    }.
+
+get_cdata(undefined) ->
+    undefined;
+get_cdata(Element) ->
+    exmpp_xml:get_cdata_as_list(Element).
 
 %%--------------------------------------------------------------------
 %% Conversion utility functions.

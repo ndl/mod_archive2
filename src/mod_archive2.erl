@@ -255,13 +255,13 @@ terminate(_Reason, State) ->
     gen_iq_handler:remove_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING),
     gen_iq_handler:remove_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING),
     ejabberd_hooks:delete(remove_user, HostB, ?MODULE, remove_user,
-                          ?HOOK_SEQ),
+        ?HOOK_SEQ),
     ejabberd_hooks:delete(user_send_packet, HostB, ?MODULE, send_packet,
-                          ?HOOK_SEQ),
+        ?HOOK_SEQ),
     ejabberd_hooks:delete(user_receive_packet, HostB, ?MODULE, receive_packet,
-                          ?HOOK_SEQ),
+        ?HOOK_SEQ),
     ejabberd_hooks:delete(offline_message_hook, HostB, ?MODULE, receive_packet,
-                          ?HOOK_SEQ),
+        ?HOOK_SEQ),
     ok.
 
 %%--------------------------------------------------------------------
@@ -326,9 +326,10 @@ handle_call(stop, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({add_message, _Args}, State) ->
+handle_cast({add_message, Args}, State) ->
     Sessions = State#state.sessions,
-    NewSessions = Sessions, % mod_archive2_auto:add_message(Args, Sessions),
+    TimeOut = gen_mod:get_opt(session_duration, State#state.options, 1800),
+    NewSessions = mod_archive2_auto:add_message(Args, TimeOut, Sessions),
     {noreply, State#state{sessions = NewSessions}};
 
 handle_cast(_Msg, State) ->
@@ -378,19 +379,21 @@ iq_archive(From, To, IQ) ->
     end.
 
 send_packet(From, To, Packet) ->
-    add_packet(to, exmpp_jid:prep_domain_as_list(From), From, To, Packet).
+    add_packet(to, From, To, Packet).
 
 receive_packet(From, To, Packet) ->
-    add_packet(from, exmpp_jid:prep_domain_as_list(To), From, To, Packet).
+    add_packet(from, To, From, Packet).
 
 receive_packet(_JID, From, To, Packet) ->
     receive_packet(From, To, Packet).
 
-add_packet(Type, Host, From, To, Packet) ->
+add_packet(Direction, OurJID, With, Packet) ->
+    Host = exmpp_jid:prep_domain_as_list(OurJID),
+    US = exmpp_jid:bare(OurJID),
     case lists:member(Host, ?MYHOSTS) of
         true ->
             Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-            gen_server:cast(Proc, {add_message, {Type, From, To, Packet}});
+            gen_server:cast(Proc, {add_message, {Direction, US, With, Packet}});
         false ->
             false
     end.
@@ -420,8 +423,10 @@ expire_collections(_Host, _Opts, mnesia) ->
 
 expire_collections(Host, Opts, RDBMS) ->
     UTCField = "archive_collection.utc",
-    Now = ejabberd_storage_odbc:encode(calendar:now_to_datetime(now()),
-        ejabberd_storage_utils:get_table_info(archive_collection, ?MOD_ARCHIVE2_SCHEMA)),
+    Now = ejabberd_storage_odbc:encode(
+        calendar:now_to_datetime(mod_archive2_time:now()),
+        ejabberd_storage_utils:get_table_info(archive_collection,
+            ?MOD_ARCHIVE2_SCHEMA)),
     ExpireByDefault =
     	case gen_mod:get_opt(default_expire, Opts, infinity) of
             infinity ->

@@ -31,10 +31,11 @@
 -module(mod_archive2_auto).
 -author('ejabberd@ndl.kiev.ua').
 
-%% Our hooks
--export([filter_sessions/2]).
+-export([filter_sessions/2, add_message/3]).
 
 -include("mod_archive2.hrl").
+
+-define(ZERO_DATETIME, {{0, 0, 0}, {0, 0, 0}}).
 
 %%--------------------------------------------------------------------
 %% Filters given sessions according to specified filter function
@@ -42,18 +43,252 @@
 
 filter_sessions(Filter, Sessions) ->
     F =
-        fun(BareJID, Value) ->
+        fun(WithKey, Threads) ->
 		    dict:filter(
-                fun(_, Session) ->
-				    Filter(BareJID, Session)
+                fun(_Thread, Session) ->
+				    Filter(WithKey, Session)
 			    end,
-                Value)
+                Threads)
 	    end,
     FilteredSessions = dict:map(F, Sessions),
+    % Remove all dictionaries with empty 2nd-level dict
     NewSessions =
         dict:filter(
-            fun(_Key, Value) ->
-			    dict:fetch_keys(Value) /= []
+            fun(_WithKey, Threads) ->
+			    dict:size(Threads) > 0
             end,
             FilteredSessions),
     NewSessions.
+
+add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
+    case should_store_jid(US, With) of
+        true ->
+            case mod_archive2_xml:external_message_from_xml(Packet) of
+                #external_message{} = EM ->
+                    F =
+                        fun() ->
+                            {NewSessions, Session} =
+                                get_session(US, With, EM, TimeOut, Sessions),
+                            case Session#session.version of
+                                0 ->
+                                    % Nothing to update, collection was just created.
+                                    ok;
+                                _ ->
+                                    ejabberd_storage:update(
+                                        #archive_collection{
+                                            id =
+                                                Session#session.id,
+                                            change_utc =
+                                                Session#session.last_access,
+                                            version =
+                                                Session#session.version,
+                                            with_resource =
+                                                Session#session.resource,
+                                            subject =
+                                                EM#external_message.subject,
+                                            thread =
+                                                if EM#external_message.thread =/=
+                                                    undefined ->
+                                                    EM#external_message.thread;
+                                                   true ->
+                                                    null
+                                                end})
+                            end,
+                            M = #archive_message{
+                                coll_id = Session#session.id,
+                                utc = Session#session.last_access,
+                                direction = Direction,
+                                name =
+                                    if EM#external_message.type =:= groupchat ->
+                                        if EM#external_message.nick =/= undefined ->
+					                        EM#external_message.nick;
+                                           true ->
+                                            exmpp_jid:prep_resource_as_list(With)
+                                        end;
+                                       true ->
+                                        undefined
+                                    end,
+                                body = EM#external_message.body},
+                            ejabberd_storage:insert([M]),
+                            NewSessions
+                        end,
+                    case ejabberd_storage:transaction(
+                        exmpp_jid:prep_domain_as_list(US), F) of
+                        {atomic, Result} ->
+                            Result;
+                        _ ->
+                            Sessions
+                    end;
+                _ ->
+                    Sessions
+            end;
+        _ ->
+            Sessions
+    end.
+
+should_store_jid(US, With) ->
+    true.
+
+%%
+%% In fact there's small problem with resources: we can send the message
+%% to recepient without specifying resource (typically, when sending the
+%% first message), but reply will come from the full JID and subsequent
+%% messages will go to this full JID.
+%%
+%% This means that we either should strip resouce completely from JID when
+%% creating the key (which is easy, but not nice, as then all messages will
+%% be put into single collection without treating resources at all), or use
+%% more intelligent approach to match the appropriate collection to our
+%% message.
+%%
+%% Additionally we'd like to use "thread" to differentiate between different
+%% conversations, to put them into different collections.
+%%
+%% Here is the approach we use:
+%%
+%% 1) There's two levels key schema: first key is bare JID, second-level
+%%    key is the thread. If thread is not present, {no_thread, Resource} is
+%%    used instead.
+%% 2) If thread is specified in the message - just use both-levels keys
+%%    normally, reusing existing collections if there's a match or creating
+%%    new one if no matching collection found.
+%% 3) Otherwise use first-level key to get all sub-items, then
+%%      * If resource IS specified: search for matching resource:
+%%        - if found - use it.
+%%        - if not, search for sub-item with empty resource. If found, use
+%%          it and rewrite its resource to ours, notifying the caller to
+%%          store collection. If not - create new one.
+%%      * If resource IS NOT specified: use the most recent sub-item or
+%%        create new if none exists, notifying the caller about change of
+%%        resource, if needed.
+%%
+get_session(US, With, EM, TimeOut, Sessions) ->
+    % Assume empty resource for groupchat messages so that they're recorded
+    % to the same collection.
+    Type = EM#external_message.type,
+    Resource =
+        case Type of
+            groupchat ->
+                undefined;
+            _ ->
+                exmpp_jid:prep_resource_as_list(With)
+        end,
+    WithKey = {US, exmpp_jid:bare(With)},
+    TS = calendar:now_to_datetime(mod_archive2_time:now()),
+    Thread = EM#external_message.thread,
+    case dict:find(WithKey, Sessions) of
+        error ->
+            new_session(WithKey, TS, Resource, Thread, Sessions);
+        {ok, Threads} ->
+            if Thread =/= undefined ->
+		        case dict:find(Thread, Threads) of
+			        error ->
+			            new_session(WithKey, TS, Resource, Thread, Sessions);
+			        {ok, Session} ->
+			            updated_session(WithKey, TS, TimeOut, Thread,
+                            Session#session{resource = Resource}, Sessions)
+		        end;
+	           true ->
+		        if Resource =/= undefined ->
+			        case dict:find({no_thread, Resource}, Threads) of
+				        {ok, Session} ->
+				            updated_session(WithKey, TS, TimeOut, Thread,
+                                Session, Sessions);
+				        error ->
+				            case dict:find({no_thread, undefined}, Threads) of
+					            error ->
+					                new_session(WithKey, TS, Resource, Thread,
+                                        Sessions);
+					            {ok, Session} ->
+                                    NewThreads = dict:erase(
+                                        {no_thread, undefined}, Threads),
+                                    NewSessions = dict:store(WithKey,
+                                        NewThreads, Sessions),
+					                updated_session(WithKey, TS, TimeOut,
+                                        Thread,
+                                        Session#session{resource = Resource},
+                                        NewSessions)
+				            end
+			        end;
+		           true ->
+			        F =
+                        fun(_,
+                            #session{last_access = Last,
+                                resource = SessionResource} = Value,
+                            #session{last_access = MaxLast} = PrevValue) ->
+					        if ((Type =/= groupchat) andalso
+                                (Last > MaxLast)) orelse
+                               ((Type =:= groupchat) andalso
+                                (SessionResource =:= undefined)) ->
+                               Value;
+					          true ->
+                               PrevValue
+					        end
+				        end,
+			        case dict:fold(F, #session{
+                        last_access = ?ZERO_DATETIME,
+                        resource = undefined}, Threads) of
+				        #session{last_access = ?ZERO_DATETIME} ->
+				            new_session(WithKey, TS, Resource, EM, Sessions);
+				        #session{resource = NewResource} = Session ->
+				            updated_session(WithKey, TS, TimeOut, Thread,
+                                Session#session{resource = NewResource},
+                                Sessions)
+			        end
+		        end
+            end
+    end.
+
+updated_session(WithKey, TS, TimeOut, Thread, Session, Sessions) ->
+    TimeDiff =
+        calendar:datetime_to_gregorian_seconds(TS) -
+        calendar:datetime_to_gregorian_seconds(Session#session.last_access),
+    if TimeDiff > TimeOut ->
+	    new_session(WithKey, TS, Session#session.resource, Thread, Sessions);
+       true ->
+        UpdatedSession = Session#session{
+            last_access = TS,
+            version = Session#session.version + 1},
+	    {updated_sessions(WithKey, Thread, UpdatedSession, Sessions),
+	     UpdatedSession}
+    end.
+
+new_session({US, BareJID} = WithKey, TS, Resource, Thread, Sessions) ->
+    C = #archive_collection{
+        us = exmpp_jid:prep_bare_to_list(US),
+        with_user = exmpp_jid:prep_node_as_list(BareJID),
+        with_server = exmpp_jid:prep_domain_as_list(BareJID),
+        with_resource = Resource,
+        utc = TS},
+    CID =
+        case mod_archive2_storage:get_collection(C, by_link, existing, [id]) of
+            undefined ->
+                NewC = C#archive_collection{
+                    change_utc = TS,
+                    version = 0,
+                    thread = Thread},
+                {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
+                ID;
+            #archive_collection{id = ID} ->
+                ID
+        end,
+    Session = #session{
+        utc = TS,
+        last_access = TS,
+        id = CID,
+        resource = Resource,
+        version = 0},
+    {updated_sessions(WithKey, Thread, Session, Sessions), Session}.
+
+updated_sessions(WithKey, Thread, Session, Sessions) ->
+    Threads = case dict:find(WithKey, Sessions) of
+               error -> dict:new();
+               {ok, Result} -> Result
+           end,
+    ThreadKey =
+        if Thread =/= undefined ->
+            Thread;
+           true -> {no_thread, Session#session.resource}
+        end,
+    NewThreads = dict:store(ThreadKey, Session, Threads),
+    dict:store(WithKey, NewThreads, Sessions).

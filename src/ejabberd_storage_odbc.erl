@@ -569,7 +569,7 @@ encode(Str, TableInfo) when is_list(Str) andalso
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 
 encode(Str, _) when is_list(Str) ->
-	"'" ++ ejabberd_odbc:escape(Str) ++ "'";
+	lists:flatten("'" ++ ejabberd_odbc:escape(Str) ++ "'");
 
 encode(Value, TableInfo) when is_atom(Value) ->
     case ejabberd_storage_utils:elem_index(Value, TableInfo#table.enums) of
