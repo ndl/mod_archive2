@@ -154,6 +154,17 @@
         [{xmlel,'jabber:client',[],body,[],
                 [{xmlcdata,<<"Harpier cries: 'tis time, 'tis time.">>}]}]}).
 
+-define(EXTERNAL_MESSAGE3_XML,
+        {xmlel,'jabber:client',[],iq,
+                 [{xmlattr,undefined,type,<<"get">>},
+                  {xmlattr,undefined,id,<<"stanza-396429316">>}],
+                 [{xmlel,"http://www.xmpp.org/extensions/xep-0136.html#ns",
+                      [{"http://www.xmpp.org/extensions/xep-0136.html#ns",
+                        none}],
+                      list,
+                      [{xmlattr,undefined,with,<<"client2@ndl-server">>}],
+                      []}]}).
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_xml_test_() ->
@@ -174,7 +185,8 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_message3_to_xml),
         ?test_gen1(test_message3_from_xml),
         ?test_gen1(test_external_message1_from_xml),
-        ?test_gen1(test_external_message2_from_xml)
+        ?test_gen1(test_external_message2_from_xml),
+        ?test_gen1(test_external_message3_from_xml)
     ]
  }.
 
@@ -272,6 +284,9 @@ test_external_message2_from_xml(_) ->
     {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
      "Harpier cries: 'tis time, 'tis time."} =
     mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML).
+
+test_external_message3_from_xml(_) ->
+    undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML).
 
 mysql_test_links(Pid) ->
     ejabberd_storage:transaction(?HOST,

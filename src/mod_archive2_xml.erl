@@ -232,7 +232,9 @@ external_message_from_xml(#xmlel{name = message} = M) ->
         % Currently I see no way to get it easily :-(
         jid = undefined,
         body = get_cdata(exmpp_xml:get_element(M, body))
-    }.
+    };
+external_message_from_xml(_) ->
+    undefined.
 
 get_cdata(undefined) ->
     undefined;

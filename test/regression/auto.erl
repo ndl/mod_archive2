@@ -80,7 +80,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "list",
                     [exmpp_xml:attribute("with", ?CLIENTJID2)],
                     []))),
@@ -88,7 +88,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT2 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute("with", With),
 	                 exmpp_xml:attribute("start", Start)],
@@ -104,7 +104,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT3 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "list",
                     [exmpp_xml:attribute("with", ?CLIENTJID2)],
                     []))),
@@ -113,7 +113,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT4 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute("with", With3),
 	                 exmpp_xml:attribute("start", Start3)],
@@ -131,7 +131,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT5 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "list",
                     [exmpp_xml:attribute("with", ?CLIENTJID2)],
                     []))),
@@ -140,7 +140,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT6 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute("with", With5),
 	                 exmpp_xml:attribute("start", Start5)],
@@ -158,7 +158,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT7 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "list",
                     [exmpp_xml:attribute("with", ?CLIENTJID2)],
                     []))),
@@ -167,7 +167,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
     ?AUTO_TC1_RETRIEVE_RESULT8 =
         client:response(F1,
             exmpp_iq:get(undefined,
-                exmpp_xml:element(?NS,
+                exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute("with", With7),
 	                 exmpp_xml:attribute("start", Start7)],

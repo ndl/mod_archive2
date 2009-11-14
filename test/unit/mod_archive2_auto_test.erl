@@ -138,7 +138,7 @@ mysql_test_auto_new_and_update() ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
                  "'juliet', 'example.com', null, '2010-01-02 03:04:05', "
-                 "'2010-01-02 03:04:05', 0, null, null, null, null, null)",
+                 "'2010-01-02 03:04:05', 0, 0, null, null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
@@ -177,7 +177,7 @@ mysql_test_auto_new_and_update() ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
                  "'juliet', 'example.com', null, '2010-01-02 04:04:07', "
-                 "'2010-01-02 04:04:07', 0, null, null, null, null, null)",
+                 "'2010-01-02 04:04:07', 0, 0, null, null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
@@ -278,7 +278,7 @@ mysql_test_auto_thread_new_and_update() ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
                  "'juliet', 'example.com', null, '2010-01-02 03:04:05', "
-                 "'2010-01-02 03:04:05', 0, null, null, 'thread123', null, null)",
+                 "'2010-01-02 03:04:05', 0, 0, null, 'thread123', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "

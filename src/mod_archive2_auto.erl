@@ -270,6 +270,7 @@ new_session({US, BareJID} = WithKey, TS, Resource, Thread, Sessions) ->
                 NewC = C#archive_collection{
                     change_utc = TS,
                     version = 0,
+                    deleted = 0,
                     thread = Thread},
                 {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
                 ID;
