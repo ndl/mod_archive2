@@ -181,7 +181,7 @@ mysql_test_auto_new_and_update() ->
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:05', 1, 'Art thou not "
+                 "name, jid) values (1, '2010-01-02 04:04:07', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {}])

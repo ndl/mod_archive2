@@ -343,9 +343,8 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(expire_sessions, State) ->
     Sessions = State#state.sessions,
-    %SessionDuration = gen_mod:get_opt(session_duration, State#state.options,
-    %                                  1800),
-    NewSessions = Sessions, % mod_archive2_auto:expire_sessions(Sessions, SessionDuration),
+    TimeOut = gen_mod:get_opt(session_duration, State#state.options, 1800),
+    NewSessions = mod_archive2_auto:expire_sessions(Sessions, TimeOut),
     {noreply, State#state{sessions = NewSessions}};
 
 handle_info(expire_collections, State) ->

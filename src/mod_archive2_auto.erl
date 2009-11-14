@@ -31,7 +31,7 @@
 -module(mod_archive2_auto).
 -author('ejabberd@ndl.kiev.ua').
 
--export([filter_sessions/2, add_message/3]).
+-export([expire_sessions/2, filter_sessions/2, add_message/3]).
 
 -include("mod_archive2.hrl").
 
@@ -52,13 +52,19 @@ filter_sessions(Filter, Sessions) ->
 	    end,
     FilteredSessions = dict:map(F, Sessions),
     % Remove all dictionaries with empty 2nd-level dict
-    NewSessions =
-        dict:filter(
-            fun(_WithKey, Threads) ->
-			    dict:size(Threads) > 0
-            end,
-            FilteredSessions),
-    NewSessions.
+    dict:filter(
+        fun(_WithKey, Threads) ->
+   	        dict:size(Threads) > 0
+        end,
+        FilteredSessions).
+
+expire_sessions(Sessions, TimeOut) ->
+    TS = calendar:now_to_datetime(mod_archive2_time:now()),
+    filter_sessions(
+        fun(_WithKey, Session) ->
+	    not is_session_expired(Session, TS, TimeOut)
+	end,
+	Sessions).
 
 add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
     case should_store_jid(US, With) of
@@ -126,7 +132,7 @@ add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
             Sessions
     end.
 
-should_store_jid(US, With) ->
+should_store_jid(_US, _With) ->
     true.
 
 %%
@@ -162,7 +168,7 @@ should_store_jid(US, With) ->
 %%        create new if none exists, notifying the caller about change of
 %%        resource, if needed.
 %%
-get_session(US, With, EM, TimeOut, Sessions) ->
+get_session(US, With, EM, TimeOut, InSessions) ->
     % Assume empty resource for groupchat messages so that they're recorded
     % to the same collection.
     Type = EM#external_message.type,
@@ -176,6 +182,11 @@ get_session(US, With, EM, TimeOut, Sessions) ->
     WithKey = {US, exmpp_jid:bare(With)},
     TS = calendar:now_to_datetime(mod_archive2_time:now()),
     Thread = EM#external_message.thread,
+    % Make sure the session is removed if it is timed out, as otherwise
+    % our tracking logic below might go wrong. We do not use all sessions
+    % expiration function here for performance reasons.
+    Sessions =
+        expire_sessions_subset(WithKey, TS, TimeOut, InSessions),
     case dict:find(WithKey, Sessions) of
         error ->
             new_session(WithKey, TS, Resource, Thread, Sessions);
@@ -185,14 +196,14 @@ get_session(US, With, EM, TimeOut, Sessions) ->
 			        error ->
 			            new_session(WithKey, TS, Resource, Thread, Sessions);
 			        {ok, Session} ->
-			            updated_session(WithKey, TS, TimeOut, Thread,
+			            updated_session(WithKey, TS, Thread,
                             Session#session{resource = Resource}, Sessions)
 		        end;
 	           true ->
 		        if Resource =/= undefined ->
 			        case dict:find({no_thread, Resource}, Threads) of
 				        {ok, Session} ->
-				            updated_session(WithKey, TS, TimeOut, Thread,
+				            updated_session(WithKey, TS, Thread,
                                 Session, Sessions);
 				        error ->
 				            case dict:find({no_thread, undefined}, Threads) of
@@ -204,7 +215,7 @@ get_session(US, With, EM, TimeOut, Sessions) ->
                                         {no_thread, undefined}, Threads),
                                     NewSessions = dict:store(WithKey,
                                         NewThreads, Sessions),
-					                updated_session(WithKey, TS, TimeOut,
+					                updated_session(WithKey, TS,
                                         Thread,
                                         Session#session{resource = Resource},
                                         NewSessions)
@@ -229,9 +240,9 @@ get_session(US, With, EM, TimeOut, Sessions) ->
                         last_access = ?ZERO_DATETIME,
                         resource = undefined}, Threads) of
 				        #session{last_access = ?ZERO_DATETIME} ->
-				            new_session(WithKey, TS, Resource, EM, Sessions);
+				            new_session(WithKey, TS, Resource, Thread, Sessions);
 				        #session{resource = NewResource} = Session ->
-				            updated_session(WithKey, TS, TimeOut, Thread,
+				            updated_session(WithKey, TS, Thread,
                                 Session#session{resource = NewResource},
                                 Sessions)
 			        end
@@ -239,19 +250,12 @@ get_session(US, With, EM, TimeOut, Sessions) ->
             end
     end.
 
-updated_session(WithKey, TS, TimeOut, Thread, Session, Sessions) ->
-    TimeDiff =
-        calendar:datetime_to_gregorian_seconds(TS) -
-        calendar:datetime_to_gregorian_seconds(Session#session.last_access),
-    if TimeDiff > TimeOut ->
-	    new_session(WithKey, TS, Session#session.resource, Thread, Sessions);
-       true ->
-        UpdatedSession = Session#session{
-            last_access = TS,
-            version = Session#session.version + 1},
-	    {updated_sessions(WithKey, Thread, UpdatedSession, Sessions),
-	     UpdatedSession}
-    end.
+updated_session(WithKey, TS, Thread, Session, Sessions) ->
+    UpdatedSession = Session#session{
+        last_access = TS,
+        version = Session#session.version + 1},
+    {updated_sessions(WithKey, Thread, UpdatedSession, Sessions),
+        UpdatedSession}.
 
 new_session({US, BareJID} = WithKey, TS, Resource, Thread, Sessions) ->
     C = #archive_collection{
@@ -286,9 +290,31 @@ updated_sessions(WithKey, Thread, Session, Sessions) ->
                {ok, Result} -> Result
            end,
     ThreadKey =
-        if Thread =/= undefined ->
-            Thread;
-           true -> {no_thread, Session#session.resource}
+        case Thread of
+	    undefined ->
+	        {no_thread, Session#session.resource};
+	    _ ->
+	        Thread
         end,
     NewThreads = dict:store(ThreadKey, Session, Threads),
     dict:store(WithKey, NewThreads, Sessions).
+
+expire_sessions_subset(WithKey, TS, TimeOut, Sessions) ->
+    case dict:find(WithKey, Sessions) of
+        error ->
+	    Sessions;
+        {ok, Threads} ->
+	    NewThreads =
+	        dict:filter(
+		        fun(_WithKey, Session) ->
+		            not is_session_expired(Session, TS, TimeOut)
+	            end,
+		        Threads),
+	    dict:store(WithKey, NewThreads, Sessions)
+    end.
+
+is_session_expired(Session, TS, TimeOut) ->
+    TimeDiff =
+        calendar:datetime_to_gregorian_seconds(TS) -
+        calendar:datetime_to_gregorian_seconds(Session#session.last_access),
+    TimeDiff > TimeOut.
