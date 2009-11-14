@@ -26,12 +26,7 @@
 -module(mod_archive2_time).
 -author('ejabberd@ndl.kiev.ua').
 
--include_lib("eunit/include/eunit.hrl").
--include("testing.hrl").
-
--export([start/0, start/1, now/0, eunit_xml_report/1]).
-
-eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
+-export([start/0, start/1, now/0]).
 
 -define(MOD_ARCHIVE2_TIME_KEY, list_to_atom(atom_to_list(?MODULE) ++ "_key")).
 -define(DEFAULT_TIME, {{2010, 1, 2}, {3, 4, 5}}).

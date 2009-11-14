@@ -86,7 +86,7 @@ handle_query({insert, Records}, DbInfo) ->
                         element(2, R)
                     end,
                 NewR = setelement(2, R, Key),
-                mnesia:write(NewR),
+                mnesia:write(replace_nulls(NewR)),
                 {N + 1, Key}
             end,
             {0, undefined},
@@ -306,7 +306,17 @@ update_values(OldR, R, TableInfo) ->
                     true -> Value
                  end, N + 1}
             end, 1, tuple_to_list(R)),
-    list_to_tuple(Values).
+    replace_nulls(list_to_tuple(Values)).
+
+replace_nulls(L) when is_list(L) ->
+    list_to_tuple(
+        [case Value of
+            null -> undefined;
+            _ -> Value
+        end || Value <- L]);
+
+replace_nulls(R) ->
+    replace_nulls(tuple_to_list(R)).
 
 %%--------------------------------------------------------------------
 %% Helper functions

@@ -26,7 +26,7 @@
 -module(testing).
 -author('ejabberd@ndl.kiev.ua').
 
--export([eunit_xml_report/1, mnesia_tests_setup/0, mnesia_tests_teardown/1,
+-export([mnesia_tests_setup/0, mnesia_tests_teardown/1,
          mysql_tests_setup/0, mysql_tests_teardown/1]).
 
 -include("testing.hrl").
@@ -34,8 +34,6 @@
 -include("mod_archive2_storage.hrl").
 
 -define(HOST, "localhost").
-
-eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 common_tests_setup(RDBMS) ->
     exmpp:start(),

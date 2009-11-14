@@ -26,12 +26,7 @@
 -module(gen_mod).
 -author('ejabberd@ndl.kiev.ua').
 
--include_lib("eunit/include/eunit.hrl").
--include("testing.hrl").
-
--export([get_module_proc/2, eunit_xml_report/1]).
-
-eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
+-export([get_module_proc/2]).
 
 get_module_proc(Host, Base) ->
     list_to_atom(atom_to_list(Base) ++ "_" ++ Host).

@@ -29,11 +29,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("testing.hrl").
 
--export([start/1, sql_transaction/2, sql_query_t/1, escape/1, eunit_xml_report/1]).
+-export([start/1, sql_transaction/2, sql_query_t/1, escape/1]).
 
 -define(SESSION_KEY, ejabberd_odbc_test).
-
-eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 start(Session) ->
     put(?SESSION_KEY, Session).

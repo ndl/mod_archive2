@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if ./make.sh; then
-  for mod in ebin/test/unit/*; do
+  for mod in ebin/test/unit/*_test.beam; do
     if [ "$1" == "xml" ]; then
       erl -pa ../ejabberd/src -pa ebin -pa ebin/test/unit -noinput -s `basename $mod .beam` eunit_xml_report "." -s init stop
     else

@@ -26,14 +26,9 @@
 -module(ejabberd_sup).
 -author('ejabberd@ndl.kiev.ua').
 
--include_lib("eunit/include/eunit.hrl").
--include("testing.hrl").
-
 -behaviour(supervisor).
 
--export([start_link/0, init/1, eunit_xml_report/1]).
-
-eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
+-export([start_link/0, init/1]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
