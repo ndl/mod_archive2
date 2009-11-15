@@ -92,6 +92,17 @@
     "  <body>Sorry, that&apos;s due to that extra beer ...</body>"
     "</message>").
 
+-define(MESSAGE7,
+    {xmlel,'jabber:client',
+        [{'jabber:client',none}],
+        message,
+        [{xmlattr,undefined,type,<<"groupchat">>},
+         {xmlattr,undefined,from,<<"darkcave@chat.shakespeare.lit/thirdwitch">>},
+         {xmlattr,undefined,to,<<"client@localhost/desktop">>},
+         {xmlattr,undefined,id,<<"session-182531630">>}],
+        [{xmlel,'jabber:client',[],body,[],
+                [{xmlcdata,<<"Harpier cries: 'tis time, 'tis time.">>}]}]}).
+
 -define(HOST, "localhost").
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
@@ -183,7 +194,24 @@ mysql_test_auto_new_and_update() ->
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (1, '2010-01-02 04:04:07', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
+                {},
+                {"select id from archive_collection where (us = 'client@localhost') "
+                 "and (with_user = 'darkcave') and (with_server = 'chat.shakespeare.lit') "
+                 "and (with_resource is null) and (utc = '2010-01-02 04:04:07') "
+                 "and (deleted <> 1)", {selected, [], []}},
+                {"insert into archive_collection (prev_id, next_id, us, with_user, "
+                 "with_server, with_resource, utc, change_utc, version, deleted, "
+                 "subject, thread, crypt, extra) values (null, null, "
+                 "'client@localhost', 'darkcave', 'chat.shakespeare.lit', null, "
+                 "'2010-01-02 04:04:07', '2010-01-02 04:04:07', 0, 0, null, "
+                 "null, null, null)", {updated, 1}},
+                {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
+                {"insert into archive_message (coll_id, utc, direction, body, "
+                 "name, jid) values (2, '2010-01-02 04:04:07', 0, "
+                 "'Harpier cries: \\'tis time, \\'tis time.', 'thirdwitch', null)",
+                 {selected, [], []}},
+                {"select LAST_INSERT_ID()", {selected, [], [{5}]}},
                 {}])
         end),
     common_test_auto_new_and_update().
@@ -262,7 +290,22 @@ common_test_auto_new_and_update() ->
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads4 = dict:to_list(dict:fetch(KeyWith4, NewSessions3)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
-        {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads4.
+        {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads4,
+    NewSessions4 =
+        mod_archive2_auto:add_message({from,
+            exmpp_jid:make("client", "localhost", undefined),
+            exmpp_jid:make("darkcave", "chat.shakespeare.lit", "thirdwitch"),
+            ?MESSAGE7}, 1800, NewSessions3),
+    KeysWith5 = dict:fetch_keys(NewSessions4),
+    ?assert(KeysWith5 =:=
+        [{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>,undefined}},
+         {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+          {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}]),
+    [KeyWith4 | [KeyWith5]] = KeysWith5,
+    Threads5 = dict:to_list(dict:fetch(KeyWith5, NewSessions4)),
+    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
+      {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads5.
 
 mysql_test_auto_thread_new_and_update() ->
     ejabberd_storage:transaction(?HOST,
