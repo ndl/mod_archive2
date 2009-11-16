@@ -43,7 +43,10 @@ handle_query({delete, R}, _DbInfo) when is_tuple(R) ->
     mnesia:delete({element(1, R), element(2, R)}),
     {deleted, 1};
 
-handle_query({delete, MS}, _DbInfo) when is_list(MS) ->
+handle_query({delete, [{MatchHead, MatchConditions, _}]}, _DbInfo) ->
+    % Make sure MS body is what we need, not what user specified - he will not
+    % see its result anyway ...
+    MS = [{MatchHead, MatchConditions, ['$_']}],
     {deleted,
      delete2(mnesia:select(get_table(MS), MS, ?SELECT_NOBJECTS, write), 0)};
 

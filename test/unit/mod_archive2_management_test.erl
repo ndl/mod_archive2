@@ -572,7 +572,8 @@ common_test_remove_single_non_existing(RDBMS) ->
             dict:new()).
 
 mysql_test_remove_range(_) ->
-    mysql_test_insert1(),
+    % No need to call it, as no actual DB interaction occurs.
+    % mysql_test_insert1(),
     ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([

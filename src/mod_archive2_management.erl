@@ -85,7 +85,7 @@ remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
            true ->
             InR
         end,
-    case exmpp_xml:get_attribute(SubEl, open, undefined) of
+    case list_to_bool(exmpp_xml:get_attribute_as_list(SubEl, open, undefined)) of
         true ->
             F = fun() ->
                     remove_auto_archived(From, R, true, RDBMS, Sessions)
@@ -175,9 +175,11 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
                 WithResult andalso
                 TimeStartResult andalso
                 TimeEndResult,
+            % Predicate should return true for values to leave in dictionary,
+            % so we invert FilterResult.
             case FilterResult of
                 false ->
-                    false;
+                    true;
                 true ->
                     if RemoveAlsoInDb ->
                         MS = ets:fun2ms(
@@ -189,7 +191,7 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
                        true ->
                         ok
                     end,
-                    true
+                    false
             end
         end,
     mod_archive2_auto:filter_sessions(F, Sessions).

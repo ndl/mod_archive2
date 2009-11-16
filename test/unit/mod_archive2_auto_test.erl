@@ -31,6 +31,10 @@
 
 -export([eunit_xml_report/1]).
 
+-define(JID, "client@localhost").
+
+-define(SESSIONS_KEY, auto_sessions).
+
 -define(XML_MESSAGE_1,
     "<message"
     "   from='client@localhost'"
@@ -103,9 +107,124 @@
         [{xmlel,'jabber:client',[],body,[],
                 [{xmlcdata,<<"Harpier cries: 'tis time, 'tis time.">>}]}]}).
 
+-define(SESSIONS_TO_EXPIRE,
+    {dict,2,16,16,8,80,48,
+           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+           {{[],[],[],[],[],[],
+             [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
+                 undefined},
+                {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>,
+                 undefined}}|
+               {dict,1,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+                {{[],[],
+                  [[{no_thread,undefined}|
+                    {session,
+                     {{2010,1,2},{4,4,7}},
+                     {{2010,1,2},{4,4,7}},
+                     1,0,undefined}]],
+                  [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+             [],
+             [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
+                 undefined},
+                {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,
+                 <<"chat.shakespeare.lit">>,undefined}}|
+               {dict,1,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+                {{[],[],
+                  [[{no_thread,undefined}|
+                    {session,
+                     {{2010,1,2},{5,4,7}},
+                     {{2010,1,2},{5,4,7}},
+                     2,0,undefined}]],
+                  [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+             [],[],[],[],[],[],[]}}}).
+
+-define(EXPIRED_SESSIONS,
+    {dict,1,16,16,8,80,48,
+       {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+       {{[],[],[],[],[],[],[],[],
+         [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
+             undefined},
+            {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,
+             <<"chat.shakespeare.lit">>,undefined}}|
+           {dict,1,16,16,8,80,48,
+            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+            {{[],[],
+              [[{no_thread,undefined}|
+                {session,
+                 {{2010,1,2},{5,4,7}},
+                 {{2010,1,2},{5,4,7}},
+                 2,0,undefined}]],
+              [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+         [],[],[],[],[],[],[]}}}).
+
+
+-define(REMOVE_RESULT,
+    {atomic,
+     {iq,response,result,<<"stanza-",_/binary>>,
+      ?NS_ARCHIVING,
+      {xmlel,?NS_ARCHIVING,[],remove,[],[]},
+      undefined,undefined,'jabber:client'},
+     {dict,1,16,16,8,80,48,
+      {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+      {{[],[],[],[],[],[],[],[],
+        [[{{jid,<<"client@localhost">>,<<?CLIENTNAME>>,
+            <<"localhost">>,undefined},
+           {jid,<<"darkcave@chat.shakespeare.lit">>,
+            <<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}|
+          {dict,1,16,16,8,80,48,
+           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+           {{[],[],
+             [[{no_thread,undefined}|
+               {session,
+                {{2010,1,2},{5,4,7}},
+                {{2010,1,2},{5,4,7}},
+                _,
+                0,undefined}]],
+             [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+        [],[],[],[],[],[],[]}}}}).
+
+-define(RETRIEVE_RESULT,
+    {atomic,
+        {iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
+            {xmlel,?NS_ARCHIVING,[],list,[],
+                [{xmlel,undefined,[],chat,
+                     [{xmlattr,undefined,with,
+                          <<"juliet@example.com/chamber">>},
+                      {xmlattr,undefined,start,
+                          _},
+                      {xmlattr,undefined,version,<<"2">>}],
+                     []},
+                 {xmlel,undefined,[],chat,
+                     [{xmlattr,undefined,with,
+                          <<"darkcave@chat.shakespeare.lit">>},
+                      {xmlattr,undefined,start,
+                          _},
+                      {xmlattr,undefined,version,<<"0">>}],
+                     []},
+                 {xmlel,'http://jabber.org/protocol/rsm',[],set,[],
+                     [{xmlel,'http://jabber.org/protocol/rsm',[],first,
+                          [{xmlattr,undefined,index,<<"0">>}],
+                          [{xmlcdata,
+                               _}]},
+                      {xmlel,'http://jabber.org/protocol/rsm',[],last,
+                          [],
+                          [{xmlcdata,
+                               _}]},
+                      {xmlel,'http://jabber.org/protocol/rsm',[],count,
+                          [],
+                          [{xmlcdata,<<"2">>}]}]}]},
+            undefined,undefined,'jabber:client'}}).
+
 -define(HOST, "localhost").
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
+
+mod_archive2_auto_common_test_() ->
+    [
+        ?test_gen0(common_test_expire)
+    ].
 
 mod_archive2_auto_mysql_test_() ->
 {
@@ -116,7 +235,8 @@ mod_archive2_auto_mysql_test_() ->
     [
         [
             ?test_gen0(mysql_test_auto_new_and_update),
-            ?test_gen0(mysql_test_auto_thread_new_and_update)
+            ?test_gen0(mysql_test_auto_thread_new_and_update),
+            ?test_gen0(mysql_test_remove_open)
         ]
     ]
 }.
@@ -130,7 +250,8 @@ mod_archive2_auto_mnesia_test_() ->
     [
         [
             ?test_gen0(common_test_auto_new_and_update),
-            ?test_gen0(common_test_auto_thread_new_and_update)
+            ?test_gen0(common_test_auto_thread_new_and_update),
+            ?test_gen0(mnesia_test_remove_open)
         ]
     ]
 }.
@@ -190,25 +311,26 @@ mysql_test_auto_new_and_update() ->
                  "'juliet', 'example.com', null, '2010-01-02 04:04:07', "
                  "'2010-01-02 04:04:07', 0, 0, null, null, null, null)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 04:04:07', 1, 'Art thou not "
+                 "name, jid) values (2, '2010-01-02 04:04:07', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
                 {},
+                {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'darkcave') and (with_server = 'chat.shakespeare.lit') "
-                 "and (with_resource is null) and (utc = '2010-01-02 04:04:07') "
+                 "and (with_resource is null) and (utc = '2010-01-02 05:04:07') "
                  "and (deleted <> 1)", {selected, [], []}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'darkcave', 'chat.shakespeare.lit', null, "
-                 "'2010-01-02 04:04:07', '2010-01-02 04:04:07', 0, 0, null, "
+                 "'2010-01-02 05:04:07', '2010-01-02 05:04:07', 0, 0, null, "
                  "null, null, null)", {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
+                {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (2, '2010-01-02 04:04:07', 0, "
+                 "name, jid) values (3, '2010-01-02 05:04:07', 0, "
                  "'Harpier cries: \\'tis time, \\'tis time.', 'thirdwitch', null)",
                  {selected, [], []}},
                 {"select LAST_INSERT_ID()", {selected, [], [{5}]}},
@@ -291,11 +413,17 @@ common_test_auto_new_and_update() ->
     Threads4 = dict:to_list(dict:fetch(KeyWith4, NewSessions3)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
         {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads4,
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            NewTS = {{2010, 1, 2}, {5, 4, 7}},
+            mod_archive2_time:start(lists:duplicate(10, NewTS))
+        end),
     NewSessions4 =
         mod_archive2_auto:add_message({from,
             exmpp_jid:make("client", "localhost", undefined),
             exmpp_jid:make("darkcave", "chat.shakespeare.lit", "thirdwitch"),
             ?MESSAGE7}, 1800, NewSessions3),
+    put(?SESSIONS_KEY, NewSessions4),
     KeysWith5 = dict:fetch_keys(NewSessions4),
     ?assert(KeysWith5 =:=
         [{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
@@ -304,8 +432,8 @@ common_test_auto_new_and_update() ->
           {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}]),
     [KeyWith4 | [KeyWith5]] = KeysWith5,
     Threads5 = dict:to_list(dict:fetch(KeyWith5, NewSessions4)),
-    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
-      {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads5.
+    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {5, 4, 7}},
+      {{2010, 1, 2}, {5, 4, 7}}, _, 0, undefined}}] = Threads5.
 
 mysql_test_auto_thread_new_and_update() ->
     ejabberd_storage:transaction(?HOST,
@@ -412,3 +540,62 @@ common_test_auto_thread_new_and_update() ->
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 7}}, _, 2, "chamber"}}] = Threads3.
+
+mysql_test_remove_open() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"update archive_collection set deleted = 1 where (id = 2)",
+                 {updated, 1}},
+                 {"select id from archive_collection where (id = 2)",
+                  {selected, [], [{2}]}},
+                 {"update archive_collection set prev_id = null where (prev_id = 2)",
+                  {updated, 1}},
+                 {"update archive_collection set next_id = null where (next_id = 2)",
+                  {updated, 1}},
+                {},
+                {"select count(*) from archive_collection where "
+                 "(us = 'client@localhost') and (deleted <> 1)",
+                 {selected, [], [{2}]}},
+                {"select id, with_user, with_server, with_resource, utc, version "
+                 "from archive_collection where (us = 'client@localhost') and "
+                 "(deleted <> 1) order by utc asc",
+                 {selected, [],
+                  [{1, "juliet", "example.com", "chamber", "2010-01-02 03:04:05", 2},
+                   {3, "darkcave", "chat.shakespeare.lit", null, "2010-01-02 05:04:07", 0}]}},
+                {"select count(*) from archive_collection where (us = 'client@localhost') "
+                 "and (deleted <> 1) and ((utc < '2010-01-02 03:04:05') or "
+                 "((utc = '2010-01-02 03:04:05') and (id < 1)))",
+                 {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_remove_open(mysql).
+
+mnesia_test_remove_open() ->
+    common_test_remove_open(mnesia).
+
+common_test_remove_open(RDBMS) ->
+    Sessions = get(?SESSIONS_KEY),
+    ?REMOVE_RESULT =
+        mod_archive2_management:remove(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, remove,
+                        [exmpp_xml:attribute('open', "true"),
+                         exmpp_xml:attribute('with', "juliet@example.com")], []))),
+            RDBMS,
+            Sessions),
+    ?RETRIEVE_RESULT =
+        mod_archive2_management:list(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+
+common_test_expire() ->
+    NewTS = {{2010, 1, 2}, {5, 33, 7}},
+    mod_archive2_time:start(lists:duplicate(10, NewTS)),
+    NewSessions = mod_archive2_auto:expire_sessions(?SESSIONS_TO_EXPIRE, 1800),
+    ?EXPIRED_SESSIONS =  NewSessions.
