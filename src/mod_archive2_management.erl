@@ -151,7 +151,9 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
                         true;
                        true ->
                         false
-                    end
+                    end;
+                   true ->
+                    true
                 end,
             TimeStartResult =
                 if R#range.start_time =:= undefined orelse
