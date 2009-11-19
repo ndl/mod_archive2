@@ -524,7 +524,7 @@ mnesia_test_remove_single(_) ->
     common_test_remove_single(mnesia).
 
 common_test_remove_single(RDBMS) ->
-    ?MGMT_TC10_REMOVE_RESULT =
+    {atomic, _} =
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -616,7 +616,7 @@ mnesia_test_remove_range(_) ->
     common_test_remove_range(mnesia).
 
 common_test_remove_range(RDBMS) ->
-    ?MGMT_TC12_REMOVE_RESULT =
+    {atomic, _} =
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(

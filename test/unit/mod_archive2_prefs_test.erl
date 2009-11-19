@@ -142,13 +142,12 @@
             undefined,undefined,'jabber:client'}}).
 
 -define(PREFS_TC4_RESULT,
-    {atomic,{{iq,response,result,<<"stanza-",_/binary>>,undefined,undefined,undefined,
-        undefined,'jabber:client'},
-    {dict,1,16,16,8,80,48,
+    {atomic,
+     {dict,1,16,16,8,80,48,
           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
           {{[],[],[],[],
             [["client@localhost/res"|true]],
-            [],[],[],[],[],[],[],[],[],[],[]}}}}}).
+            [],[],[],[],[],[],[],[],[],[],[]}}}}).
 
 -define(PREFS_TC5_RETRIEVE_RESULT,
     {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
@@ -615,22 +614,6 @@ mysql_test_set_not_implemented_prefs2() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-%                {"select * from archive_global_prefs where us = 'client@localhost'",
-%                 {selected, [], []}},
-%                {"insert into archive_global_prefs (us, save, expire, otr, "
-%                 "method_auto, method_local, method_manual, auto_save) values "
-%                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
-%                 {updated, 1}},
-%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
-%                {"select * from archive_jid_prefs where us = 'client@localhost' "
-%                 "and with_user = 'romeo' and with_server = 'montague.net' "
-%                 "and with_resource is null and exactmatch = 1",
-%                 {selected, [], []}},
-%                {"insert into archive_jid_prefs (us, with_user, with_server, "
-%                 "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
-%                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
-%                 {updated, 1}},
-%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {}])
         end),
     common_test_set_not_implemented_prefs2().
@@ -656,22 +639,6 @@ mysql_test_set_not_allowed_expire_prefs1() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-%                {"select * from archive_global_prefs where us = 'client@localhost'",
-%                 {selected, [], []}},
-%                {"insert into archive_global_prefs (us, save, expire, otr, "
-%                 "method_auto, method_local, method_manual, auto_save) values "
-%                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
-%                 {updated, 1}},
-%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
-%                {"select * from archive_jid_prefs where us = 'client@localhost' "
-%                 "and with_user = 'romeo' and with_server = 'montague.net' "
-%                 "and with_resource is null and exactmatch = 1",
-%                 {selected, [], []}},
-%                {"insert into archive_jid_prefs (us, with_user, with_server, "
-%                 "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
-%                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
-%                 {updated, 1}},
-%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {}])
         end),
     common_test_set_not_allowed_expire_prefs1().
@@ -691,5 +658,3 @@ common_test_set_not_allowed_expire_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             dict:from_list([{?JID, true}]),
             {0, 0}).
-%TODO:
-%    - Check that range-limiting works and return not-allowed.

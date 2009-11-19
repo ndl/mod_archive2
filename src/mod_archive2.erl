@@ -296,8 +296,9 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
 			    'auto' ->
                     case mod_archive2_prefs:auto(From, IQ,
                         State#state.auto_states) of
-                        {atomic, {R, AutoStates}} ->
-                            {reply, R, State#state{auto_states = AutoStates}};
+                        {atomic, AutoStates} ->
+                            {reply, exmpp_iq:result(IQ),
+                             State#state{auto_states = AutoStates}};
                         Result ->
                             Result
                     end;
@@ -311,8 +312,9 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                     RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
                     case mod_archive2_management:remove(From, IQ, RDBMS,
                         State#state.sessions) of
-                        {atomic, {R, Sessions}} ->
-                            {reply, R, State#state{sessions = Sessions}};
+                        {atomic, Sessions} ->
+                            {reply, exmpp_iq:result(IQ),
+                                State#state{sessions = Sessions}};
                         Result ->
                             Result
                     end;

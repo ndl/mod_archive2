@@ -74,14 +74,14 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                             us = exmpp_jid:prep_bare_to_list(From),
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
+                    broadcast_iq(From, IQ),
                     ok
                 end,
             ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
         session ->
             {atomic,
-                {exmpp_iq:result(IQ),
-                 dict:store(exmpp_jid:prep_to_list(From), AutoSave, AutoStates)}};
+             dict:store(exmpp_jid:prep_to_list(From), AutoSave, AutoStates)};
         _ ->
             {aborted, {throw, {error, 'bad-request'}}}
     end.
@@ -262,7 +262,7 @@ broadcast_iq(From, IQ) ->
                 exmpp_jid:domain(From),
                 exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
                     Resource),
-                IQ#iq{id = push})
+                exmpp_iq:iq_to_xmlel(IQ#iq{id = <<"push">>}))
 	    end,
         ejabberd_sm:get_user_resources(
             exmpp_jid:prep_node(From),

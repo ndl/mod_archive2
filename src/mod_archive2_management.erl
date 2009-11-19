@@ -76,7 +76,7 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
 %% Removes specified collections and their messages
 %%--------------------------------------------------------------------
 
-remove(From, #iq{type = Type, payload = SubEl} = IQ, RDBMS, Sessions) ->
+remove(From, #iq{type = Type, payload = SubEl}, RDBMS, Sessions) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     InR = parse_cmd_range(SubEl),
     % Enforce 'exactmatch' in 'single item remove request' case.
@@ -87,41 +87,26 @@ remove(From, #iq{type = Type, payload = SubEl} = IQ, RDBMS, Sessions) ->
            true ->
             InR
         end,
-    case list_to_bool(exmpp_xml:get_attribute_as_list(SubEl, open, undefined)) of
-        true ->
-            F = fun() ->
-                    remove_auto_archived(From, R, true, RDBMS, Sessions)
-                end,
-            case ejabberd_storage:transaction(
-                exmpp_jid:prep_domain_as_list(From), F) of
+    F =
+        case list_to_bool(exmpp_xml:get_attribute_as_list(SubEl, open,
+            undefined)) of
+            true ->
                 % FIXME: if no collections were removed, we should have returned
                 % 'item-not-found', but comparing Sessions to NewSessions might
                 % be too expensive and we also do not want to mess with side
                 % effects or extra flag passed to filter to determine the number
                 % of removed collections, so for now we'd better return OK in
                 % all cases.
-                {atomic, NewSessions} ->
-                    Result =
-                        exmpp_iq:result(IQ,
-                            exmpp_xml:element(?NS_ARCHIVING, remove, [], [])),
-                    {atomic, {Result, NewSessions}};
-                Result ->
-                    Result
-            end;
-        _ ->
-            NewSessions =
-                remove_auto_archived(From, R, false, RDBMS, Sessions),
-            F = fun() ->
-                    remove_normal(From, IQ, R, RDBMS)
-                end,
-            case ejabberd_storage:transaction(
-                exmpp_jid:prep_domain_as_list(From), F) of
-                {atomic, Result} ->
-                    {atomic, {Result, NewSessions}};
-                Result ->
-                    Result
-            end
-    end.
+                fun() ->
+                    remove_auto_archived(From, R, true, RDBMS, Sessions)
+                end;
+            _ ->
+                fun() ->
+                    remove_normal(From, R, RDBMS),
+                    remove_auto_archived(From, R, false, RDBMS, Sessions)
+                end
+        end,
+        ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
     % TODO: is using non side effects free predicate for dict:filter dangerous?
@@ -196,7 +181,7 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
         end,
     mod_archive2_auto:filter_sessions(F, Sessions).
 
-remove_normal(From, IQ, R, RDBMS) ->
+remove_normal(From, R, RDBMS) ->
     TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     TimeConditions =
@@ -229,8 +214,7 @@ remove_normal(From, IQ, R, RDBMS) ->
     MS = [{MSHead, Conditions, [ok]}],
     Count = remove_collections(MS, RDBMS),
     if (is_integer(Count) andalso Count > 0) orelse (Count =:= undefined) ->
-        exmpp_iq:result(IQ,
-            exmpp_xml:element(?NS_ARCHIVING, remove, [], []));
+        ok;
        true ->
         throw({error, 'item-not-found'})
     end.

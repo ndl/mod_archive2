@@ -182,9 +182,7 @@
                  <<?CLIENTJID "/", _/binary>>},
              {xmlattr,undefined,type,<<"result">>},
              {xmlattr,undefined,id,<<"stanza-",_/binary>>}],
-            [{xmlel,?NS_ARCHIVING,
-                 [{?NS_ARCHIVING,none}],
-                 remove,[],[]}]}}).
+            []}}).
 
 -define(MANAGEMENT_TC5_RETRIEVE_RESULT,
     {received_packet,iq,"result",
@@ -265,9 +263,7 @@
                  <<?CLIENTJID "/", _/binary>>},
              {xmlattr,undefined,type,<<"result">>},
              {xmlattr,undefined,id,<<"stanza-",_/binary>>}],
-            [{xmlel,?NS_ARCHIVING,
-                 [{?NS_ARCHIVING,none}],
-                 remove,[],[]}]}}).
+            []}}).
 
 -define(MANAGEMENT_TC5_RETRIEVE_RESULT3,
     {received_packet,iq,"result",
@@ -293,9 +289,7 @@
                  <<?CLIENTJID "/", _/binary>>},
              {xmlattr,undefined,type,<<"result">>},
              {xmlattr,undefined,id,<<"stanza-",_/binary>>}],
-            [{xmlel,?NS_ARCHIVING,
-                 [{?NS_ARCHIVING,none}],
-                 remove,[],[]}]}}).
+            []}}).
 
 -define(MANAGEMENT_TC6_RETRIEVE_RESULT,
     {received_packet,iq,"result",

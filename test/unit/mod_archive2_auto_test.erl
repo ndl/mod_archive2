@@ -162,10 +162,6 @@
 
 -define(REMOVE_RESULT,
     {atomic,
-     {{iq,response,result,<<"stanza-",_/binary>>,
-      ?NS_ARCHIVING,
-      {xmlel,?NS_ARCHIVING,[],remove,[],[]},
-      undefined,undefined,'jabber:client'},
      {dict,1,16,16,8,80,48,
       {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
       {{[],[],[],[],[],[],[],[],
@@ -183,7 +179,7 @@
                 _,
                 0,undefined}]],
              [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
-        [],[],[],[],[],[],[]}}}}}).
+        [],[],[],[],[],[],[]}}}}).
 
 -define(RETRIEVE_RESULT,
     {atomic,
