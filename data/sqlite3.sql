@@ -35,14 +35,14 @@ CREATE INDEX IDX_archive_msgs_coll_id ON archive_message(coll_id);
 CREATE INDEX IDX_archive_msgs_utc ON archive_message(utc);
 
 CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
-                               with_user VARCHAR(1023) NOT NULL,
+                               with_user VARCHAR(1023),
                                with_server VARCHAR(1023) NOT NULL,
-                               with_resource VARCHAR(1023) NOT NULL,
+                               with_resource VARCHAR(1023),
                                exactmatch INTEGER,
                                save INTEGER,
                                expire INTEGER,
-                               otr INTEGER,
-                               PRIMARY KEY(us, with_user, with_server, with_resource, exactmatch));
+                               otr INTEGER);
+CREATE UNIQUE INDEX IDX_archive_jid_prefs_key ON archive_jid_prefs(us, with_user, with_server, with_resource, exactmatch);
 
 CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
                                   save INTEGER,

@@ -269,7 +269,6 @@ mysql_test_set_prefs1() ->
                  "method_auto, method_local, method_manual, auto_save) values "
                  "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' "
                  "and with_resource is null and exactmatch = 1",
@@ -278,7 +277,6 @@ mysql_test_set_prefs1() ->
                  "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
                  "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {}])
         end),
     common_test_set_prefs1().
@@ -580,7 +578,6 @@ mysql_test_set_not_implemented_prefs1() ->
                  "method_auto, method_local, method_manual, auto_save) values "
                  "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' "
                  "and with_resource is null and exactmatch = 1",
@@ -589,7 +586,6 @@ mysql_test_set_not_implemented_prefs1() ->
                  "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
                  "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {}])
         end),
     common_test_set_not_implemented_prefs1().

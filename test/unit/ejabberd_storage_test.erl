@@ -514,7 +514,6 @@ mysql_test_insert2() ->
                  "with_resource, exactmatch, save, expire, otr) values ('test@example.com', "
                  "'juliet', 'example.com', null, 1, 0, 3600, 3)",
                  {updated, 1}},
-                {"select LAST_INSERT_ID()", {selected, [], [{"0"}]}},
                 {}])
         end),
     common_test_insert2().

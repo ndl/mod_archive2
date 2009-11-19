@@ -180,21 +180,26 @@ handle_query({insert, Records}, DbInfo) ->
             {0, undefined},
             Records),
     LastKey =
-        case TableInfo#table.rdbms of
-            mysql ->
-                {selected, _, [{ID}]} =
-                    sql_query("select LAST_INSERT_ID()"),
-                decode(ID, integer, TableInfo);
-            sqlite ->
-                {selected, _, [{ID}]} =
-                    sql_query("select last_insert_rowid()"),
-    		    decode(ID, integer, TableInfo);
-	        pgsql ->
-                {selected, _, [{ID}]} =
-                    sql_query("select currval('" ++
-                              atom_to_list(TableInfo#table.name) ++
-                              "_id_seq')"),
-                decode(ID, integer, TableInfo)
+        case lists:member(autoid, TableInfo#table.types) of
+            true ->
+                case TableInfo#table.rdbms of
+                    mysql ->
+                        {selected, _, [{ID}]} =
+                            sql_query("select LAST_INSERT_ID()"),
+                        decode(ID, integer, TableInfo);
+                    sqlite ->
+                        {selected, _, [{ID}]} =
+                            sql_query("select last_insert_rowid()"),
+                        decode(ID, integer, TableInfo);
+                    pgsql ->
+                        {selected, _, [{ID}]} =
+                            sql_query("select currval('" ++
+                                      atom_to_list(TableInfo#table.name) ++
+                                      "_id_seq')"),
+                        decode(ID, integer, TableInfo)
+                end;
+            _ ->
+                undefined
         end,
     {inserted, Count, LastKey};
 

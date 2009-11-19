@@ -101,9 +101,9 @@ test_jid_prefs_change(F) ->
 
 test_jid_prefs_remove(F) ->
     [?PREFS_TC5_CHANGE_PUSH, ?PREFS_TC5_CHANGE_RESULT] =
-    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref", [],
+    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "itemremove", [],
     [
-        exmpp_xml:element(undefined, "itemremove",
+        exmpp_xml:element(undefined, "item",
 	[
 	    exmpp_xml:attribute("jid", "romeo@montague.net")
 	], [])
