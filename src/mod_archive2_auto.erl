@@ -67,73 +67,60 @@ expire_sessions(Sessions, TimeOut) ->
 	Sessions).
 
 add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
-    case should_store_jid(US, With) of
-        true ->
-            case mod_archive2_xml:external_message_from_xml(Packet) of
-                #external_message{} = EM ->
-                    F =
-                        fun() ->
-                            {NewSessions, Session} =
-                                get_session(US, With, EM, TimeOut, Sessions),
-                            case Session#session.version of
-                                0 ->
-                                    % Nothing to update, collection was just created.
-                                    ok;
-                                _ ->
-                                    ejabberd_storage:update(
-                                        #archive_collection{
-                                            id =
-                                                Session#session.id,
-                                            change_utc =
-                                                Session#session.last_access,
-                                            version =
-                                                Session#session.version,
-                                            with_resource =
-                                                Session#session.resource,
-                                            subject =
-                                                EM#external_message.subject,
-                                            thread =
-                                                if EM#external_message.thread =/=
-                                                    undefined ->
-                                                    EM#external_message.thread;
-                                                   true ->
-                                                    null
-                                                end})
-                            end,
-                            M = #archive_message{
-                                coll_id = Session#session.id,
-                                utc = Session#session.last_access,
-                                direction = Direction,
-                                name =
-                                    if EM#external_message.type =:= groupchat ->
-                                        if EM#external_message.nick =/= undefined ->
-					                        EM#external_message.nick;
-                                           true ->
-                                            exmpp_jid:prep_resource_as_list(With)
-                                        end;
-                                       true ->
-                                        undefined
-                                    end,
-                                body = EM#external_message.body},
-                            ejabberd_storage:insert([M]),
-                            NewSessions
-                        end,
-                    case ejabberd_storage:transaction(
-                        exmpp_jid:prep_domain_as_list(US), F) of
-                        {atomic, Result} ->
-                            Result;
+    case mod_archive2_xml:external_message_from_xml(Packet) of
+        #external_message{} = EM ->
+            F =
+                fun() ->
+                    {NewSessions, Session} =
+                        get_session(US, With, EM, TimeOut, Sessions),
+                    case Session#session.version of
+                        0 ->
+                            % Nothing to update, collection was just created.
+                            ok;
                         _ ->
-                            Sessions
-                    end;
+                            ejabberd_storage:update(
+                                #archive_collection{
+                                    id = Session#session.id,
+                                    change_utc = Session#session.last_access,
+                                    version = Session#session.version,
+                                    with_resource = Session#session.resource,
+                                    subject = EM#external_message.subject,
+                                    thread =
+                                        if EM#external_message.thread =/=
+                                            undefined ->
+                                            EM#external_message.thread;
+                                           true ->
+                                            null
+                                        end})
+                    end,
+                    M = #archive_message{
+                        coll_id = Session#session.id,
+                        utc = Session#session.last_access,
+                        direction = Direction,
+                        name =
+                            if EM#external_message.type =:= groupchat ->
+                                if EM#external_message.nick =/= undefined ->
+			                        EM#external_message.nick;
+                                   true ->
+                                    exmpp_jid:prep_resource_as_list(With)
+                                end;
+                               true ->
+                                undefined
+                            end,
+                        body = EM#external_message.body},
+                    ejabberd_storage:insert([M]),
+                    NewSessions
+                end,
+            case ejabberd_storage:transaction(
+                exmpp_jid:prep_domain_as_list(US), F) of
+                {atomic, Result} ->
+                    Result;
                 _ ->
                     Sessions
             end;
         _ ->
             Sessions
     end.
-
-should_store_jid(_US, _With) ->
-    true.
 
 %%
 %% In fact there's small problem with resources: we can send the message

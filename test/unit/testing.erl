@@ -67,6 +67,9 @@ mnesia_tests_setup() ->
     mnesia:create_table(archive_jid_prefs,
                         [{ram_copies, [node()]},
                          {attributes, record_info(fields, archive_jid_prefs)}]),
+    mnesia:create_table(archive_global_prefs,
+                        [{ram_copies, [node()]},
+                         {attributes, record_info(fields, archive_global_prefs)}]),
     common_tests_setup(mnesia).
 
 mnesia_tests_teardown(Pid) ->

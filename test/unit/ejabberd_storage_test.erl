@@ -116,6 +116,7 @@ ejabberd_storage_mnesia_test_() ->
 -define(RECORD3, #archive_jid_prefs{us = "test@example.com",
                                     with_user = "juliet",
                                     with_server = "example.com",
+                                    exactmatch = true,
                                     save = false,
                                     expire = 3600,
                                     otr = forbid}).
@@ -510,8 +511,8 @@ mysql_test_insert2() ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_jid_prefs (us, with_user, with_server, "
-                 "with_resource, save, expire, otr) values ('test@example.com', "
-                 "'juliet', 'example.com', null, 0, 3600, 2)",
+                 "with_resource, exactmatch, save, expire, otr) values ('test@example.com', "
+                 "'juliet', 'example.com', null, 1, 0, 3600, 3)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{"0"}]}},
                 {}])
@@ -530,22 +531,22 @@ mysql_test_update3() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"update archive_jid_prefs set save = 1, otr = 4",
+                {"update archive_jid_prefs set save = 7, otr = 5",
                  {updated, 1}},
                 {"select save, otr from archive_jid_prefs "
                  "where (with_user = 'juliet')",
-                 {selected, [], [{"1", "4"}]}},
+                 {selected, [], [{"7", "5"}]}},
                 {}])
         end),
     common_test_update3().
 
 common_test_update3() ->
-    {atomic, {selected, [{true, prefer}]}} =
+    {atomic, {selected, [{body, prefer}]}} =
         ejabberd_storage:transaction(?HOST,
             fun() ->
                 {updated, 1} =
                     ejabberd_storage:update(
-                        #archive_jid_prefs{save = true, otr = prefer},
+                        #archive_jid_prefs{save = body, otr = prefer},
                         ets:fun2ms(
                             fun(#archive_jid_prefs{} = R) ->
                                 R

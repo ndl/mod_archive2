@@ -35,6 +35,8 @@
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/2,
          external_message_from_xml/1,
+         global_prefs_from_xml/2, global_prefs_to_xml/4,
+         jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
@@ -242,6 +244,172 @@ get_cdata(Element) ->
     exmpp_xml:get_cdata_as_list(Element).
 
 %%--------------------------------------------------------------------
+%% Preferences conversion to/from XML.
+%%--------------------------------------------------------------------
+
+jid_prefs_to_xml(Prefs) ->
+    ExactMatch = Prefs#archive_jid_prefs.exactmatch,
+    Save = Prefs#archive_jid_prefs.save,
+    Expire = Prefs#archive_jid_prefs.expire,
+    OTR = Prefs#archive_jid_prefs.otr,
+    exmpp_xml:element(undefined, item,
+        filter_undef([
+            exmpp_xml:attribute(jid, jid_to_string(Prefs)),
+            if ExactMatch =/= undefined ->
+                exmpp_xml:attribute(exactmatch, ExactMatch);
+               true ->
+                undefined
+            end,
+            if Save =/= undefined ->
+                exmpp_xml:attribute(save, Save);
+               true ->
+                undefined
+            end,
+            if Expire =/= undefined ->
+                exmpp_xml:attribute(expire, Expire);
+               true ->
+                undefined
+            end,
+            if OTR =/= undefined ->
+                exmpp_xml:attribute(otr, OTR);
+               true ->
+                undefined
+            end]), []).
+
+jid_prefs_from_xml(From, PrefsXML) ->
+    JID =
+        exmpp_jid:parse(
+            exmpp_xml:get_attribute_as_list(PrefsXML, jid, undefined)),
+    #archive_jid_prefs{
+        us = exmpp_jid:prep_bare_to_list(From),
+        with_user = exmpp_jid:prep_node_as_list(JID),
+        with_server = exmpp_jid:prep_domain_as_list(JID),
+        with_resource = exmpp_jid:prep_resource_as_list(JID),
+        exactmatch = list_to_bool(
+            exmpp_xml:get_attribute_as_list(PrefsXML, exactmatch, "false")),
+        save = list_to_atom(
+            exmpp_xml:get_attribute_as_list(PrefsXML, save, "undefined")),
+        expire =
+            case exmpp_xml:get_attribute_as_list(PrefsXML, expire, undefined) of
+                undefined ->
+                    undefined;
+                Value ->
+                    list_to_integer(Value)
+            end,
+        otr = list_to_atom(
+            exmpp_xml:get_attribute_as_list(PrefsXML, otr, "undefined"))}.
+
+global_prefs_to_xml(GlobalPrefs, DefaultGlobalPrefs, UnSet, AutoState) ->
+    Prefs =
+        list_to_tuple(
+	        lists:zipwith(
+		        fun(Item1, Item2) ->
+			        if Item1 =/= undefined ->
+                        Item1;
+			           true ->
+                        Item2
+			        end
+		        end,
+		        tuple_to_list(GlobalPrefs),
+		        tuple_to_list(DefaultGlobalPrefs))),
+    filter_undef(
+        [exmpp_xml:element(undefined, default,
+            filter_undef([
+                if Prefs#archive_global_prefs.save =/= undefined ->
+                    exmpp_xml:attribute(save, Prefs#archive_global_prefs.save);
+                   true ->
+                    undefined
+                end,
+                if Prefs#archive_global_prefs.expire =/= infinity ->
+                    exmpp_xml:attribute(expire, Prefs#archive_global_prefs.expire);
+                   true ->
+                    undefined
+                end,
+                if Prefs#archive_global_prefs.otr =/= undefined ->
+                    exmpp_xml:attribute(otr, Prefs#archive_global_prefs.otr);
+                   true ->
+                    undefined
+                end,
+                exmpp_xml:attribute(unset, UnSet)]), []),
+         exmpp_xml:element(undefined, method,
+            [exmpp_xml:attribute(type, auto),
+             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_auto)],
+            []),
+         exmpp_xml:element(undefined, method,
+            [exmpp_xml:attribute(type, local),
+             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_local)],
+            []),
+         exmpp_xml:element(undefined, method,
+            [exmpp_xml:attribute(type, manual),
+             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_manual)],
+            []),
+         if Prefs#archive_global_prefs.auto_save =/= undefined ->
+             exmpp_xml:element(undefined, auto,
+                 [exmpp_xml:attribute(save,
+                    Prefs#archive_global_prefs.auto_save),
+                  exmpp_xml:attribute(scope, global)],
+                 []);
+            true ->
+                undefined
+         end,
+         if AutoState =/= undefined ->
+             exmpp_xml:element(undefined, auto,
+                 [exmpp_xml:attribute(save, AutoState),
+                  exmpp_xml:attribute(scope, session)],
+                 []);
+            true ->
+             undefined
+         end]).
+
+global_prefs_from_xml(From, PrefsXML) ->
+    lists:foldl(
+        fun(PartialPrefs, Prefs) ->
+            list_to_tuple(
+	            lists:zipwith(
+		            fun(Item1, Item2) ->
+			            if Item1 =/= undefined ->
+                            Item1;
+			               true ->
+                            Item2
+			            end
+		            end,
+		            tuple_to_list(PartialPrefs),
+		            tuple_to_list(Prefs)))
+        end,
+        #archive_global_prefs{us = exmpp_jid:prep_bare_to_list(From)},
+        [global_prefs_from_xml2(Element) ||
+         Element <- exmpp_xml:get_child_elements(PrefsXML)]).
+
+global_prefs_from_xml2(#xmlel{name = default} = Element) ->
+    #archive_global_prefs{
+        save = list_to_atom(
+            exmpp_xml:get_attribute_as_list(Element, save, "undefined")),
+        expire =
+            case exmpp_xml:get_attribute_as_list(Element, expire, undefined) of
+                undefined ->
+                    undefined;
+                Value ->
+                    list_to_integer(Value)
+            end,
+        otr = list_to_atom(
+            exmpp_xml:get_attribute_as_list(Element, otr, "undefined"))};
+
+global_prefs_from_xml2(#xmlel{name = method} = Element) ->
+    Use = list_to_atom(
+        exmpp_xml:get_attribute_as_list(Element, use, "undefined")),
+    case exmpp_xml:get_attribute_as_list(Element, type, undefined) of
+       "auto" ->
+           #archive_global_prefs{method_auto = Use};
+       "local" ->
+           #archive_global_prefs{method_local = Use};
+       "manual" ->
+           #archive_global_prefs{method_manual = Use}
+    end;
+
+global_prefs_from_xml2(_) ->
+    #archive_global_prefs{}.
+
+%%--------------------------------------------------------------------
 %% Conversion utility functions.
 %%--------------------------------------------------------------------
 
@@ -249,7 +417,13 @@ jid_to_string(#archive_collection{} = C) ->
     exmpp_jid:prep_to_list(
         exmpp_jid:make(C#archive_collection.with_user,
                        C#archive_collection.with_server,
-                       C#archive_collection.with_resource)).
+                       C#archive_collection.with_resource));
+
+jid_to_string(#archive_jid_prefs{} = Prefs) ->
+    exmpp_jid:prep_to_list(
+        exmpp_jid:make(Prefs#archive_jid_prefs.with_user,
+                       Prefs#archive_jid_prefs.with_server,
+                       Prefs#archive_jid_prefs.with_resource)).
 
 datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second}}) ->
     lists:flatten(

@@ -581,7 +581,7 @@ common_test_remove_open(RDBMS) ->
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
                         [exmpp_xml:attribute('open', "true"),
                          exmpp_xml:attribute('with', "juliet@example.com")], []))),

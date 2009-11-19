@@ -44,10 +44,11 @@ CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
                                with_user VARCHAR(1023) NOT NULL,
                                with_server VARCHAR(1023) NOT NULL,
                                with_resource VARCHAR(1023) NOT NULL,
+                               exactmatch TINYINT,
                                save TINYINT,
                                expire INTEGER,
                                otr TINYINT,
-                               PRIMARY KEY  (us(16),with_user(8),with_server(8),with_resource(8)))
+                               PRIMARY KEY(us(16), with_user(8), with_server(8), with_resource(8), exactmatch))
                                CHARACTER SET utf8
                                COLLATE utf8_general_ci;
 

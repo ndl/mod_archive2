@@ -26,7 +26,7 @@
 -module(mod_archive2_utils).
 -author('ejabberd@ndl.kiev.ua').
 
--export([list_to_bool/1, filter_undef/1]).
+-export([list_to_bool/1, filter_undef/1, verify_iq_type/2]).
 
 list_to_bool("false") -> false;
 list_to_bool("true") -> true;
@@ -36,3 +36,9 @@ list_to_bool(undefined) -> undefined.
 
 filter_undef(List) ->
     [Element || Element <- List, Element =/= undefined].
+
+verify_iq_type(IqType, ExpectedType) ->
+    case IqType of
+        ExpectedType -> ok;
+        _ -> throw({error, 'bad-request'})
+    end.

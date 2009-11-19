@@ -528,7 +528,7 @@ common_test_remove_single(RDBMS) ->
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
                         [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
                          exmpp_xml:attribute(with, "juliet@capulet.com/chamber")], []))),
@@ -565,7 +565,7 @@ common_test_remove_single_non_existing(RDBMS) ->
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
                         [exmpp_xml:attribute('start', "1469-07-21T02:56:14Z")], []))),
             RDBMS,
@@ -620,7 +620,7 @@ common_test_remove_range(RDBMS) ->
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
                         [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
                          exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], []))),

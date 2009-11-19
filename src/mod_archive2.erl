@@ -34,14 +34,14 @@
 %% default_auto_save -> true | false - is auto-save turned on by default or not;
 %%     if true, default 'save' attribute will be set to 'body'.
 %%
-%% enforce_default_auto_save -> true | false - is auto-save default mode
-%%     enforced or not; if true, requests to change it are discarded.
+%% read_only -> true | false - if true, no client modifications either to
+%%     collections or to archiving settings are allowed.
 %%
 %%  default_expire -> default time in seconds before collections are wiped out -
 %%      or infinity atom.
 %%
 %%  enforce_min_expire -> minimal time in seconds before collections are wiped out
-%%      that the user is allowed to set - or infinity atom.
+%%      that the user is allowed to set.
 %%
 %%  enforce_max_expire -> maximal time in seconds before collections are wiped out
 %%      that the user is allowed to set - or infinity atom.
@@ -54,24 +54,9 @@
 %%  wipeout_interval -> time in seconds between wipeout runs or infinity atom
 %%                      to disable.
 %%
-%%
-%% Please note that according to XEP-136 only the following auto_save
-%% combinations are valid:
-%%
-%% 1) default_auto_save = true, enforce_default_auto_save = true
-%% 2) default_auto_save = false, enforce_default_auto_save = false
-%%
-%% Implementation will happily work with any combination of these,
-%% though - for example, for personal ejabberd server, until all clients
-%% support XEP-136, combination default_auto_save = true,
-%% enforce_default_auto_save = false is quite logical, while for some
-%% public ejabberd server with lots of users and shortage of disk space
-%% default_auto_save = false, enforce_default_auto_save = true might be
-%% desirable.
-%%
 %% Default values:
 %% - default_auto_save = false
-%% - enforce_default_auto_save = false
+%% - read_only = false
 %% - default_expire = infinity
 %% - enforce_min_expire = 0
 %% - enforce_max_expire = infinity
@@ -102,7 +87,9 @@
 
 -record(state, {host,
                 options,
+                default_global_prefs,
                 dbinfo,
+                auto_states,
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer}).
@@ -162,6 +149,9 @@ init([Host, Opts]) ->
     IQDisc = gen_mod:get_opt(iqdisc, Opts, one_queue),
     SessionDuration = gen_mod:get_opt(session_duration, Opts, 1800),
     WipeOutInterval = gen_mod:get_opt(wipeout_interval, Opts, 86400),
+    AutoSave = gen_mod:get_opt(default_auto_save, Opts, false),
+    Expire = gen_mod:get_opt(default_expire, Opts, infinity),
+    GlobalPrefs = mod_archive2_prefs:default_global_prefs(AutoSave, Expire),
     % Initialize mnesia tables, if needed.
     case gen_mod:get_opt(rdbms, Opts, mnesia) of
         mnesia ->
@@ -202,6 +192,8 @@ init([Host, Opts]) ->
     % We're done - return our state
     {ok, #state{host = Host,
                 options = Opts,
+                default_global_prefs = GlobalPrefs,
+                auto_states = dict:new(),
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer}}.
@@ -273,14 +265,42 @@ terminate(_Reason, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
+handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
     #xmlel{name = Name} = SubEl,
     F =
         fun() ->
+            case gen_mod:get_opt(read_only, State#state.options, false) of
+                false ->
+                    ok;
+                true ->
+                    if Type =:= set ->
+                        throw({error, 'not-allowed'});
+                       true ->
+                        ok
+                    end
+            end,
 	        case Name of
-                %'pref' -> mod_archive2_prefs:pref(From, IQ);
-			    %'auto' -> mod_archive2_auto:auto(From, IQ,
-                %                                 State#state.sessions);
+                'pref' ->
+                    EnforceMinExpire =
+                        gen_mod:get_opt(enforce_min_expire,
+                            State#state.options, 0),
+                    EnforceMaxExpire =
+                        gen_mod:get_opt(enforce_max_expire,
+                            State#state.options, infinity),
+                    mod_archive2_prefs:pref(From, IQ,
+                        State#state.default_global_prefs,
+                        State#state.auto_states,
+                        {EnforceMinExpire, EnforceMaxExpire});
+                'itemremove' ->
+                    mod_archive2_prefs:itemremove(From, IQ);
+			    'auto' ->
+                    case mod_archive2_prefs:auto(From, IQ,
+                        State#state.auto_states) of
+                        {ok, R, AutoStates} ->
+                            {reply, R, State#state{auto_states = AutoStates}};
+                        Result ->
+                            Result
+                    end;
 			    'list' ->
                     mod_archive2_management:list(From, IQ);
 			    'retrieve' ->
@@ -289,24 +309,28 @@ handle_call({From, _To, #iq{payload = SubEl} = IQ}, _, State) ->
                     mod_archive2_manual:save(From, IQ);
 			    'remove' ->
                     RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
-                    mod_archive2_management:remove(From, IQ, RDBMS,
-                        State#state.sessions);
+                    case mod_archive2_management:remove(From, IQ, RDBMS,
+                        State#state.sessions) of
+                        {atomic, R, Sessions} ->
+                            {reply, R, State#state{sessions = Sessions}};
+                        Result ->
+                            Result
+                    end;
 			    %'modified' -> mod_archive2_replication:modified(From, IQ);
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end
         end,
     case catch F() of
+        {reply, _, _} = Reply ->
+            Reply;
+        {atomic, ok} ->
+            {reply, exmpp_iq:result(IQ), State};
         {atomic, {error, Error}} ->
-            ?INFO_MSG("error while executing archiving request: ~p", [Error]),
-            if is_atom(Error) ->
-                {reply, exmpp_iq:error(IQ, Error), State};
-               true ->
-                {reply, exmpp_iq:error(IQ, 'bad-request'), State}
-            end;
-        {atomic, R, NewSessions} ->
-            {reply, R, State#state{sessions = NewSessions}};
+            {reply, handle_error(Error, IQ), State};
         {atomic, R} ->
             {reply, R, State};
+        {error, Error} ->
+            {reply, handle_error(Error, IQ), State};
         {aborted, _} ->
             {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {'EXIT', Ex} ->
@@ -326,11 +350,21 @@ handle_call(stop, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({add_message, Args}, State) ->
-    Sessions = State#state.sessions,
-    TimeOut = gen_mod:get_opt(session_duration, State#state.options, 1800),
-    NewSessions = mod_archive2_auto:add_message(Args, TimeOut, Sessions),
-    {noreply, State#state{sessions = NewSessions}};
+handle_cast({add_message, {_Direction, US, With, _Packet} = Args}, State) ->
+    AutoStates = State#state.auto_states,
+    Prefs = State#state.default_global_prefs,
+    case mod_archive2_prefs:should_auto_archive(US, With, AutoStates, Prefs) of
+        true ->
+            Sessions =
+                State#state.sessions,
+            TimeOut =
+                gen_mod:get_opt(session_duration, State#state.options, 1800),
+            NewSessions =
+                mod_archive2_auto:add_message(Args, TimeOut, Sessions),
+            {noreply, State#state{sessions = NewSessions}};
+        _ ->
+            {noreply, State}
+    end;
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -366,6 +400,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+handle_error(Error, IQ) ->
+    ?INFO_MSG("error while executing archiving request: ~p", [Error]),
+    if is_atom(Error) ->
+        exmpp_iq:error(IQ, Error);
+       true ->
+        exmpp_iq:error(IQ, 'bad-request')
+    end.
 
 iq_archive(From, To, IQ) ->
     LServer = exmpp_jid:prep_domain_as_list(From),

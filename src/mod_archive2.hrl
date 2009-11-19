@@ -50,6 +50,7 @@
          with_user,
          with_server,
          with_resource,
+         exactmatch,
          save,
          expire,
          otr}).

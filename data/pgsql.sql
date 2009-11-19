@@ -38,10 +38,11 @@ CREATE TABLE archive_jid_prefs(us VARCHAR(2047) NOT NULL,
                                with_user VARCHAR(1023) NOT NULL,
                                with_server VARCHAR(1023) NOT NULL,
                                with_resource VARCHAR(1023) NOT NULL,
+                               exactmatch INTEGER,
                                save INTEGER,
                                expire INTEGER,
                                otr INTEGER,
-                               PRIMARY KEY(us, with_user, with_server, with_resource));
+                               PRIMARY KEY(us, with_user, with_server, with_resource, exactmatch));
 
 CREATE TABLE archive_global_prefs(us VARCHAR(2047) NOT NULL,
                                   save INTEGER,

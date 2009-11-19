@@ -478,10 +478,13 @@ get_insert_values(R, TableInfo) ->
 %%
 encode_keys(R, TableInfo) ->
     string:join([atom_to_list(lists:nth(N, TableInfo#table.fields)) ++
-                 " = " ++
-                 encode(element(2, R), TableInfo) ||
+                 encode_equality(encode(element(N + 1, R), TableInfo)) ||
                  N <- lists:seq(1, TableInfo#table.keys)],
         " and ").
+
+encode_equality("null") -> " is null";
+
+encode_equality(Value) -> " = " ++ Value.
 
 %%
 %% Converts data returned by SQL engine back to their corresponding types.

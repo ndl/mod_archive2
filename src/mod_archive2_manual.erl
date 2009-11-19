@@ -40,7 +40,8 @@
 %% Uploads given collections
 %%--------------------------------------------------------------------
 
-save(From, #iq{payload = SubEl} = IQ) ->
+save(From, #iq{type = Type, payload = SubEl} = IQ) ->
+    mod_archive2_utils:verify_iq_type(Type, set),
     F =
         fun() ->
             XC = exmpp_xml:get_element(SubEl, chat),

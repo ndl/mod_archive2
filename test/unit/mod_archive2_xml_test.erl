@@ -165,6 +165,72 @@
                       [{xmlattr,undefined,with,<<"client2@ndl-server">>}],
                       []}]}).
 
+-define(GLOBAL_PREFS1_XML,
+    "<pref xmlns='urn:xmpp:archive'>"
+    "    <default otr='approve' expire='3600' save='stream'/>"
+    "    <method type='auto' use='concede'/>"
+    "    <method type='local' use='forbid'/>"
+    "    <method type='manual' use='prefer'/>"
+    "</pref>").
+
+-define(GLOBAL_PREFS2_XML,
+[{xmlel,undefined,[],default,
+        [{xmlattr,undefined,save,<<"message">>},
+         {xmlattr,undefined,expire,<<"3600">>},
+         {xmlattr,undefined,otr,<<"require">>},
+         {xmlattr,undefined,unset,<<"false">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"auto">>},
+         {xmlattr,undefined,use,<<"prefer">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"local">>},
+         {xmlattr,undefined,use,<<"forbid">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"manual">>},
+         {xmlattr,undefined,use,<<"concede">>}],
+        []},
+ {xmlel,undefined,[],auto,
+        [{xmlattr,undefined,save,<<"true">>},
+         {xmlattr,undefined,scope,<<"global">>}],
+        []},
+ {xmlel,undefined,[],auto,
+        [{xmlattr,undefined,save,<<"false">>},
+         {xmlattr,undefined,scope,<<"session">>}],
+        []}]).
+
+-define(GLOBAL_PREFS3_XML,
+[{xmlel,undefined,[],default,
+        [{xmlattr,undefined,save,<<"false">>},
+         {xmlattr,undefined,expire,<<"3600">>},
+         {xmlattr,undefined,otr,<<"forbid">>},
+         {xmlattr,undefined,unset,<<"true">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"auto">>},
+         {xmlattr,undefined,use,<<"concede">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"local">>},
+         {xmlattr,undefined,use,<<"concede">>}],
+        []},
+ {xmlel,undefined,[],method,
+        [{xmlattr,undefined,type,<<"manual">>},
+         {xmlattr,undefined,use,<<"prefer">>}],
+        []},
+ {xmlel,undefined,[],auto,
+        [{xmlattr,undefined,save,<<"false">>},
+         {xmlattr,undefined,scope,<<"global">>}],
+        []}]).
+
+-define(JID_PREFS1_XML,
+        "<item expire='630720000' jid='benvolio@montague.net/res' "
+        "exactmatch='true' otr='forbid' save='message'/>").
+
+-define(JID_PREFS2_XML, "<item jid='benvolio@montague.net'/>").
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_xml_test_() ->
@@ -186,7 +252,14 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_message3_from_xml),
         ?test_gen1(test_external_message1_from_xml),
         ?test_gen1(test_external_message2_from_xml),
-        ?test_gen1(test_external_message3_from_xml)
+        ?test_gen1(test_external_message3_from_xml),
+        ?test_gen1(test_global_prefs1_from_xml),
+        ?test_gen1(test_global_prefs1_to_xml),
+        ?test_gen1(test_global_prefs2_to_xml),
+        ?test_gen1(test_jid_prefs1_from_xml),
+        ?test_gen1(test_jid_prefs2_from_xml),
+        ?test_gen1(test_jid_prefs1_to_xml),
+        ?test_gen1(test_jid_prefs2_to_xml)
     ]
  }.
 
@@ -287,6 +360,83 @@ test_external_message2_from_xml(_) ->
 
 test_external_message3_from_xml(_) ->
     undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML).
+
+test_global_prefs1_from_xml(_) ->
+    [PrefsXML] =
+        exmpp_xml:parse_document_fragment(?GLOBAL_PREFS1_XML, [{root_depth, 0}]),
+    {archive_global_prefs, "client@localhost", stream, 3600, approve,
+     concede, forbid, prefer, undefined} =
+         mod_archive2_xml:global_prefs_from_xml(exmpp_jid:parse(?JID), PrefsXML).
+
+test_global_prefs1_to_xml(_) ->
+    ?GLOBAL_PREFS2_XML =
+        mod_archive2_xml:global_prefs_to_xml(
+            #archive_global_prefs{
+                us = "client@localhost",
+                save = message,
+                expire = 3600,
+                otr = require,
+                method_auto = prefer,
+                method_local = forbid,
+                method_manual = concede,
+                auto_save = true},
+            #archive_global_prefs{},
+            false,
+            false).
+
+test_global_prefs2_to_xml(_) ->
+    ?GLOBAL_PREFS3_XML =
+        mod_archive2_xml:global_prefs_to_xml(
+            #archive_global_prefs{
+                us = "client@localhost"},
+            mod_archive2_prefs:default_global_prefs(false, 3600),
+            true,
+            undefined).
+
+test_jid_prefs1_from_xml(_) ->
+    [PrefsXML] =
+        exmpp_xml:parse_document_fragment(?JID_PREFS1_XML, [{root_depth, 0}]),
+    {archive_jid_prefs, "client@localhost", "benvolio", "montague.net", "res",
+     true, message, 630720000, forbid} =
+        mod_archive2_xml:jid_prefs_from_xml(exmpp_jid:parse(?JID), PrefsXML).
+
+test_jid_prefs2_from_xml(_) ->
+    [PrefsXML] =
+        exmpp_xml:parse_document_fragment(?JID_PREFS2_XML, [{root_depth, 0}]),
+    {archive_jid_prefs, "client@localhost", "benvolio", "montague.net", undefined,
+     false, undefined, undefined, undefined} =
+        mod_archive2_xml:jid_prefs_from_xml(exmpp_jid:parse(?JID), PrefsXML).
+
+test_jid_prefs1_to_xml(_) ->
+    {xmlel,undefined,[],item,
+       [{xmlattr,undefined,jid,<<"benvolio@montague.net/res">>},
+        {xmlattr,undefined,exactmatch,<<"true">>},
+        {xmlattr,undefined,save,<<"stream">>},
+        {xmlattr,undefined,expire,<<"3600">>},
+        {xmlattr,undefined,otr,<<"require">>}],
+       []} =
+        mod_archive2_xml:jid_prefs_to_xml(
+            #archive_jid_prefs{
+                us = "client@localhost",
+                with_user = "benvolio",
+                with_server = "montague.net",
+                with_resource = "res",
+                exactmatch = true,
+                save = stream,
+                expire = 3600,
+                otr = require}).
+
+test_jid_prefs2_to_xml(_) ->
+    {xmlel,
+     undefined,[],item,
+     [{xmlattr,undefined,jid,<<"montague.net">>},
+      {xmlattr,undefined,exactmatch,<<"true">>}],
+     []} =
+        mod_archive2_xml:jid_prefs_to_xml(
+            #archive_jid_prefs{
+                us = "client@localhost",
+                with_server = "montague.net",
+                exactmatch = true}).
 
 mysql_test_links(Pid) ->
     ejabberd_storage:transaction(?HOST,

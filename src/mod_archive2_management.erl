@@ -49,7 +49,8 @@
 %% Lists collections according to specified parameters
 %%--------------------------------------------------------------------
 
-list(From, #iq{payload = SubEl} = IQ) ->
+list(From, #iq{type = Type, payload = SubEl} = IQ) ->
+    mod_archive2_utils:verify_iq_type(Type, get),
     TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
@@ -75,7 +76,8 @@ list(From, #iq{payload = SubEl} = IQ) ->
 %% Removes specified collections and their messages
 %%--------------------------------------------------------------------
 
-remove(From, #iq{payload = SubEl} = IQ, RDBMS, Sessions) ->
+remove(From, #iq{type = Type, payload = SubEl} = IQ, RDBMS, Sessions) ->
+    mod_archive2_utils:verify_iq_type(Type, set),
     InR = parse_cmd_range(SubEl),
     % Enforce 'exactmatch' in 'single item remove request' case.
     R =
@@ -311,7 +313,8 @@ get_collections_ids([{MSHead, Conditions, _}]) ->
 %% Retrieves collection and its messages
 %%--------------------------------------------------------------------
 
-retrieve(From, #iq{payload = SubEl} = IQ) ->
+retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
+    mod_archive2_utils:verify_iq_type(Type, get),
     F = fun() ->
             InC = mod_archive2_xml:collection_from_xml(From, SubEl),
             case mod_archive2_storage:get_collection(InC, by_link) of

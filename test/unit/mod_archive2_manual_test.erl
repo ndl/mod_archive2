@@ -142,7 +142,7 @@ common_test_upload() ->
         mod_archive2_manual:save(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, save,
                         [],
                         [?ARCHIVE_COLLECTION_COMPLETE])))).
@@ -234,7 +234,7 @@ common_test_update() ->
         mod_archive2_manual:save(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
+                exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, save,
                         [],
                         [XC])))).

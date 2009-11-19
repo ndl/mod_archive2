@@ -39,9 +39,20 @@
 handle_query({transaction, F}, _DbInfo) ->
     mnesia:transaction(F);
 
-handle_query({delete, R}, _DbInfo) when is_tuple(R) ->
-    mnesia:delete({element(1, R), element(2, R)}),
-    {deleted, 1};
+handle_query({delete, R}, DbInfo) when is_tuple(R) ->
+    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    case TableInfo#table.keys of
+        1 ->
+            % Common case:
+            mnesia:delete({element(1, R), element(2, R)}),
+            {deleted, 1};
+        _ ->
+            MS = [{ejabberd_storage_utils:get_full_ms_head(TableInfo),
+                   encode_keys(R, TableInfo), ['$_']}],
+            {deleted,
+             delete2(mnesia:select(get_table(MS), MS, ?SELECT_NOBJECTS, write),
+                0)}
+    end;
 
 handle_query({delete, [{MatchHead, MatchConditions, _}]}, _DbInfo) ->
     % Make sure MS body is what we need, not what user specified - he will not
@@ -325,3 +336,9 @@ replace_nulls(R) ->
 %% Helper functions
 %%--------------------------------------------------------------------
 get_table([{MatchHead, _, _}]) -> element(1, MatchHead).
+
+encode_keys(R, TableInfo) ->
+    [{'=:=',
+      list_to_atom("$" ++ integer_to_list(N)),
+      ejabberd_storage_utils:encode_brackets(element(N + 1, R))} ||
+     N <- lists:seq(1, TableInfo#table.keys)].
