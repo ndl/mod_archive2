@@ -37,12 +37,16 @@ start(Session) ->
     put(?SESSION_KEY, Session).
 
 sql_transaction(_Host, F) ->
-    Res = F(),
-    % If there's non-empty value for transaction - use it, otherwise
-    % return success status.
-    case next_element() of
-        {} -> {atomic, Res};
-        Element -> Element
+    try F() of
+        Value ->
+            % If there's non-empty value for transaction - use it, otherwise
+            % return success status.
+            case next_element() of
+                {} -> {atomic, Value};
+                Element -> Element
+            end
+    catch
+        Error -> {aborted, {throw, Error}}
     end.
 
 sql_query_t(Query) ->

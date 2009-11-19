@@ -300,7 +300,7 @@ mysql_test_retrieve_empty() ->
     common_test_retrieve_empty().
 
 common_test_retrieve_empty() ->
-    {atomic,{error,'item-not-found'}} =
+    {aborted, {throw, {error,'item-not-found'}}} =
         mod_archive2_management:retrieve(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(

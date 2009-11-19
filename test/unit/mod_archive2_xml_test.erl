@@ -380,16 +380,14 @@ test_global_prefs1_to_xml(_) ->
                 method_local = forbid,
                 method_manual = concede,
                 auto_save = true},
-            #archive_global_prefs{},
             false,
             false).
 
 test_global_prefs2_to_xml(_) ->
     ?GLOBAL_PREFS3_XML =
         mod_archive2_xml:global_prefs_to_xml(
-            #archive_global_prefs{
+            (mod_archive2_prefs:default_global_prefs(false, 3600))#archive_global_prefs{
                 us = "client@localhost"},
-            mod_archive2_prefs:default_global_prefs(false, 3600),
             true,
             undefined).
 

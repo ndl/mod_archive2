@@ -296,7 +296,7 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
 			    'auto' ->
                     case mod_archive2_prefs:auto(From, IQ,
                         State#state.auto_states) of
-                        {ok, R, AutoStates} ->
+                        {atomic, {R, AutoStates}} ->
                             {reply, R, State#state{auto_states = AutoStates}};
                         Result ->
                             Result
@@ -311,7 +311,7 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                     RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
                     case mod_archive2_management:remove(From, IQ, RDBMS,
                         State#state.sessions) of
-                        {atomic, R, Sessions} ->
+                        {atomic, {R, Sessions}} ->
                             {reply, R, State#state{sessions = Sessions}};
                         Result ->
                             Result
@@ -325,16 +325,18 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
             Reply;
         {atomic, ok} ->
             {reply, exmpp_iq:result(IQ), State};
-        {atomic, {error, Error}} ->
-            {reply, handle_error(Error, IQ), State};
         {atomic, R} ->
             {reply, R, State};
         {error, Error} ->
             {reply, handle_error(Error, IQ), State};
+        {aborted, {error, Error}} ->
+            {reply, handle_error(Error, IQ), State};
+        {aborted, {throw, {error, Error}}} ->
+            {reply, handle_error(Error, IQ), State};
         {aborted, _} ->
             {reply, exmpp_iq:error(IQ, 'bad-request'), State};
         {'EXIT', Ex} ->
-            ?ERROR_MSG("catched unhandled exception: ~p", [Ex]),
+            ?ERROR_MSG("catched exit: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};
         Result ->
             ?ERROR_MSG("unexpected result: ~p", [Result]),

@@ -79,11 +79,11 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
             ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
         session ->
-            {ok, exmpp_iq:result(IQ),
-                dict:store(exmpp_jid:prep_to_list(From), AutoSave,
-                    AutoStates)};
+            {atomic,
+                {exmpp_iq:result(IQ),
+                 dict:store(exmpp_jid:prep_to_list(From), AutoSave, AutoStates)}};
         _ ->
-            {error, 'bad-request'}
+            {aborted, {throw, {error, 'bad-request'}}}
     end.
 
 %% Processes 'itemremove' requests from clients
@@ -115,11 +115,9 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs) ->
                 {ok, false} ->
                     false;
                 Result ->
-                    GlobalPrefs = get_global_prefs(From),
+                    GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
                     if Result =:= {ok, true} orelse
-                        GlobalPrefs#archive_global_prefs.auto_save =:= true orelse
-                        GlobalPrefs#archive_global_prefs.auto_save =:= undefined andalso
-                        DefaultGlobalPrefs#archive_global_prefs.auto_save =:= true ->
+                        GlobalPrefs#archive_global_prefs.auto_save =:= true ->
                         Candidates =
                             [{With, false},
                              {With, true},
@@ -170,7 +168,7 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
                 [mod_archive2_xml:jid_prefs_to_xml(Prefs) ||
                     Prefs <- get_jid_prefs(From)],
             GlobalPrefs =
-                get_global_prefs(From),
+                get_global_prefs(From, #archive_global_prefs{}),
 		PrefsUnSet =
 		    if (GlobalPrefs#archive_global_prefs.save =/= undefined) orelse
 		       (GlobalPrefs#archive_global_prefs.expire =/= undefined) orelse
@@ -187,8 +185,9 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
                     undefined
             end,
 		GlobalPrefsXML =
-            mod_archive2_xml:global_prefs_to_xml(GlobalPrefs,
-                DefaultGlobalPrefs, PrefsUnSet, AutoState),
+            mod_archive2_xml:global_prefs_to_xml(
+                merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs),
+                    PrefsUnSet, AutoState),
         exmpp_iq:result(IQ,
             exmpp_xml:element(?NS_ARCHIVING, pref, [],
                 JidPrefsXML ++ GlobalPrefsXML))
@@ -263,7 +262,7 @@ broadcast_iq(From, IQ) ->
                 exmpp_jid:domain(From),
                 exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
                     Resource),
-                exmpp_iq:set_id(IQ, push))
+                IQ#iq{id = push})
 	    end,
         ejabberd_sm:get_user_resources(
             exmpp_jid:prep_node(From),
@@ -296,16 +295,32 @@ default_global_prefs(AutoSave, Expire) ->
         otr = forbid}.
 
 %% Returns global prefs for given client.
-get_global_prefs(From) ->
-    InPrefs = #archive_global_prefs{us = exmpp_jid:prep_bare_to_list(From)},
-    case ejabberd_storage:read(InPrefs) of
-        {selected, [Prefs]} ->
-            Prefs;
-        {selected, []} ->
-            InPrefs;
-        Result ->
-            throw({error, Result})
-    end.
+get_global_prefs(From, DefaultGlobalPrefs) ->
+    InPrefs =
+        #archive_global_prefs{us = exmpp_jid:prep_bare_to_list(From)},
+    GlobalPrefs =
+        case ejabberd_storage:read(InPrefs) of
+            {selected, [Prefs]} ->
+                Prefs;
+            {selected, []} ->
+                InPrefs;
+            Result ->
+                throw({error, Result})
+        end,
+    merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs).
+
+merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs) ->
+    list_to_tuple(
+        lists:zipwith(
+	        fun(Item1, Item2) ->
+		        if Item1 =/= undefined ->
+                    Item1;
+		           true ->
+                    Item2
+		        end
+	        end,
+	        tuple_to_list(GlobalPrefs),
+	        tuple_to_list(DefaultGlobalPrefs))).
 
 %% Stores global prefs.
 store_global_prefs(Prefs) ->

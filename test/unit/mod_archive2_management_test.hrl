@@ -195,9 +195,9 @@
             undefined,undefined,'jabber:client'}}).
 
 -define(MGMT_TC10_REMOVE_RESULT,
-    {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
+    {atomic,{{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
                 {xmlel,?NS_ARCHIVING,[],remove,[],[]},
-                undefined,undefined,'jabber:client'}, _}).
+                undefined,undefined,'jabber:client'}, _}}).
 
 -define(MGMT_TC10_RETRIEVE_RESULT,
     {atomic,
@@ -232,9 +232,9 @@
             undefined,undefined,'jabber:client'}}).
 
 -define(MGMT_TC12_REMOVE_RESULT,
-    {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
+    {atomic,{{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
             {xmlel,?NS_ARCHIVING,[],remove,[],[]},
-            undefined,undefined,'jabber:client'}, _}).
+            undefined,undefined,'jabber:client'}, _}}).
 
 -define(MGMT_TC12_RETRIEVE_RESULT,
     {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,

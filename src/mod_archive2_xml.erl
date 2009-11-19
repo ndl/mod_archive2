@@ -35,7 +35,7 @@
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/2,
          external_message_from_xml/1,
-         global_prefs_from_xml/2, global_prefs_to_xml/4,
+         global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          datetime_from_xml/1]).
 
@@ -299,19 +299,7 @@ jid_prefs_from_xml(From, PrefsXML) ->
         otr = list_to_atom(
             exmpp_xml:get_attribute_as_list(PrefsXML, otr, "undefined"))}.
 
-global_prefs_to_xml(GlobalPrefs, DefaultGlobalPrefs, UnSet, AutoState) ->
-    Prefs =
-        list_to_tuple(
-	        lists:zipwith(
-		        fun(Item1, Item2) ->
-			        if Item1 =/= undefined ->
-                        Item1;
-			           true ->
-                        Item2
-			        end
-		        end,
-		        tuple_to_list(GlobalPrefs),
-		        tuple_to_list(DefaultGlobalPrefs))),
+global_prefs_to_xml(Prefs, UnSet, AutoState) ->
     filter_undef(
         [exmpp_xml:element(undefined, default,
             filter_undef([

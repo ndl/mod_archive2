@@ -142,13 +142,13 @@
             undefined,undefined,'jabber:client'}}).
 
 -define(PREFS_TC4_RESULT,
-    {ok,{iq,response,result,<<"stanza-",_/binary>>,undefined,undefined,undefined,
+    {atomic,{{iq,response,result,<<"stanza-",_/binary>>,undefined,undefined,undefined,
         undefined,'jabber:client'},
     {dict,1,16,16,8,80,48,
           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
           {{[],[],[],[],
             [["client@localhost/res"|true]],
-            [],[],[],[],[],[],[],[],[],[],[]}}}}).
+            [],[],[],[],[],[],[],[],[],[],[]}}}}}).
 
 -define(PREFS_TC5_RETRIEVE_RESULT,
     {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
@@ -201,7 +201,10 @@ mod_archive2_prefs_mysql_test_() ->
             ?test_gen0(mysql_test_itemremove_prefs1),
             ?test_gen0(mysql_test_auto1),
             ?test_gen0(mysql_test_auto2),
-            ?test_gen0(mysql_test_get_prefs3)
+            ?test_gen0(mysql_test_get_prefs3),
+            ?test_gen0(mysql_test_set_not_implemented_prefs1),
+            ?test_gen0(mysql_test_set_not_implemented_prefs2),
+            ?test_gen0(mysql_test_set_not_allowed_expire_prefs1)
         ]
     ]
 }.
@@ -224,7 +227,10 @@ mod_archive2_prefs_mnesia_test_() ->
             ?test_gen0(common_test_itemremove_prefs1),
             ?test_gen0(common_test_auto1),
             ?test_gen0(common_test_auto2),
-            ?test_gen0(common_test_get_prefs3)
+            ?test_gen0(common_test_get_prefs3),
+            ?test_gen0(common_test_set_not_implemented_prefs1),
+            ?test_gen0(common_test_set_not_implemented_prefs2),
+            ?test_gen0(common_test_set_not_allowed_expire_prefs1)
         ]
     ]
 }.
@@ -563,3 +569,127 @@ common_test_get_prefs3() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             dict:from_list([{?JID, true}]),
             {0, infinity}).
+
+mysql_test_set_not_implemented_prefs1() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select * from archive_global_prefs where us = 'client@localhost'",
+                 {selected, [], []}},
+                {"insert into archive_global_prefs (us, save, expire, otr, "
+                 "method_auto, method_local, method_manual, auto_save) values "
+                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
+                 {updated, 1}},
+                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {"select * from archive_jid_prefs where us = 'client@localhost' "
+                 "and with_user = 'romeo' and with_server = 'montague.net' "
+                 "and with_resource is null and exactmatch = 1",
+                 {selected, [], []}},
+                {"insert into archive_jid_prefs (us, with_user, with_server, "
+                 "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
+                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
+                 {updated, 1}},
+                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {}])
+        end),
+    common_test_set_not_implemented_prefs1().
+
+common_test_set_not_implemented_prefs1() ->
+    {aborted, {throw, {error, 'not-implemented'}}} =
+        mod_archive2_prefs:pref(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:set(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, pref, [],
+                        [
+                            exmpp_xml:element(undefined, default,
+                                 [exmpp_xml:attribute(save, stream)], [])
+                        ]))),
+            mod_archive2_prefs:default_global_prefs(false, 3600),
+            dict:from_list([{?JID, true}]),
+            {0, infinity}).
+
+mysql_test_set_not_implemented_prefs2() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+%                {"select * from archive_global_prefs where us = 'client@localhost'",
+%                 {selected, [], []}},
+%                {"insert into archive_global_prefs (us, save, expire, otr, "
+%                 "method_auto, method_local, method_manual, auto_save) values "
+%                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
+%                 {updated, 1}},
+%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+%                {"select * from archive_jid_prefs where us = 'client@localhost' "
+%                 "and with_user = 'romeo' and with_server = 'montague.net' "
+%                 "and with_resource is null and exactmatch = 1",
+%                 {selected, [], []}},
+%                {"insert into archive_jid_prefs (us, with_user, with_server, "
+%                 "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
+%                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
+%                 {updated, 1}},
+%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {}])
+        end),
+    common_test_set_not_implemented_prefs2().
+
+common_test_set_not_implemented_prefs2() ->
+    {aborted, {throw, {error, 'not-implemented'}}} =
+        mod_archive2_prefs:pref(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:set(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, pref, [],
+                        [
+                            exmpp_xml:element(undefined, item,
+                                [exmpp_xml:attribute(jid, "romeo@montague.net"),
+                                 exmpp_xml:attribute(save, message)], [])
+                        ]))),
+            mod_archive2_prefs:default_global_prefs(false, 3600),
+            dict:from_list([{?JID, true}]),
+            {0, infinity}).
+
+mysql_test_set_not_allowed_expire_prefs1() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+%                {"select * from archive_global_prefs where us = 'client@localhost'",
+%                 {selected, [], []}},
+%                {"insert into archive_global_prefs (us, save, expire, otr, "
+%                 "method_auto, method_local, method_manual, auto_save) values "
+%                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
+%                 {updated, 1}},
+%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+%                {"select * from archive_jid_prefs where us = 'client@localhost' "
+%                 "and with_user = 'romeo' and with_server = 'montague.net' "
+%                 "and with_resource is null and exactmatch = 1",
+%                 {selected, [], []}},
+%                {"insert into archive_jid_prefs (us, with_user, with_server, "
+%                 "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
+%                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
+%                 {updated, 1}},
+%                {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
+                {}])
+        end),
+    common_test_set_not_allowed_expire_prefs1().
+
+common_test_set_not_allowed_expire_prefs1() ->
+    {aborted, {throw, {error, 'not-allowed'}}} =
+        mod_archive2_prefs:pref(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:set(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, pref, [],
+                        [
+                            exmpp_xml:element(undefined, item,
+                                [exmpp_xml:attribute(jid, "romeo@montague.net"),
+                                 exmpp_xml:attribute(expire, 1)], [])
+                        ]))),
+            mod_archive2_prefs:default_global_prefs(false, 3600),
+            dict:from_list([{?JID, true}]),
+            {0, 0}).
+%TODO:
+%    - Check that range-limiting works and return not-allowed.

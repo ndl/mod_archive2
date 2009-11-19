@@ -69,9 +69,19 @@ handle_query({select, MS, Opts}, _DbInfo) ->
 
 handle_query({update, R}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
-    [OldR] = mnesia:read(element(1, R), element(2, R)),
-    mnesia:write(update_values(OldR, R, TableInfo)),
-    {updated, 1};
+    case TableInfo#table.keys of
+        1 ->
+            % Common case:
+            [OldR] = mnesia:read(element(1, R), element(2, R)),
+            mnesia:write(update_values(OldR, R, TableInfo)),
+            {updated, 1};
+        _ ->
+            MS = [{ejabberd_storage_utils:get_full_ms_head(TableInfo),
+                   encode_keys(R, TableInfo), ['$_']}],
+            {updated,
+             update2(mnesia:select(element(1, R), MS, ?SELECT_NOBJECTS, write),
+                     R, TableInfo, 0)}
+    end;
 
 handle_query({update, R, [{MatchHead, MatchConditions, _}]}, DbInfo) ->
     TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),

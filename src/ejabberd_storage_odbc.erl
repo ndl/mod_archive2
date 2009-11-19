@@ -202,7 +202,14 @@ handle_query({sql_query, Query}, _DbInfo) ->
     sql_query(Query);
 
 handle_query({transaction, F}, DbInfo) ->
-    ejabberd_odbc:sql_transaction(DbInfo#storage_backend.host, F).
+    case ejabberd_odbc:sql_transaction(DbInfo#storage_backend.host, F) of
+        % Work-around ejabberd_odbc buggy error handling, assume
+        % that errors are always thrown, not returned.
+        {atomic, {error, Error}} ->
+            {aborted, {throw, {error, Error}}};
+        Result ->
+            Result
+    end.
 
 %%--------------------------------------------------------------------
 %%

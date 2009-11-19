@@ -100,13 +100,11 @@ remove(From, #iq{type = Type, payload = SubEl} = IQ, RDBMS, Sessions) ->
                 % effects or extra flag passed to filter to determine the number
                 % of removed collections, so for now we'd better return OK in
                 % all cases.
-                {atomic, {error, _}} = Result ->
-                    Result;
                 {atomic, NewSessions} ->
                     Result =
                         exmpp_iq:result(IQ,
                             exmpp_xml:element(?NS_ARCHIVING, remove, [], [])),
-                    {atomic, Result, NewSessions};
+                    {atomic, {Result, NewSessions}};
                 Result ->
                     Result
             end;
@@ -118,10 +116,8 @@ remove(From, #iq{type = Type, payload = SubEl} = IQ, RDBMS, Sessions) ->
                 end,
             case ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F) of
-                {atomic, {error, _}} = Result ->
-                    Result;
                 {atomic, Result} ->
-                    {atomic, Result, NewSessions};
+                    {atomic, {Result, NewSessions}};
                 Result ->
                     Result
             end
@@ -236,7 +232,7 @@ remove_normal(From, IQ, R, RDBMS) ->
         exmpp_iq:result(IQ,
             exmpp_xml:element(?NS_ARCHIVING, remove, [], []));
        true ->
-        {error, 'item-not-found'}
+        throw({error, 'item-not-found'})
     end.
 
 remove_collections(MS, RDBMS) ->
@@ -319,7 +315,7 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
             InC = mod_archive2_xml:collection_from_xml(From, SubEl),
             case mod_archive2_storage:get_collection(InC, by_link) of
                 undefined ->
-                    {error, 'item-not-found'};
+                    throw({error, 'item-not-found'});
                 C ->
                     TableInfo =
                         ejabberd_storage_utils:get_table_info(archive_message,
