@@ -61,5 +61,6 @@ test_retrieve_replication(F) ->
     ]))),
     ?REPLICATION_TC1_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "modified",
-        [exmpp_xml:attribute("start", "1469-07-21T01:14:47Z")], []))).
-    %?REPLICATION_TC1_RETRIEVE_ELEMENTS = lists:sort(ReplicationElements).
+        [exmpp_xml:attribute("start", "1469-07-21T01:14:47Z")], []))),
+    ?REPLICATION_TC1_ELEMENTS =
+        lists:sort(ReplicationElements).
