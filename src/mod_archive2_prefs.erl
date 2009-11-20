@@ -32,7 +32,8 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -export([pref/5, auto/3, itemremove/2, default_global_prefs/2,
-         should_auto_archive/4]).
+         should_auto_archive/4,
+         get_effective_jid_prefs/2, get_global_prefs/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -118,27 +119,10 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs) ->
                     GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
                     if Result =:= {ok, true} orelse
                         GlobalPrefs#archive_global_prefs.auto_save =:= true ->
-                        Candidates =
-                            [{With, false},
-                             {With, true},
-                             {exmpp_jid:bare(With), false},
-                             {exmpp_jid:make(exmpp_jid:domain(With)), false}],
-                        JidPrefs =
-                            lists:foldl(
-                                fun({JID, ExactMatch}, Acc) ->
-                                    case Acc of
-                                        undefined ->
-                                            get_jid_prefs(From, JID, ExactMatch);
-                                        _ ->
-                                            Acc
-                                    end
-                                end,
-                                undefined,
-                                Candidates),
-                        case JidPrefs of
+                        case get_effective_jid_prefs(From, With) of
                             undefined ->
                                 true;
-                            #archive_jid_prefs{} ->
+                            JidPrefs ->
                                 case JidPrefs#archive_jid_prefs.save of
                                     false -> false;
                                     _ -> true
@@ -341,7 +325,9 @@ get_jid_prefs(From) ->
             throw({error, Result})
     end.
 
-%% Returns JID prefs for given client and given JID.
+%% Returns JID prefs for given client and given JID, ExactMatch: if no
+%% prefs are available with exactly these JID and ExactMatch, returns
+%% 'undefined'.
 get_jid_prefs(From, JID, ExactMatch) ->
     case ejabberd_storage:read(#archive_jid_prefs{
         us = exmpp_jid:prep_bare_to_list(From),
@@ -357,11 +343,31 @@ get_jid_prefs(From, JID, ExactMatch) ->
                 0 ->
                     undefined;
                 _ ->
-                    throw({error, 'duplicate-jid-prefs'})
+                    throw({error, 'internal-server-error'})
             end;
         Result ->
             throw({error, Result})
     end.
+
+%% Returns JID prefs for given client that apply to given JID: will perform
+%% search for best matching prefs.
+get_effective_jid_prefs(From, With) ->
+    Candidates =
+        [{With, false},
+         {With, true},
+         {exmpp_jid:bare(With), false},
+         {exmpp_jid:make(exmpp_jid:domain(With)), false}],
+    lists:foldl(
+        fun({JID, ExactMatch}, Acc) ->
+            case Acc of
+                undefined ->
+                    get_jid_prefs(From, JID, ExactMatch);
+                _ ->
+                    Acc
+            end
+        end,
+        undefined,
+        Candidates).
 
 %% Store given JID prefs.
 store_jid_prefs(Prefs) ->

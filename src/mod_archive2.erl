@@ -54,15 +54,7 @@
 %%  wipeout_interval -> time in seconds between wipeout runs or infinity atom
 %%                      to disable.
 %%
-%% Default values:
-%% - default_auto_save = false
-%% - read_only = false
-%% - default_expire = infinity
-%% - enforce_min_expire = 0
-%% - enforce_max_expire = infinity
-%% - replication_expire = 31536000 (= 1 year)
-%% - session_duration = 1800
-%% - wipeout_interval = 86400 (= 1 day)
+%% Default values are listed below in as DEFINES.
 %%--------------------------------------------------------------------
 
 -module(mod_archive2).
@@ -79,7 +71,7 @@
          code_change/3]).
 
 %% Our hooks
--export([remove_user/2, send_packet/3, receive_packet/3, receive_packet/4,
+-export([send_packet/3, receive_packet/3, receive_packet/4,
          iq_archive/3]).
 
 -include("mod_archive2.hrl").
@@ -97,6 +89,16 @@
 -define(PROCNAME, ejabberd_mod_archive2).
 -define(HOOK_SEQ, 50).
 
+-define(DEFAULT_RDBMS, mnesia).
+-define(DEFAULT_SESSION_DURATION, 1800). % 30 minutes
+-define(DEFAULT_WIPEOUT_INTERVAL, 86400). % 1 day
+-define(DEFAULT_AUTO_SAVE, false).
+-define(DEFAULT_EXPIRE, infinity).
+-define(DEFAULT_REPLICATION_EXPIRE, 31536000). % 1 year
+-define(DEFAULT_READ_ONLY, false).
+-define(DEFAULT_MIN_EXPIRE, 0).
+-define(DEFAULT_MAX_EXPIRE, infinity).
+
 %%====================================================================
 %% API
 %%====================================================================
@@ -110,7 +112,7 @@ start_link(Host, Opts) ->
 
 start(Host, Opts) ->
     % Start our storage manager first
-    RDBMS = gen_mod:get_opt(rdbms, Opts, mnesia),
+    RDBMS = gen_mod:get_opt(rdbms, Opts, ?DEFAULT_RDBMS),
     ejabberd_storage:start(Host,
         [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     % Now start ourselves
@@ -146,14 +148,20 @@ stop(Host) ->
 init([Host, Opts]) ->
     HostB = list_to_binary(Host),
     % Get options necessary for initialization
-    IQDisc = gen_mod:get_opt(iqdisc, Opts, one_queue),
-    SessionDuration = gen_mod:get_opt(session_duration, Opts, 1800),
-    WipeOutInterval = gen_mod:get_opt(wipeout_interval, Opts, 86400),
-    AutoSave = gen_mod:get_opt(default_auto_save, Opts, false),
-    Expire = gen_mod:get_opt(default_expire, Opts, infinity),
+    IQDisc =
+        gen_mod:get_opt(iqdisc, Opts, one_queue),
+    SessionDuration =
+        gen_mod:get_opt(session_duration, Opts, ?DEFAULT_SESSION_DURATION),
+    WipeOutInterval =
+        gen_mod:get_opt(wipeout_interval, Opts, ?DEFAULT_WIPEOUT_INTERVAL),
+    AutoSave =
+        gen_mod:get_opt(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
+    Expire =
+        gen_mod:get_opt(default_expire, Opts, ?DEFAULT_EXPIRE),
     GlobalPrefs = mod_archive2_prefs:default_global_prefs(AutoSave, Expire),
+    RDBMS = gen_mod:get_opt(rdbms, Opts, ?DEFAULT_RDBMS),
     % Initialize mnesia tables, if needed.
-    case gen_mod:get_opt(rdbms, Opts, mnesia) of
+    case RDBMS of
         mnesia ->
             init_mnesia_tables();
         _ ->
@@ -164,8 +172,15 @@ init([Host, Opts]) ->
                                   iq_archive, IQDisc),
     gen_iq_handler:add_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING, ?MODULE,
                                   iq_archive, IQDisc),
-    ejabberd_hooks:add(remove_user, HostB, ?MODULE, remove_user,
-                       ?HOOK_SEQ),
+    ejabberd_hooks:add(
+        remove_user,
+        HostB,
+        fun(User, Server) ->
+            mod_archive2_maintenance:remove_user(
+                exmpp_jid:make(User, Server),
+                RDBMS)
+        end,
+        ?HOOK_SEQ),
     ejabberd_hooks:add(user_send_packet, HostB, ?MODULE, send_packet,
                        ?HOOK_SEQ),
     ejabberd_hooks:add(user_receive_packet, HostB, ?MODULE, receive_packet,
@@ -269,7 +284,8 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
     #xmlel{name = Name} = SubEl,
     F =
         fun() ->
-            case gen_mod:get_opt(read_only, State#state.options, false) of
+            case gen_mod:get_opt(
+                read_only, State#state.options, ?DEFAULT_READ_ONLY) of
                 false ->
                     ok;
                 true ->
@@ -283,10 +299,10 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                 'pref' ->
                     EnforceMinExpire =
                         gen_mod:get_opt(enforce_min_expire,
-                            State#state.options, 0),
+                            State#state.options, ?DEFAULT_MIN_EXPIRE),
                     EnforceMaxExpire =
                         gen_mod:get_opt(enforce_max_expire,
-                            State#state.options, infinity),
+                            State#state.options, ?DEFAULT_MAX_EXPIRE),
                     mod_archive2_prefs:pref(From, IQ,
                         State#state.default_global_prefs,
                         State#state.auto_states,
@@ -311,7 +327,9 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
 			    'save' ->
                     mod_archive2_manual:save(From, IQ);
 			    'remove' ->
-                    RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
+                    RDBMS =
+                        gen_mod:get_opt(
+                            rdbms, State#state.options, ?DEFAULT_RDBMS),
                     case mod_archive2_management:remove(From, IQ, RDBMS,
                         State#state.sessions) of
                         {atomic, Sessions} ->
@@ -363,7 +381,10 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
             Sessions =
                 State#state.sessions,
             TimeOut =
-                gen_mod:get_opt(session_duration, State#state.options, 1800),
+                gen_mod:get_opt(
+                    session_duration,
+                    State#state.options,
+                    ?DEFAULT_SESSION_DURATION),
             NewSessions =
                 mod_archive2_auto:add_message(Args, TimeOut, Sessions),
             {noreply, State#state{sessions = NewSessions}};
@@ -382,14 +403,27 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(expire_sessions, State) ->
     Sessions = State#state.sessions,
-    TimeOut = gen_mod:get_opt(session_duration, State#state.options, 1800),
+    TimeOut =
+        gen_mod:get_opt(
+            session_duration,
+            State#state.options,
+            ?DEFAULT_SESSION_DURATION),
     NewSessions = mod_archive2_auto:expire_sessions(Sessions, TimeOut),
     {noreply, State#state{sessions = NewSessions}};
 
 handle_info(expire_collections, State) ->
     Host = State#state.host,
-    RDBMS = gen_mod:get_opt(rdbms, State#state.options, mnesia),
-    expire_collections(Host, State#state.options, RDBMS),
+    RDBMS =
+        gen_mod:get_opt(rdbms, State#state.options, ?DEFAULT_RDBMS),
+    DefaultExpire =
+        gen_mod:get_opt(default_expire, State#state.options, ?DEFAULT_EXPIRE),
+    ReplicationExpire =
+        gen_mod:get_opt(
+            replication_expire,
+            State#state.options,
+            ?DEFAULT_REPLICATION_EXPIRE),
+    mod_archive2_maintenance:expire_collections(
+        Host, DefaultExpire, ReplicationExpire, RDBMS),
     {noreply, State};
 
 handle_info(_Info, State) ->
@@ -442,111 +476,4 @@ add_packet(Direction, OurJID, With, Packet) ->
                 Proc, {add_message, {Direction, OurJID, With, Packet}});
         false ->
             false
-    end.
-
-%%--------------------------------------------------------------------
-%%% Maintenance functions
-%%--------------------------------------------------------------------
-
-remove_user(User, Server) ->
-    JID = exmpp_jid:make(User, Server),
-    Host = exmpp_jid:prep_domain_as_list(JID),
-    US = exmpp_jid:prep_bare_to_list(JID),
-    ejabberd_storage:transaction(
-        Host,
-        fun() ->
-            ejabberd_storage:delete(
-                ets:fun2ms(fun(#archive_jid_prefs{us = US1}) when US1 =:= US -> ok end)),
-            ejabberd_storage:delete(
-                ets:fun2ms(fun(#archive_global_prefs{us = US1}) when US1 =:= US -> ok end)),
-            ejabberd_storage:delete(
-                ets:fun2ms(fun(#archive_collection{us = US1}) when US1 =:= US -> ok end))
-        end).
-
-%% TODO: implement!!!
-expire_collections(_Host, _Opts, mnesia) ->
-    ok;
-
-expire_collections(Host, Opts, RDBMS) ->
-    UTCField = "archive_collection.utc",
-    Now = ejabberd_storage_odbc:encode(
-        calendar:now_to_datetime(mod_archive2_time:now()),
-        ejabberd_storage_utils:get_table_info(archive_collection,
-            ?MOD_ARCHIVE2_SCHEMA)),
-    ExpireByDefault =
-    	case gen_mod:get_opt(default_expire, Opts, infinity) of
-            infinity ->
-	            "";
-            N when is_integer(N) ->
-         	    ["or
-		          archive_global_prefs.expire is null and
-                  domain_jid_prefs.expire is null and
-                  full_jid_prefs.expire is null and
-                  bare_jid_prefs.expire is null and ",
-	             get_expired_condition(Host, integer_to_list(N), UTCField), " < ", Now]
-        end,
-    Query =
-    ["update archive_collection
-             left join archive_jid_prefs as full_jid_prefs
-                 on archive_collection.with_user = full_jid_prefs.with_user and
-                    archive_collection.with_server = full_jid_prefs.with_server and
-                    archive_collection.with_resource = full_jid_prefs.with_resource
-             left join archive_jid_prefs as bare_jid_prefs
-                 on archive_collection.with_user = bare_jid_prefs.with_user and
-                    archive_collection.with_server = bare_jid_prefs.with_server and
-                    bare_jid_prefs.with_resource = '' and
-                    bare_jid_prefs.exactmatch = 0
-             left join archive_jid_prefs as domain_jid_prefs
-                 on archive_collection.with_server = domain_jid_prefs.with_server and
-                    domain_jid_prefs.with_user = '' and
-                    domain_jid_prefs.with_resource = '' and
-                    domain_jid_prefs.exactmatch = 0
-             left join archive_global_prefs
-                 on archive_collection.us = archive_global_prefs.us
-      set deleted = 1
-      where
-          deleted = 0 and
-          not full_jid_prefs.expire is null and ",
-      get_expired_condition(RDBMS, "full_jid_prefs.expire", UTCField), " < ", Now, " or
-          not bare_jid_prefs.expire is null and
-              full_jid_prefs.expire is null and ",
-      get_expired_condition(RDBMS, "bare_jid_prefs.expire", UTCField), " < ", Now, " or
-          not domain_jid_prefs.expire is null and
-              full_jid_prefs.expire is null and
-              bare_jid_prefs.expire is null and ",
-      get_expired_condition(RDBMS, "domain_jid_prefs.expire", UTCField), " < ", Now, " or
-          not archive_global_prefs.expire is null and
-              domain_jid_prefs.expire is null and
-              full_jid_prefs.expire is null and
-              bare_jid_prefs.expire is null and ",
-      get_expired_condition(RDBMS, "archive_global_prefs.expire", UTCField), " < ", Now,
-      ExpireByDefault],
-    ejabberd_storage:transaction(Host,
-        fun() ->
-	        ejabberd_storage:sql_query(Query),
-            case gen_mod:get_opt(replication_expire, Opts, 31536000) of
-		        infinity ->
-                    ok;
-		        N1 when is_integer(N1) ->
-			        ejabberd_storage:sql_query(
-                        ["delete from archive_collection "
-				         "where deleted = 1 "
-				         "and ",
-                         get_expired_condition(RDBMS, integer_to_list(N1),
-                             "archive_collection.change_utc"), " < ", Now])
-            end
-        end).
-
-get_expired_condition(RDBMS, ExpireField, UTCField) ->
-    case RDBMS of
-        mysql ->
-            ["timestampadd(second, ", ExpireField, ", ", UTCField, ")"];
-        sqlite ->
-            ["datetime(", UTCField, ", '+' || ", ExpireField,
-             " || ' seconds')"];
-        pgsql ->
-            ["timestamp ", UTCField, " + interval ", ExpireField,
-             " || ' seconds'"];
-        _ ->
-            throw({error, 'unknown-rdbms'})
     end.

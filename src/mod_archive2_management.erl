@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([list/2, modified/2, remove/4, retrieve/2]).
+-export([list/2, modified/2, remove/4, retrieve/2, delete_messages/1]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").

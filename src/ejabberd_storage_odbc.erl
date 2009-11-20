@@ -204,7 +204,7 @@ handle_query({insert, Records}, DbInfo) ->
     {inserted, Count, LastKey};
 
 handle_query({sql_query, Query}, _DbInfo) ->
-    sql_query(Query);
+    sql_query(lists:flatten(Query));
 
 handle_query({transaction, F}, DbInfo) ->
     case ejabberd_odbc:sql_transaction(DbInfo#storage_backend.host, F) of

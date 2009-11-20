@@ -28,3 +28,5 @@
 
 %% Storage backend information.
 -record(storage_backend, {name, host, rdbms, schema}).
+
+-define(SELECT_NOBJECTS, 64).
