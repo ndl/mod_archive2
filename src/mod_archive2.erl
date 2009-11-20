@@ -336,8 +336,8 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
             {reply, handle_error(Error, IQ), State};
         {aborted, {throw, {error, Error}}} ->
             {reply, handle_error(Error, IQ), State};
-        {aborted, _} ->
-            {reply, exmpp_iq:error(IQ, 'bad-request'), State};
+        {aborted, Error} ->
+            {reply, handle_error(Error, IQ), State};
         {'EXIT', Ex} ->
             ?ERROR_MSG("catched exit: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};

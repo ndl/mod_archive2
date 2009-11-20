@@ -27,6 +27,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("exmpp/include/exmpp.hrl").
 
 -include("testing.hrl").
 -include("replication.hrl").
@@ -41,7 +42,7 @@ replication_test_() ->
 
 test_retrieve_replication(F) ->
     ?REPLICATION_TC1_UPLOAD_RESULT =
-    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS, "save", [],
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "save", [],
     [
         exmpp_xml:element(undefined, "chat",
 	[
@@ -59,14 +60,6 @@ test_retrieve_replication(F) ->
 	])
     ]))),
     ?REPLICATION_TC1_RETRIEVE_RESULT =
-    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS, "modified",
-    [
-	exmpp_xml:attribute("start", "1469-07-21T01:14:47Z")
-    ],
-    [
-        exmpp_xml:element("http://jabber.org/protocol/rsm", "set",
-	[
-	    exmpp_xml:attribute("max", "30")
-	], [])
-    ]))),
-    ?REPLICATION_TC1_RETRIEVE_ELEMENTS = lists:sort(ReplicationElements).
+    client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "modified",
+        [exmpp_xml:attribute("start", "1469-07-21T01:14:47Z")], []))).
+    %?REPLICATION_TC1_RETRIEVE_ELEMENTS = lists:sort(ReplicationElements).

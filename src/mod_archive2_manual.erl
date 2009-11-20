@@ -57,7 +57,7 @@ save(From, #iq{type = Type, payload = SubEl} = IQ) ->
                 case mod_archive2_storage:get_collection(InC, by_link,
                     all, [id, version]) of
                     undefined ->
-                        NewC = InC#archive_collection{version = 0, deleted = 0},
+                        NewC = InC#archive_collection{version = 0, deleted = false},
                         {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
                         NewC#archive_collection{id = ID};
                     #archive_collection{id = ID, version = OldVersion} ->
