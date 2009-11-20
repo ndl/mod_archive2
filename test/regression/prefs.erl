@@ -41,7 +41,9 @@ prefs_test_() ->
 	        ?test_gen1(test_global_prefs_change),
             ?test_gen1(test_prefs_methods_change),
 	        ?test_gen1(test_jid_prefs_change),
-	        ?test_gen1(test_jid_prefs_remove)
+	        ?test_gen1(test_jid_prefs_remove),
+            ?test_gen1(test_auto_prefs_change1),
+            ?test_gen1(test_auto_prefs_change2)
         ]).
 
 test_default_prefs(F) ->
@@ -110,3 +112,35 @@ test_jid_prefs_remove(F) ->
     ])), 2),
     ?PREFS_TC5_CHANGED =
         client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))).
+
+test_auto_prefs_change1(F) ->
+    ?PREFS_TC6_CHANGE_RESULT =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
+	[
+	    exmpp_xml:attribute("save", "false"),
+	    exmpp_xml:attribute("scope", "session")
+	], []))),
+    ?PREFS_TC6_CHANGED =
+        client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
+    % Restore it back so that further tests continue to use auto-archiving.
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
+	[
+	    exmpp_xml:attribute("save", "true"),
+	    exmpp_xml:attribute("scope", "session")
+	], []))).
+
+test_auto_prefs_change2(F) ->
+    [?PREFS_TC7_CHANGE_PUSH, ?PREFS_TC7_CHANGE_RESULT] =
+    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
+	[
+	    exmpp_xml:attribute("save", "false"),
+	    exmpp_xml:attribute("scope", "global")
+	], [])), 2),
+    ?PREFS_TC7_CHANGED =
+        client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
+    % Restore it back so that further tests continue to use auto-archiving.
+    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
+	[
+	    exmpp_xml:attribute("save", "true"),
+	    exmpp_xml:attribute("scope", "global")
+	], [])), 2).

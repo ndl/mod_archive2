@@ -75,7 +75,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
                     broadcast_iq(From, IQ),
-                    ok
+                    AutoStates
                 end,
             ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
@@ -259,7 +259,7 @@ broadcast_iq(From, IQ) ->
     lists:foreach(
         fun(Resource) ->
 		    ejabberd_router:route(
-                exmpp_jid:domain(From),
+                exmpp_jid:make(exmpp_jid:domain(From)),
                 exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
                     Resource),
                 exmpp_iq:iq_to_xmlel(IQ#iq{id = <<"push">>}))

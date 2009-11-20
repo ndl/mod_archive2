@@ -508,7 +508,8 @@ mysql_test_auto1() ->
     common_test_auto1().
 
 common_test_auto1() ->
-    {atomic, ok} =
+    AutoStates = dict:from_list([{?JID, true}]),
+    {atomic, AutoStates} =
         mod_archive2_prefs:auto(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -516,7 +517,7 @@ common_test_auto1() ->
                     exmpp_xml:element(?NS_ARCHIVING, auto,
                         [exmpp_xml:attribute(save, "true"),
                          exmpp_xml:attribute(scope, "global")], []))),
-            dict:from_list([{?JID, true}])).
+            AutoStates).
 
 mysql_test_auto2() ->
     ejabberd_storage:transaction(?HOST,

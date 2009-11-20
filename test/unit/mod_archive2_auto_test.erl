@@ -111,8 +111,7 @@
     {dict,2,16,16,8,80,48,
            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
            {{[],[],[],[],[],[],
-             [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
-                 undefined},
+             [[{"client@localhost",
                 {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>,
                  undefined}}|
                {dict,1,16,16,8,80,48,
@@ -125,8 +124,7 @@
                      1,0,undefined}]],
                   [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
              [],
-             [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
-                 undefined},
+             [[{"client@localhost",
                 {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,
                  <<"chat.shakespeare.lit">>,undefined}}|
                {dict,1,16,16,8,80,48,
@@ -144,8 +142,7 @@
     {dict,1,16,16,8,80,48,
        {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
        {{[],[],[],[],[],[],[],[],
-         [[{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,
-             undefined},
+         [[{"client@localhost",
             {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,
              <<"chat.shakespeare.lit">>,undefined}}|
            {dict,1,16,16,8,80,48,
@@ -161,25 +158,20 @@
 
 
 -define(REMOVE_RESULT,
-    {atomic,
-     {dict,1,16,16,8,80,48,
-      {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-      {{[],[],[],[],[],[],[],[],
-        [[{{jid,<<"client@localhost">>,<<?CLIENTNAME>>,
-            <<"localhost">>,undefined},
-           {jid,<<"darkcave@chat.shakespeare.lit">>,
-            <<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}|
-          {dict,1,16,16,8,80,48,
-           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-           {{[],[],
-             [[{no_thread,undefined}|
-               {session,
-                {{2010,1,2},{5,4,7}},
-                {{2010,1,2},{5,4,7}},
-                _,
-                0,undefined}]],
-             [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
-        [],[],[],[],[],[],[]}}}}).
+{atomic,
+ {dict,1,16,16,8,80,48,
+  {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+  {{[],[],[],[],[],[],[],[],[],[],[],
+    [[{"client@localhost",
+       {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,
+        <<"chat.shakespeare.lit">>,undefined}}|
+      {dict,1,16,16,8,80,48,
+       {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+       {{[],[],
+         [[{no_thread,undefined}|
+           {session,{{2010,1,2},{5,4,7}},{{2010,1,2},{5,4,7}},_,0,undefined}]],
+         [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+    [],[],[],[]}}}}).
 
 -define(RETRIEVE_RESULT,
     {atomic,
@@ -349,7 +341,7 @@ common_test_auto_new_and_update() ->
             Msg}, 1800, dict:new()),
     [KeyWith] = dict:fetch_keys(Sessions),
     ?assert(KeyWith =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {3, 4, 5}},
@@ -368,7 +360,7 @@ common_test_auto_new_and_update() ->
             Msg2}, 1800, Sessions),
     [KeyWith2] = dict:fetch_keys(NewSessions),
     ?assert(KeyWith2 =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
     [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
@@ -387,7 +379,7 @@ common_test_auto_new_and_update() ->
             Msg3}, 1800, NewSessions),
     [KeyWith3] = dict:fetch_keys(NewSessions2),
     ?assert(KeyWith3 =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
     [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
@@ -404,7 +396,7 @@ common_test_auto_new_and_update() ->
             Msg}, 1800, NewSessions2),
     [KeyWith4] = dict:fetch_keys(NewSessions3),
     ?assert(KeyWith4 =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads4 = dict:to_list(dict:fetch(KeyWith4, NewSessions3)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
@@ -422,9 +414,9 @@ common_test_auto_new_and_update() ->
     put(?SESSIONS_KEY, NewSessions4),
     KeysWith5 = dict:fetch_keys(NewSessions4),
     ?assert(KeysWith5 =:=
-        [{{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        [{"client@localhost",
           {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>,undefined}},
-         {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+         {"client@localhost",
           {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}]),
     [KeyWith4 | [KeyWith5]] = KeysWith5,
     Threads5 = dict:to_list(dict:fetch(KeyWith5, NewSessions4)),
@@ -493,7 +485,7 @@ common_test_auto_thread_new_and_update() ->
             Msg}, 1800, dict:new()),
     [KeyWith] = dict:fetch_keys(Sessions),
     ?assert(KeyWith =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
@@ -512,7 +504,7 @@ common_test_auto_thread_new_and_update() ->
             Msg2}, 1800, Sessions),
     [KeyWith2] = dict:fetch_keys(NewSessions),
     ?assert(KeyWith2 =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
@@ -531,7 +523,7 @@ common_test_auto_thread_new_and_update() ->
             Msg3}, 1800, NewSessions),
     [KeyWith3] = dict:fetch_keys(NewSessions2),
     ?assert(KeyWith3 =:=
-        {{jid,<<"client@localhost">>,<<"client">>,<<"localhost">>,undefined},
+        {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},

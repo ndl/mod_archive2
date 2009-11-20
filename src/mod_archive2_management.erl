@@ -140,7 +140,7 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
     F =
         fun({US, BareJID}, Session) ->
             USResult =
-                exmpp_jid:compare(From, US),
+                exmpp_jid:prep_bare_to_list(From) =:= US,
             WithResult =
                 if R#range.with =/= undefined ->
                     WithUser = exmpp_jid:prep_node_as_list(R#range.with),

@@ -66,13 +66,13 @@ expire_sessions(Sessions, TimeOut) ->
 	end,
 	Sessions).
 
-add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
+add_message({Direction, From, With, Packet}, TimeOut, Sessions) ->
     case mod_archive2_xml:external_message_from_xml(Packet) of
         #external_message{} = EM ->
             F =
                 fun() ->
                     {NewSessions, Session} =
-                        get_session(US, With, EM, TimeOut, Sessions),
+                        get_session(From, With, EM, TimeOut, Sessions),
                     case Session#session.version of
                         0 ->
                             % Nothing to update, collection was just created.
@@ -112,7 +112,7 @@ add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
                     NewSessions
                 end,
             case ejabberd_storage:transaction(
-                exmpp_jid:prep_domain_as_list(US), F) of
+                exmpp_jid:prep_domain_as_list(From), F) of
                 {atomic, Result} ->
                     Result;
                 _ ->
@@ -155,7 +155,7 @@ add_message({Direction, US, With, Packet}, TimeOut, Sessions) ->
 %%        create new if none exists, notifying the caller about change of
 %%        resource, if needed.
 %%
-get_session(US, With, EM, TimeOut, InSessions) ->
+get_session(From, With, EM, TimeOut, InSessions) ->
     % Assume empty resource for groupchat messages so that they're recorded
     % to the same collection.
     Type = EM#external_message.type,
@@ -166,7 +166,7 @@ get_session(US, With, EM, TimeOut, InSessions) ->
             _ ->
                 exmpp_jid:prep_resource_as_list(With)
         end,
-    WithKey = {US, exmpp_jid:bare(With)},
+    WithKey = {exmpp_jid:prep_bare_to_list(From), exmpp_jid:bare(With)},
     TS = calendar:now_to_datetime(mod_archive2_time:now()),
     Thread = EM#external_message.thread,
     % Make sure the session is removed if it is timed out, as otherwise
@@ -246,7 +246,7 @@ updated_session(WithKey, TS, Thread, Session, Sessions) ->
 
 new_session({US, BareJID} = WithKey, TS, Resource, Thread, Sessions) ->
     C = #archive_collection{
-        us = exmpp_jid:prep_bare_to_list(US),
+        us = US,
         with_user = exmpp_jid:prep_node_as_list(BareJID),
         with_server = exmpp_jid:prep_domain_as_list(BareJID),
         with_resource = Resource,

@@ -355,10 +355,10 @@ handle_call(stop, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({add_message, {_Direction, US, With, _Packet} = Args}, State) ->
+handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
     AutoStates = State#state.auto_states,
     Prefs = State#state.default_global_prefs,
-    case mod_archive2_prefs:should_auto_archive(US, With, AutoStates, Prefs) of
+    case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs) of
         true ->
             Sessions =
                 State#state.sessions,
@@ -435,11 +435,11 @@ receive_packet(_JID, From, To, Packet) ->
 
 add_packet(Direction, OurJID, With, Packet) ->
     Host = exmpp_jid:prep_domain_as_list(OurJID),
-    US = exmpp_jid:bare(OurJID),
     case lists:member(Host, ?MYHOSTS) of
         true ->
             Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-            gen_server:cast(Proc, {add_message, {Direction, US, With, Packet}});
+            gen_server:cast(
+                Proc, {add_message, {Direction, OurJID, With, Packet}});
         false ->
             false
     end.
