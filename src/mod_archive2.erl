@@ -304,6 +304,8 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                     end;
 			    'list' ->
                     mod_archive2_management:list(From, IQ);
+			    'modified' ->
+                    mod_archive2_management:modified(From, IQ);
 			    'retrieve' ->
                     mod_archive2_management:retrieve(From, IQ);
 			    'save' ->
@@ -318,7 +320,6 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                         Result ->
                             Result
                     end;
-			    %'modified' -> mod_archive2_replication:modified(From, IQ);
 			    _ -> exmpp_iq:error(IQ, 'bad-request')
 		    end
         end,

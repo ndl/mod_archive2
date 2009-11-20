@@ -231,6 +231,20 @@
 
 -define(JID_PREFS2_XML, "<item jid='benvolio@montague.net'/>").
 
+-define(MODIFIED1_XML,
+    {xmlel,undefined,[],changed,
+       [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
+        {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
+        {xmlattr,undefined,version,<<"1">>}],
+       []}).
+
+-define(MODIFIED2_XML,
+    {xmlel,undefined,[],removed,
+       [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
+        {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
+        {xmlattr,undefined,version,<<"1">>}],
+       []}).
+
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
 
 mod_archive2_xml_test_() ->
@@ -259,7 +273,9 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_jid_prefs1_from_xml),
         ?test_gen1(test_jid_prefs2_from_xml),
         ?test_gen1(test_jid_prefs1_to_xml),
-        ?test_gen1(test_jid_prefs2_to_xml)
+        ?test_gen1(test_jid_prefs2_to_xml),
+        ?test_gen1(test_modified1_to_xml),
+        ?test_gen1(test_modified2_to_xml)
     ]
  }.
 
@@ -436,6 +452,32 @@ test_jid_prefs2_to_xml(_) ->
                 with_server = "montague.net",
                 exactmatch = true}).
 
+test_modified1_to_xml(_) ->
+    ?MODIFIED1_XML =
+        mod_archive2_xml:modified_to_xml(
+            #archive_collection{
+                us = ?JID,
+                with_user = "juliet",
+                with_server = "capulet.com",
+                with_resource = "chamber",
+                utc = {{1469, 07, 21}, {02, 56, 15}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59}},
+                version = 1,
+                deleted = false}).
+
+test_modified2_to_xml(_) ->
+    ?MODIFIED2_XML =
+        mod_archive2_xml:modified_to_xml(
+            #archive_collection{
+                us = ?JID,
+                with_user = "juliet",
+                with_server = "capulet.com",
+                with_resource = "chamber",
+                utc = {{1469, 07, 21}, {02, 56, 15}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59}},
+                version = 1,
+                deleted = true}).
+
 mysql_test_links(Pid) ->
     ejabberd_storage:transaction(?HOST,
         fun() ->
@@ -445,21 +487,21 @@ mysql_test_links(Pid) ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
-                 "'1469-07-21 02:56:15', '1469-07-21 02:56:15', 1, 0, null, "
+                 "'1469-07-21 02:56:15', '2002-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
-                 "'1469-07-21 03:16:37', '1469-07-21 03:16:37', 1, 0, null, "
+                 "'1469-07-21 03:16:37', '2001-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
-                 "'1469-07-21 03:01:54', '1469-07-21 03:01:54', 1, 0, null, "
+                 "'1469-07-21 03:01:54', '2000-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},

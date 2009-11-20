@@ -32,7 +32,7 @@
 -author('ejabberd@ndl.kiev.ua').
 
 %% Our hooks
--export([list/2, remove/4, retrieve/2]).
+-export([list/2, modified/2, remove/4, retrieve/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -69,6 +69,33 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
                 end,
             exmpp_iq:result(IQ,
                 exmpp_xml:element(?NS_ARCHIVING, list, [], Results))
+        end,
+    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+
+%%--------------------------------------------------------------------
+%% Retrieves modifications list
+%%--------------------------------------------------------------------
+
+modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
+    mod_archive2_utils:verify_iq_type(Type, get),
+    TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
+        ?MOD_ARCHIVE2_SCHEMA),
+    F = fun() ->
+            Range = parse_cmd_range(SubEl),
+            Fields = [id, with_user, with_server, with_resource, utc,
+                      change_utc, version, deleted],
+            Results =
+                case get_items_ranged(IQ, TableInfo,
+                    Range, get_with_conditions(From, Range),
+                    #archive_collection.change_utc, Fields) of
+                    {[], undefined} ->
+                        [];
+                    {Items, OutRSM} ->
+                        [mod_archive2_xml:modified_to_xml(C) ||
+                            C <- Items] ++ OutRSM
+                end,
+            exmpp_iq:result(IQ,
+                exmpp_xml:element(?NS_ARCHIVING, modified, [], Results))
         end,
     ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
@@ -340,7 +367,8 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
     {selected, [{Count}]} =
         ejabberd_storage:select(
             [{MSHead,
-              get_range_matching_conditions(Range, Conditions, TableInfo),
+              get_range_matching_conditions(Range, Conditions, UTCField,
+                TableInfo),
               [ok]}],
             [{aggregate, count}]),
     if Count > 0 ->
@@ -350,7 +378,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
             ejabberd_storage:select(
                 [{MSHead,
                   get_range_matching_conditions(CombiRange, Conditions,
-                      TableInfo),
+                      UTCField, TableInfo),
                 ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}], Opts),
         Items =
             if InRSM#rsm_in.direction =:= before ->
@@ -376,7 +404,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
                         ejabberd_storage:select(
                             [{MSHead,
                               get_range_matching_conditions(StartRange,
-                                  Conditions, TableInfo),
+                                  Conditions, UTCField, TableInfo),
                              [ok]}],
                             [{aggregate, count}]),
                     jlib:rsm_encode(#rsm_out{count = Count, index = Index,
@@ -388,7 +416,8 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
         {[], undefined}
     end.
 
-get_range_matching_conditions(R, Conditions, TableInfo) ->
+get_range_matching_conditions(R, Conditions, UTCField, TableInfo) ->
+    UTC = lists:nth(UTCField - 1, TableInfo#table.fields),
     RangeConditions =
         filter_undef([
             if R#range.start_time =/= undefined ->
@@ -398,12 +427,12 @@ get_range_matching_conditions(R, Conditions, TableInfo) ->
                     ID = ejabberd_storage_utils:encode_brackets(
                         R#range.start_id),
                     {'orelse',
-                     {'>', utc, Start},
+                     {'>', UTC, Start},
                      {'andalso',
-                      {'=:=', utc, Start},
+                      {'=:=', UTC, Start},
                       {'>', id, ID}}};
                    true ->
-                    {'>=', utc, Start}
+                    {'>=', UTC, Start}
                 end;
               true ->
                undefined
@@ -414,12 +443,12 @@ get_range_matching_conditions(R, Conditions, TableInfo) ->
                     ID = ejabberd_storage_utils:encode_brackets(
                         R#range.end_id),
                     {'orelse',
-                     {'<', utc, End},
+                     {'<', UTC, End},
                      {'andalso',
-                      {'=:=', utc, End},
+                      {'=:=', UTC, End},
                       {'<', id, ID}}};
                    true ->
-                    {'<', utc, End}
+                    {'<', UTC, End}
                 end;
                true ->
                 undefined

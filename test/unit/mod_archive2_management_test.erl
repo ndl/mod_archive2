@@ -56,9 +56,13 @@ mod_archive2_management_mysql_test_() ->
             ?test_gen0(mysql_test_list_before),
             ?test_gen0(mysql_test_list_start_end),
             ?test_gen0(mysql_test_list_with),
-            ?test_gen0(mysql_test_list_exactmatch)
+            ?test_gen0(mysql_test_list_exactmatch),
+            ?test_gen0(mysql_test_modified1)
         ],
-        ?test_gen1(mysql_test_remove_single),
+        [
+            ?test_gen0(mysql_test_remove_single),
+            ?test_gen0(mysql_test_modified2)
+        ],
         ?test_gen1(mysql_test_remove_single_non_existing),
         ?test_gen1(mysql_test_remove_range)
     ]
@@ -81,9 +85,13 @@ mod_archive2_management_mnesia_test_() ->
             ?test_gen0(common_test_list_before),
             ?test_gen0(common_test_list_start_end),
             ?test_gen0(common_test_list_with),
-            ?test_gen0(common_test_list_exactmatch)
+            ?test_gen0(common_test_list_exactmatch),
+            ?test_gen0(common_test_modified1)
         ],
-        ?test_gen1(mnesia_test_remove_single),
+        [
+            ?test_gen0(mnesia_test_remove_single),
+            ?test_gen0(common_test_modified2)
+        ],
         ?test_gen1(mnesia_test_remove_single_non_existing),
         ?test_gen1(mnesia_test_remove_range)
     ]
@@ -124,21 +132,21 @@ mysql_test_insert1() ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
-                 "'1469-07-21 02:56:15', '1469-07-21 02:56:15', 1, 0, null, "
+                 "'1469-07-21 02:56:15', '2002-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
-                 "'1469-07-21 03:16:37', '1469-07-21 03:16:37', 1, 0, null, "
+                 "'1469-07-21 03:16:37', '2001-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
-                 "'1469-07-21 03:01:54', '1469-07-21 03:01:54', 1, 0, null, "
+                 "'1469-07-21 03:01:54', '2000-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
@@ -150,9 +158,10 @@ common_test_insert1() ->
     {atomic, {inserted, 3, _Key}} =
         ejabberd_storage:transaction(?HOST,
             fun() ->
-                ejabberd_storage:insert([?ARCHIVE_COLLECTION1,
-                                             ?ARCHIVE_COLLECTION2,
-                                             ?ARCHIVE_COLLECTION3])
+                ejabberd_storage:insert([
+                    ?ARCHIVE_COLLECTION1,
+                    ?ARCHIVE_COLLECTION2,
+                    ?ARCHIVE_COLLECTION3])
             end).
 
 mysql_test_list_all() ->
@@ -481,11 +490,12 @@ common_test_list_exactmatch() ->
                          exmpp_xml:attribute(with, "juliet@capulet.com"),
                          exmpp_xml:attribute(exactmatch, "1")], [])))).
 
-mysql_test_remove_single(_) ->
+mysql_test_remove_single() ->
     mysql_test_insert1(),
     ejabberd_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
+                {},
                 {},
                 {"update archive_collection set deleted = 1 where "
                  "(utc = '1469-07-21 02:56:15') and (us = 'client@localhost') "
@@ -519,11 +529,16 @@ mysql_test_remove_single(_) ->
         end),
     common_test_remove_single(mysql).
 
-mnesia_test_remove_single(_) ->
+mnesia_test_remove_single() ->
     common_test_insert1(),
     common_test_remove_single(mnesia).
 
 common_test_remove_single(RDBMS) ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            NewTS = {{2003, 1, 1}, {0, 0, 0}},
+            mod_archive2_time:start(lists:duplicate(10, NewTS))
+        end),
     {atomic, _} =
         mod_archive2_management:remove(
             exmpp_jid:parse(?JID),
@@ -632,6 +647,79 @@ common_test_remove_range(RDBMS) ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+
+mysql_test_modified1() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select count(*) from archive_collection where "
+                 "(us = 'client@localhost')",
+                 {selected, [], [{3}]}},
+                {"select id, with_user, with_server, with_resource, utc, "
+                 "change_utc, version, deleted "
+                 "from archive_collection where (us = 'client@localhost') "
+                 "order by change_utc asc",
+                 {selected, [], [{3, "benvolio", "montague.net", undefined,
+                                  "1469-07-21 03:01:54", "2000-12-31 23:59:59", 1, 0},
+                                 {2, "balcony", "house.capulet.com", undefined,
+                                  "1469-07-21 03:16:37", "2001-12-31 23:59:59", 1, 0},
+                                 {1, "juliet", "capulet.com", "chamber",
+                                  "1469-07-21 02:56:15", "2002-12-31 23:59:59", 1, 0}]}},
+                 {"select count(*) from archive_collection where "
+                  "(us = 'client@localhost') and "
+                  "((change_utc < '2000-12-31 23:59:59') "
+                  "or ((change_utc = '2000-12-31 23:59:59') and (id < 3)))",
+                  {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_modified1().
+
+common_test_modified1() ->
+    ?MGMT_TC13_RETRIEVE_RESULT =
+        mod_archive2_management:modified(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, modified, [], [])))).
+
+mysql_test_modified2() ->
+    ejabberd_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {"select count(*) from archive_collection where "
+                 "(us = 'client@localhost') and (change_utc >= '2001-01-01 00:00:00')",
+                 {selected, [], [{2}]}},
+                {"select id, with_user, with_server, with_resource, utc, "
+                 "change_utc, version, deleted "
+                 "from archive_collection where (us = 'client@localhost') "
+                 "and (change_utc >= '2001-01-01 00:00:00') "
+                 "order by change_utc asc",
+                 {selected, [], [{2, "balcony", "house.capulet.com", undefined,
+                                  "1469-07-21 03:16:37", "2001-12-31 23:59:59", 1, 0},
+                                 {1, "juliet", "capulet.com", "chamber",
+                                  "1469-07-21 02:56:15", "2003-01-01 00:00:00", 1, 1}]}},
+                 {"select count(*) from archive_collection where "
+                  "(us = 'client@localhost') and "
+                  "(change_utc >= '2001-01-01 00:00:00') and "
+                  "((change_utc < '2001-12-31 23:59:59') "
+                  "or ((change_utc = '2001-12-31 23:59:59') and (id < 2)))",
+                  {selected, [], [{0}]}},
+                {}])
+        end),
+    common_test_modified2().
+
+common_test_modified2() ->
+    ?MGMT_TC14_RETRIEVE_RESULT =
+        mod_archive2_management:modified(
+            exmpp_jid:parse(?JID),
+            exmpp_iq:xmlel_to_iq(
+                exmpp_iq:get(?NS_JABBER_CLIENT,
+                    exmpp_xml:element(?NS_ARCHIVING, modified,
+                        [exmpp_xml:attribute('start', "2001-01-01T00:00:00Z")],
+                        [])))).
+
 
 get_child(undefined, _) ->
     undefined;

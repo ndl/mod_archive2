@@ -37,6 +37,7 @@
          external_message_from_xml/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
+         modified_to_xml/1,
          datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
@@ -158,6 +159,7 @@ get_collection_id(C) ->
         #archive_collection{id = ID} when ID =/= undefined -> ID;
         _ -> null
     end.
+
 %%--------------------------------------------------------------------
 %% Messages conversion to/from XML.
 %%--------------------------------------------------------------------
@@ -396,6 +398,22 @@ global_prefs_from_xml2(#xmlel{name = method} = Element) ->
 
 global_prefs_from_xml2(_) ->
     #archive_global_prefs{}.
+
+%%--------------------------------------------------------------------
+%% Replication information conversion to XML.
+%%--------------------------------------------------------------------
+
+modified_to_xml(#archive_collection{} = C) ->
+    Name =
+        case C#archive_collection.deleted of
+            true -> removed;
+            false -> changed
+        end,
+    exmpp_xml:element(undefined, Name,
+        [exmpp_xml:attribute(with, jid_to_string(C)),
+         exmpp_xml:attribute(start,
+            datetime_to_utc_string(C#archive_collection.utc)),
+         exmpp_xml:attribute(version, C#archive_collection.version)], []).
 
 %%--------------------------------------------------------------------
 %% Conversion utility functions.
