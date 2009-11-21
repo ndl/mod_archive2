@@ -1,5 +1,7 @@
 -define(SERVERHOST, "localhost").
 -define(SERVERPORT, 5222).
+-define(SERVERNAME, "test").
+-define(SERVERCOOKIE, 'put-cookie-here').
 -define(CLIENTNAME, "client").
 -define(CLIENTNAME2, "client2").
 -define(CLIENTJID, ?CLIENTNAME "@" ?SERVERHOST).

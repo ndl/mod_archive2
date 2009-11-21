@@ -2,9 +2,9 @@
 
 if ./make.sh; then
   if [ "$1" == "xml" ]; then
-    erl -pa ebin/test/regression -noinput -s client eunit_xml_report "." -s init stop
+    erl -pa ebin/test/regression -noinput -sname regression@`hostname` -s client eunit_xml_report "." -s init stop
   else
-    erl -pa ebin/test/regression -noinput -s client test -s init stop
+    erl -pa ebin/test/regression -noinput -sname regression@`hostname` -s client test -s init stop
   fi
 else
   echo "Make failed!"

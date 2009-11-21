@@ -95,8 +95,8 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
         end).
 
 expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
-    UTCField = "archive_collection.utc",
-    ExpireByDefault =
+    UTCField = "ac.utc",
+    ExpireByDefaultStmt =
     	case DefaultExpire of
             infinity ->
 	            "";
@@ -108,42 +108,55 @@ expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
                  "bare_jid_prefs.expire is null and ",
 	             get_expired_condition(RDBMS, integer_to_list(N), UTCField), " < ", Now]
         end,
+    JoinStmt =
+        ["archive_collection as ac left join archive_jid_prefs as full_jid_prefs "
+           "on ac.with_user = full_jid_prefs.with_user and "
+              "ac.with_server = full_jid_prefs.with_server and "
+              "ac.with_resource = full_jid_prefs.with_resource "
+         "left join archive_jid_prefs as bare_jid_prefs "
+           "on ac.with_user = bare_jid_prefs.with_user and "
+              "ac.with_server = bare_jid_prefs.with_server and "
+              "bare_jid_prefs.with_resource = '' and "
+              "bare_jid_prefs.exactmatch = 0 "
+         "left join archive_jid_prefs as domain_jid_prefs "
+           "on ac.with_server = domain_jid_prefs.with_server and "
+              "domain_jid_prefs.with_user = '' and "
+              "domain_jid_prefs.with_resource = '' and "
+              "domain_jid_prefs.exactmatch = 0 "
+         "left join archive_global_prefs "
+           "on ac.us = archive_global_prefs.us"],
+     SetStmt =
+         ["set deleted = 1, change_utc = ", Now, ", version = ac.version + 1"],
+     WhereStmt =
+         ["where "
+          "ac.deleted = 0 and "
+          "not full_jid_prefs.expire is null and ",
+          get_expired_condition(RDBMS, "full_jid_prefs.expire", UTCField), " < ", Now, " or "
+              "not bare_jid_prefs.expire is null and "
+                  "full_jid_prefs.expire is null and ",
+          get_expired_condition(RDBMS, "bare_jid_prefs.expire", UTCField), " < ", Now, " or "
+              "not domain_jid_prefs.expire is null and "
+                  "full_jid_prefs.expire is null and "
+                  "bare_jid_prefs.expire is null and ",
+          get_expired_condition(RDBMS, "domain_jid_prefs.expire", UTCField), " < ", Now, " or "
+              "not archive_global_prefs.expire is null and "
+                  "domain_jid_prefs.expire is null and "
+                  "full_jid_prefs.expire is null and "
+                  "bare_jid_prefs.expire is null and ",
+          get_expired_condition(RDBMS, "archive_global_prefs.expire", UTCField), " < ", Now,
+          ExpireByDefaultStmt],
     Query =
-        ["update archive_collection "
-            "left join archive_jid_prefs as full_jid_prefs "
-                "on archive_collection.with_user = full_jid_prefs.with_user and "
-                   "archive_collection.with_server = full_jid_prefs.with_server and "
-                   "archive_collection.with_resource = full_jid_prefs.with_resource "
-            "left join archive_jid_prefs as bare_jid_prefs "
-                "on archive_collection.with_user = bare_jid_prefs.with_user and "
-                   "archive_collection.with_server = bare_jid_prefs.with_server and "
-                   "bare_jid_prefs.with_resource = '' and "
-                   "bare_jid_prefs.exactmatch = 0 "
-            "left join archive_jid_prefs as domain_jid_prefs "
-                "on archive_collection.with_server = domain_jid_prefs.with_server and "
-                   "domain_jid_prefs.with_user = '' and "
-                   "domain_jid_prefs.with_resource = '' and "
-                   "domain_jid_prefs.exactmatch = 0 "
-            "left join archive_global_prefs "
-                "on archive_collection.us = archive_global_prefs.us "
-         "set deleted = 1, change_utc = ", Now, ", version = version + 1 "
-         "where "
-         "deleted = 0 and "
-         "not full_jid_prefs.expire is null and ",
-         get_expired_condition(RDBMS, "full_jid_prefs.expire", UTCField), " < ", Now, " or "
-             "not bare_jid_prefs.expire is null and "
-                 "full_jid_prefs.expire is null and ",
-         get_expired_condition(RDBMS, "bare_jid_prefs.expire", UTCField), " < ", Now, " or "
-             "not domain_jid_prefs.expire is null and "
-                 "full_jid_prefs.expire is null and "
-                 "bare_jid_prefs.expire is null and ",
-         get_expired_condition(RDBMS, "domain_jid_prefs.expire", UTCField), " < ", Now, " or "
-             "not archive_global_prefs.expire is null and "
-                 "domain_jid_prefs.expire is null and "
-                 "full_jid_prefs.expire is null and "
-                 "bare_jid_prefs.expire is null and ",
-         get_expired_condition(RDBMS, "archive_global_prefs.expire", UTCField), " < ", Now,
-         ExpireByDefault],
+        case RDBMS of
+            mysql ->
+                ["update ", JoinStmt, " ", SetStmt, " ", WhereStmt];
+            pgsql ->
+                ["update archive_collection ", SetStmt, " from ",
+                 JoinStmt, " ", WhereStmt, " and archive_collection.id = ac.id"];
+            sqlite ->
+                ["update archive_collection set deleted = 1, change_utc = ",
+                 Now, ", version = version + 1 where id in (select id from ",
+                 JoinStmt, " ", WhereStmt, ")"]
+        end,
 	ejabberd_storage:sql_query(Query),
     case ReplicationExpire of
 		infinity ->
@@ -163,11 +176,9 @@ get_expired_condition(RDBMS, ExpireField, UTCField) ->
         mysql ->
             ["timestampadd(second, ", ExpireField, ", ", UTCField, ")"];
         sqlite ->
-            ["datetime(", UTCField, ", '+' || ", ExpireField,
-             " || ' seconds')"];
+            ["datetime(", UTCField, ", '+' || ", ExpireField, " || ' seconds')"];
         pgsql ->
-            ["timestamp ", UTCField, " + interval ", ExpireField,
-             " || ' seconds'"];
+            [UTCField, " + (", ExpireField, " || ' seconds')::interval"];
         _ ->
             throw({error, 'internal-server-error'})
     end.
