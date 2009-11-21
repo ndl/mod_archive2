@@ -59,7 +59,7 @@ BEGIN
   DELETE FROM archive_message WHERE coll_id = OLD.id;
   UPDATE archive_collection SET prev_id = null WHERE prev_id = OLD.id;
   UPDATE archive_collection SET next_id = null WHERE next_id = OLD.id;
-  RETURN NEW;
+  RETURN OLD;
 END;
 $archive_collection_delete$ LANGUAGE plpgsql;
 

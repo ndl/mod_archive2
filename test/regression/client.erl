@@ -44,8 +44,7 @@ eunit_xml_report(OutDir) ->
 
 client_test_() -> modules_to_test().
 
-%modules_to_test() -> [prefs, manual, management, replication, general, auto].
-modules_to_test() -> [prefs, manual, management, auto, replication].
+modules_to_test() -> [prefs, manual, management, auto, replication, general].
 
 create_session(ClientName) ->
     Session = exmpp_session:start(),
