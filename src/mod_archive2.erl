@@ -465,15 +465,20 @@ receive_packet(From, To, Packet) ->
     add_packet(from, To, From, Packet).
 
 receive_packet(_JID, From, To, Packet) ->
-    receive_packet(From, To, Packet).
+    add_packet(from, To, From, Packet).
 
 add_packet(Direction, OurJID, With, Packet) ->
     Host = exmpp_jid:prep_domain_as_list(OurJID),
     case lists:member(Host, ?MYHOSTS) of
         true ->
-            Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-            gen_server:cast(
-                Proc, {add_message, {Direction, OurJID, With, Packet}});
+            case exmpp_xml:get_name_as_atom(Packet) of
+                message ->
+                    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+                    gen_server:cast(
+                        Proc, {add_message, {Direction, OurJID, With, Packet}});
+                _ ->
+                    false
+            end;
         false ->
             false
     end.
