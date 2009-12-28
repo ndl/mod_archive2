@@ -29,7 +29,7 @@
 -include_lib("exmpp/include/exmpp.hrl").
 -include("ejabberd_storage.hrl").
 
--export([handle_query/2, encode/2, ms_to_sql/2]).
+-export([handle_query/2, encode/3, ms_to_sql/2]).
 
 %% Should be OK for most of modern DBs, I hope ...
 -define(MAX_QUERY_LENGTH, 32768).
@@ -97,12 +97,12 @@ handle_query({select, MS, Opts}, DbInfo) ->
     OffsetClause =
         case Offset of
             undefined -> "";
-            _ -> "offset " ++ encode(Offset, TableInfo)
+            _ -> "offset " ++ encode(Offset, integer, TableInfo)
         end,
     LimitClause =
         case Limit of
             undefined -> "";
-            _ -> "limit " ++ encode(Limit, TableInfo)
+            _ -> "limit " ++ encode(Limit, integer, TableInfo)
         end,
     Where = get_if_not_empty("where", WhereMS),
     Body =
@@ -236,7 +236,8 @@ handle_query({transaction, F}, DbInfo) ->
 %%   clauses, which is not supported by SQL.
 %%
 %% - The only recognized forms of match expression body are:
-%%    * Tuple of matching variables, f.e. '{utc, with_server, with_user}'.
+%%    * Tuple of matching variables, f.e. '{UTC, WithServer, WithUser}' were
+%%      variables are bound in fun head.
 %%    * Record with matching variables, f.e. '#archive_collection{utc = UTC}'
 %%      where UTC is bound in fun head.
 %%    * Single matching variable that matches the whole record, f.e.
@@ -272,9 +273,11 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
                              _ ->
                                 {MatchVars,
                                  ["(" ++
-                                  encode(FieldName, TableInfo) ++
+                                  atom_to_list(FieldName) ++
                                   " = " ++
-                                  encode(MatchItem, TableInfo)
+                                  encode(MatchItem,
+                                         lists:nth(Index, TableInfo#table.types),
+                                         TableInfo)
                                   ++")"| HM],
                                   Index + 1}
                         end
@@ -285,7 +288,9 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
     % Transform match conditions to SQL syntax.
     Conditions =
         lists:reverse(HeadMatches) ++
-        [parse_match_condition(MC, {MatchVarsDict, TableInfo}) ||
+        [encode_match_condition(
+            annotate_match_condition(MC, {MatchVarsDict, TableInfo}),
+            TableInfo) ||
          MC <- MatchConditions],
     % Generate the list of fields requested and result body.
     Body =
@@ -308,45 +313,127 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
         end,
     {string:join(Conditions, " and "), Body}.
 
-% Atoms support: should decide between enums and matching variables.
-parse_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
-    case dict:find(Value, MatchVarsDict) of
-        {ok, Field} ->
-            atom_to_list(Field);
+annotate_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) ->
+    Field =
+        case dict:find(Value, MatchVarsDict) of
+            {ok, F} ->
+                F;
+            _ ->
+                case lists:member(Value, TableInfo#table.fields) of
+                    false ->
+                        undefined;
+                    true ->
+                        Value
+                end
+        end,
+    case Field of
+        undefined ->
+            {{value, Value}, undefined};
         _ ->
-            encode(Value, TableInfo)
+            {{field, Field},
+             lists:nth(ejabberd_storage_utils:elem_index(Field,
+                TableInfo#table.fields), TableInfo#table.types)}
     end;
 
 % Constants support.
-parse_match_condition(Value, {_MatchVarsDict, TableInfo})
-    when is_list(Value) orelse is_integer(Value) orelse is_float(Value) ->
-    encode(Value, TableInfo);
+annotate_match_condition(Value, _Context) when is_list(Value) ->
+    {{value, Value}, string};
+annotate_match_condition(Value, _Context) when is_integer(Value) ->
+    {{value, Value}, integer};
+annotate_match_condition(Value, _Context) when is_float(Value) ->
+    {{value, Value}, float};
 
 % Variable tuples/records support.
-parse_match_condition({element, N, {const, R}}, Context)
+annotate_match_condition({element, N, {const, R}}, Context)
     when is_integer(N) andalso is_tuple(R) ->
-    parse_match_condition(ejabberd_storage_utils:encode_brackets(element(N, R)),
-                          Context);
+    annotate_match_condition(
+        ejabberd_storage_utils:encode_brackets(element(N, R)), Context);
 
 % Variables support.
-parse_match_condition({const, Value}, Context) ->
-    parse_match_condition(ejabberd_storage_utils:encode_brackets(Value), Context);
+annotate_match_condition({const, Value}, Context) ->
+    annotate_match_condition(
+        ejabberd_storage_utils:encode_brackets(Value), Context);
 
 % Record support: currently used for DateTime only.
-parse_match_condition({_} = R, {_, TableInfo}) ->
-    encode(ejabberd_storage_utils:decode_brackets(R), TableInfo);
+annotate_match_condition({_} = R, _Context) ->
+    {{value, ejabberd_storage_utils:decode_brackets(R)}, time};
 
 % Unary operations support.
-parse_match_condition({GuardFun, Op1}, Context) ->
+annotate_match_condition({GuardFun, Op1}, Context) ->
+    VT = annotate_match_condition(Op1, Context),
+    {_Value, Type} = VT,
+    case GuardFun of
+        'not' ->
+            if Type =:= bool orelse Type =:= undefined ->
+                {{unary, GuardFun, VT}, bool};
+               true ->
+                erlang:error(badarg)
+            end;
+        _ ->
+        {{unary, GuardFun, VT}, Type}
+    end;
+
+% Binary operations support.
+annotate_match_condition({GuardFun, Op1, Op2}, Context) ->
+    VT1 = annotate_match_condition(Op1, Context),
+    {_Value1, Type1} = VT1,
+    VT2 = annotate_match_condition(Op2, Context),
+    {_Value2, Type2} = VT2,
+    {NewVT1, NewVT2, CommonType} =
+        case {Type1, Type2} of
+            {undefined, _} ->
+                {propagate_type(VT1, Type2), VT2, Type2};
+            {_, undefined} ->
+                {VT1, propagate_type(VT2, Type1), Type1};
+            {CT, CT} ->
+                {VT1, VT2, CT};
+            {integer, float} ->
+                {VT1, VT2, float};
+            {float, integer} ->
+                {VT1, VT2, float};
+            {integer, autoid} ->
+                {VT1, VT2, autoid};
+            {autoid, integer} ->
+                {VT1, VT2, autoid};
+            _ ->
+                erlang:error(badarg)
+        end,
+    NewType =
+        case lists:member(GuardFun, ['andalso', 'orelse', '==', '=:=', '<',
+                                     '=<', '>', '>=', '=/=', '/=']) of
+            true -> bool;
+            false -> CommonType
+        end,
+    {{binary, GuardFun, NewVT1, NewVT2}, NewType}.
+
+propagate_type({{OpType, _Value} = Expr, _OldType}, NewType)
+    when OpType =:= value orelse OpType =:= field ->
+    {Expr, NewType};
+
+propagate_type({{unary, Op, Value}, _OldType}, NewType) ->
+    {{unary, Op, propagate_type(Value, NewType)}, NewType};
+
+propagate_type({{binary, Op, Value1, Value2}, _OldType}, NewType) ->
+    {{binary, Op, propagate_type(Value1, NewType),
+      propagate_type(Value2, NewType)}, NewType}.
+
+encode_match_condition({{field, Field}, _Type}, _TableInfo) ->
+    atom_to_list(Field);
+
+encode_match_condition({{value, Value}, Type}, TableInfo) ->
+    encode(Value, Type, TableInfo);
+
+% Unary operations support.
+encode_match_condition({{unary, GuardFun, Op1}, _Type}, TableInfo) ->
     OpName =
     case GuardFun of
         'not' -> "not";
 	    'abs' -> "abs"
     end,
-    generate_unary_op(OpName, Op1, Context);
+    generate_unary_op(OpName, Op1, TableInfo);
 
 % Binary operations support.
-parse_match_condition({GuardFun, Op1, Op2}, Context) ->
+encode_match_condition({{binary, GuardFun, Op1, Op2}, _Type}, TableInfo) ->
     OpName = 
     case GuardFun of
         'and' -> "&";
@@ -366,14 +453,14 @@ parse_match_condition({GuardFun, Op1, Op2}, Context) ->
         '*' -> "*";
         '/' -> "/"
     end,
-    generate_binary_op(OpName, Op1, Op2, Context).
+    generate_binary_op(OpName, Op1, Op2, TableInfo).
 
-generate_unary_op(OpName, Op1, Context) ->
-    OpName ++ "(" ++ parse_match_condition(Op1, Context) ++ ")".
+generate_unary_op(OpName, Op1, TableInfo) ->
+    OpName ++ "(" ++ encode_match_condition(Op1, TableInfo) ++ ")".
 
-generate_binary_op(OpName, Op1, Op2, Context) ->
-    Val1 = parse_match_condition(Op1, Context),
-    Val2 = parse_match_condition(Op2, Context),
+generate_binary_op(OpName, Op1, Op2, TableInfo) ->
+    Val1 = encode_match_condition(Op1, TableInfo),
+    Val2 = encode_match_condition(Op2, TableInfo),
     FixedOpName =
         case Val2 of
             "null" ->
@@ -462,7 +549,8 @@ join_non_empty(Values, Sep) ->
 get_update_set_stmt(R, TableInfo) ->
     string:join(
         [atom_to_list(lists:nth(N - 1, TableInfo#table.fields)) ++
-         " = " ++ encode(Value, TableInfo) ||
+         " = " ++ encode(Value, lists:nth(N - 1, TableInfo#table.types),
+                         TableInfo) ||
          N <- lists:seq(TableInfo#table.keys + 2, tuple_size(R)),
          (Value = element(N, R)) =/= undefined], ", ").
 
@@ -479,7 +567,7 @@ get_insert_fields(TableInfo) ->
 
 get_insert_values(R, TableInfo) ->
     Values =
-        [encode(Value, TableInfo) ||
+        [encode(Value, Type, TableInfo) ||
             {Type, Value} <- lists:zip(
                 TableInfo#table.types,
                 lists:nthtail(1, tuple_to_list(R))), Type =/= autoid],
@@ -490,7 +578,9 @@ get_insert_values(R, TableInfo) ->
 %%
 encode_keys(R, TableInfo) ->
     string:join([atom_to_list(lists:nth(N, TableInfo#table.fields)) ++
-                 encode_equality(encode(element(N + 1, R), TableInfo)) ||
+                 encode_equality(encode(element(N + 1, R),
+                                        lists:nth(N, TableInfo#table.types),
+                                        TableInfo)) ||
                  N <- lists:seq(1, TableInfo#table.keys)],
         " and ").
 
@@ -545,33 +635,40 @@ convert_value(Values, RequestedFields, Result, TableInfo) ->
 %%--------------------------------------------------------------------
 
 %% RDBMS-independent escaping.
-encode(null, _) ->
+encode(null, _, _) ->
     "null";
 
-encode(undefined, _) ->
+encode(undefined, _, _) ->
     "null";
 
-encode(true, _) ->
+encode(true, bool, _) ->
     "1";
 
-encode(false, _) ->
+encode(false, bool, _) ->
     "0";
 
 % TODO: locales?
-encode(N, _) when is_integer(N) ->
+encode(N, autoid, _) ->
     integer_to_list(N);
 
 % TODO: locales?
-encode(N, _) when is_float(N) ->
+encode(N, integer, _) ->
+    integer_to_list(N);
+
+% TODO: locales?
+encode(N, float, _) ->
     float_to_list(N);
 
-encode({{Year, Month, Day}, {Hour, Minute, Second}}, _) ->
+encode({{Year, Month, Day}, {Hour, Minute, Second}}, time, _) ->
     lists:flatten(
         io_lib:format("'~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w'",
                       [Year, Month, Day, Hour, Minute, Second]));
 
-encode(#xmlel{} = XML, TableInfo) ->
-    encode(exmpp_xml:document_to_list(XML), TableInfo);
+encode(Value, {enum, Enums}, _TableInfo) ->
+    integer_to_list(ejabberd_storage_utils:elem_index(Value, Enums) - 1);
+
+encode(#xmlel{} = XML, xml, TableInfo) ->
+    encode(exmpp_xml:document_to_list(XML), string, TableInfo);
 
 %% RDBMS-specific escaping.
 
@@ -579,20 +676,11 @@ encode(#xmlel{} = XML, TableInfo) ->
 %% We have to perform DB-specific escaping,as f.e. SQLite does not understand
 %% '\' as escaping character (which is exactly in accordance with the standard,
 %% by the way), while most other DBs do.
-encode(Str, TableInfo) when is_list(Str) andalso
-                            TableInfo#table.rdbms =:= sqlite ->
+encode(Str, string, TableInfo) when TableInfo#table.rdbms =:= sqlite ->
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 
-encode(Str, _) when is_list(Str) ->
-	lists:flatten("'" ++ ejabberd_odbc:escape(Str) ++ "'");
-
-encode(Value, TableInfo) when is_atom(Value) ->
-    case ejabberd_storage_utils:elem_index(Value, TableInfo#table.enums) of
-        N when is_integer(N) ->
-            integer_to_list(
-                ejabberd_storage_utils:elem_index(Value, TableInfo#table.enums) - 1);
-        _ -> atom_to_list(Value)
-    end.
+encode(Str, string, _) ->
+	lists:flatten("'" ++ ejabberd_odbc:escape(Str) ++ "'").
 
 decode(null, _Type, _TableInfo) ->
     undefined;
@@ -635,8 +723,8 @@ decode(Value, xml, _TableInfo) ->
         _ -> undefined
     end;
 
-decode(Value, enum, TableInfo) ->
-    lists:nth(decode(Value, integer, TableInfo) + 1, TableInfo#table.enums).
+decode(Value, {enum, Enums}, TableInfo) ->
+    lists:nth(decode(Value, integer, TableInfo) + 1, Enums).
 
 %% Escaping for ANSI SQL compliant RDBMS - so far SQLite only?
 escape_char_ansi_sql($')  -> "''";

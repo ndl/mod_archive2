@@ -85,6 +85,7 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
         fun() ->
             Now = ejabberd_storage_odbc:encode(
                 calendar:now_to_datetime(mod_archive2_time:now()),
+                time,
                 ejabberd_storage_utils:get_table_info(archive_collection,
                     ?MOD_ARCHIVE2_SCHEMA)),
             expire_collections_odbc(

@@ -46,7 +46,11 @@ mod_archive2_match_to_sql_test_() ->
         ?test_gen0(test_match_to_sql8)
      ].
 
--define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01')))").
+-define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01 00:00:00')))").
+
+-define(QUERY_DATE, {{2000, 1, 1}, {0, 0, 0}}).
+
+-define(QUERY_DATE_ENCODED, {{{{2000, 1, 1}}, {{0, 0, 0}}}}).
 
 -define(QUERY_RES1,
     {?WHERE_CLAUSE1,
@@ -71,7 +75,7 @@ test_match_to_sql1() ->
                                direction = '_', body = '$3', name = '_',
                                jid = '_'},
              [{'orelse',{'==','$1',1},
-	                {'andalso',{'==','$1', 2},{'==',utc,"2000-01-01"}}}],
+	                {'andalso',{'==','$1', 2},{'==',utc, ?QUERY_DATE_ENCODED}}}],
 	     [{{'$1', '$2', '$3'}}]}], TableInfo)
 	=:= ?QUERY_RES1).
 
@@ -82,7 +86,7 @@ test_match_to_sql2() ->
         ejabberd_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
+		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
 		    {ID, UTC, Body}
 		end), TableInfo)
 	=:= ?QUERY_RES1).
@@ -94,7 +98,7 @@ test_match_to_sql3() ->
         ejabberd_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC} = R) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= "2000-01-01") ->
+		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
 		    R
 		end), TableInfo)
 	=:= {?WHERE_CLAUSE1, query_body_full(TableInfo)}).
@@ -105,10 +109,10 @@ test_match_to_sql4() ->
     ?assert(
         ejabberd_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
-	        fun(#archive_message{id = 1, utc = "2000-01-01"} = R) ->
+	        fun(#archive_message{id = 1, utc = ?QUERY_DATE} = R) ->
 		    R
 		end), TableInfo)
-	=:= {"(id = 1) and (utc = '2000-01-01')", query_body_full(TableInfo)}).
+	=:= {"(id = 1) and (utc = '2000-01-01 00:00:00')", query_body_full(TableInfo)}).
 
 %% Partial body plus head matching test.
 test_match_to_sql5() ->
@@ -128,30 +132,30 @@ test_match_to_sql6() ->
     ?assert(
         ejabberd_storage_odbc:ms_to_sql(
             ets:fun2ms(
-                fun(#archive_jid_prefs{save = Save, expire = Expire, otr = Otr} = R)
-                    when (not (not Save)) =:= Save andalso
+                fun(#archive_jid_prefs{exactmatch = ExactMatch, expire = Expire} = R)
+                    when (not (not ExactMatch)) =:= ExactMatch andalso
                          abs(Expire) == Expire andalso
-                         Expire < Otr orelse
-                         Expire =< Otr orelse
-                         Expire > Otr andalso
-                         Expire >= Otr andalso
-                         Expire =/= Otr andalso
-                         Expire /= Otr andalso
-                         Expire and Otr =:= Otr andalso
-                         Expire or Otr == Otr orelse
-                         Expire + Otr > Expire orelse
-                         Expire - Otr < Expire orelse
-                         Expire * Otr =:= Expire orelse
-                         Expire / Otr =/= Expire ->
+                         Expire < Expire orelse
+                         Expire =< Expire orelse
+                         Expire > Expire andalso
+                         Expire >= Expire andalso
+                         Expire =/= Expire andalso
+                         Expire /= Expire andalso
+                         Expire and Expire =:= Expire andalso
+                         Expire or Expire == Expire orelse
+                         Expire + Expire > Expire orelse
+                         Expire - Expire < Expire orelse
+                         Expire * Expire =:= Expire orelse
+                         Expire / Expire =/= Expire ->
                         R
                 end), TableInfo)
     =:=
-        {"(((not(not(save)) = save) and ((abs(expire) = expire) and "
-         "(expire < otr))) or ((expire <= otr) or (((expire > otr) and "
-         "((expire >= otr) and ((expire <> otr) and ((expire <> otr) and "
-         "(((expire & otr) = otr) and ((expire | otr) = otr)))))) or "
-         "(((expire + otr) > expire) or (((expire - otr) < expire) or "
-         "(((expire * otr) = expire) or ((expire / otr) <> expire)))))))",
+        {"(((not(not(exactmatch)) = exactmatch) and ((abs(expire) = expire) and "
+         "(expire < expire))) or ((expire <= expire) or (((expire > expire) and "
+         "((expire >= expire) and ((expire <> expire) and ((expire <> expire) and "
+         "(((expire & expire) = expire) and ((expire | expire) = expire)))))) or "
+         "(((expire + expire) > expire) or (((expire - expire) < expire) or "
+         "(((expire * expire) = expire) or ((expire / expire) <> expire)))))))",
          query_body_full(TableInfo)}).
 
 %% Tuples decoding test.

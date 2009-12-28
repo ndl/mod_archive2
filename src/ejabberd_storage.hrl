@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 %% Table information.
--record(table, {name, rdbms, fields, types, enums, keys}).
+-record(table, {name, rdbms, fields, types, keys}).
 
 %% Storage backend information.
 -record(storage_backend, {name, host, rdbms, schema}).
