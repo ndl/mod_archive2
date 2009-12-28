@@ -381,6 +381,8 @@ annotate_match_condition({GuardFun, Op1, Op2}, Context) ->
     {_Value2, Type2} = VT2,
     {NewVT1, NewVT2, CommonType} =
         case {Type1, Type2} of
+            {undefined, undefined} ->
+                {VT1, VT2, undefined};
             {undefined, _} ->
                 {propagate_type(VT1, Type2), VT2, Type2};
             {_, undefined} ->

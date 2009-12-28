@@ -267,7 +267,7 @@ mysql_test_set_prefs1() ->
                  {selected, [], []}},
                 {"insert into archive_global_prefs (us, save, expire, otr, "
                  "method_auto, method_local, method_manual, auto_save) values "
-                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
+                 "('client@localhost', 0, 1800, 4, 1, 2, 0, null)",
                  {updated, 1}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' "
@@ -275,7 +275,7 @@ mysql_test_set_prefs1() ->
                  {selected, [], []}},
                 {"insert into archive_jid_prefs (us, with_user, with_server, "
                  "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
-                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
+                 "'romeo', 'montague.net', null, 1, 0, 3600, 0)",
                  {updated, 1}},
                 {}])
         end),
@@ -320,9 +320,9 @@ mysql_test_get_prefs1() ->
                 {},
                 {"select * from archive_jid_prefs where (us = 'client@localhost')",
                  {selected, [], [{"client@localhost", "romeo", "montague.net",
-                                  null, 1, 7, 3600, 1}]}},
+                                  null, 1, 0, 3600, 0}]}},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 7, 1800, 5, 3, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 0, 1800, 4, 1, 2, 0, null}]}},
                 {}])
         end),
     common_test_get_prefs1().
@@ -344,7 +344,7 @@ mysql_test_should_auto_archive1() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 7, 1800, 5, 3, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 0, 1800, 4, 1, 2, 0, null}]}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' and "
                  "with_resource is null and exactmatch = 0",
@@ -353,7 +353,7 @@ mysql_test_should_auto_archive1() ->
                  "and with_user = 'romeo' and with_server = 'montague.net' and "
                  "with_resource is null and exactmatch = 1",
                  {selected, [], [{"client@localhost", "romeo", "montague.net",
-                                  null, 1, 7, 3600, 1}]}},
+                                  null, 1, 0, 3600, 0}]}},
                 {}])
         end),
     common_test_should_auto_archive1().
@@ -372,16 +372,16 @@ mysql_test_update_prefs1() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 7, 1800, 5, 3, 5, 2, null}]}},
-                {"update archive_global_prefs set save = 0, otr = 3, "
-                 "method_auto = 5 where us = 'client@localhost'",
+                 {selected, [], [{"client@localhost", 0, 1800, 4, 1, 2, 0, null}]}},
+                {"update archive_global_prefs set save = 1, otr = 2, "
+                 "method_auto = 2 where us = 'client@localhost'",
                  {updated, 1}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' "
                  "and with_resource is null and exactmatch = 1",
                  {selected, [], [{"client@localhost", "romeo", "montague.net",
-                                  null, 1, 7, 3600, 1}]}},
-                {"update archive_jid_prefs set save = 0, otr = 2 where "
+                                  null, 1, 0, 3600, 0}]}},
+                {"update archive_jid_prefs set save = 1, otr = 1 where "
                  "us = 'client@localhost' and with_user = 'romeo' and "
                  "with_server = 'montague.net' and with_resource is null "
                  "and exactmatch = 1",
@@ -421,9 +421,9 @@ mysql_test_get_prefs2() ->
                 {},
                 {"select * from archive_jid_prefs where (us = 'client@localhost')",
                  {selected, [], [{"client@localhost", "romeo", "montague.net",
-                                  null, 1, 0, 3600, 2}]}},
+                                  null, 1, 1, 3600, 1}]}},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 0, 1800, 3, 5, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 1, 1800, 2, 2, 2, 0, null}]}},
                 {}])
         end),
     common_test_get_prefs2().
@@ -445,7 +445,7 @@ mysql_test_should_auto_archive2() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 0, 1800, 3, 5, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 1, 1800, 2, 2, 2, 0, null}]}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' and "
                  "with_resource is null and exactmatch = 0",
@@ -454,7 +454,7 @@ mysql_test_should_auto_archive2() ->
                  "and with_user = 'romeo' and with_server = 'montague.net' and "
                  "with_resource is null and exactmatch = 1",
                  {selected, [], [{"client@localhost", "romeo", "montague.net",
-                                  null, 1, 0, 3600, 2}]}},
+                                  null, 1, 1, 3600, 1}]}},
                 {}])
         end),
     common_test_should_auto_archive2().
@@ -499,7 +499,7 @@ mysql_test_auto1() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 0, 1800, 3, 5, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 1, 1800, 2, 2, 2, 0, null}]}},
                 {"update archive_global_prefs set auto_save = 1 where "
                  "us = 'client@localhost'",
                  {updated, 1}},
@@ -525,7 +525,7 @@ mysql_test_auto2() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 0, 1800, 3, 5, 5, 2, null}]}},
+                 {selected, [], [{"client@localhost", 1, 1800, 2, 2, 2, 0, null}]}},
                 {"update archive_global_prefs set auto_save = 1 where "
                  "us = 'client@localhost'",
                  {updated, 1}},
@@ -552,7 +552,7 @@ mysql_test_get_prefs3() ->
                 {"select * from archive_jid_prefs where (us = 'client@localhost')",
                  {selected, [], []}},
                 {"select * from archive_global_prefs where us = 'client@localhost'",
-                 {selected, [], [{"client@localhost", 0, 1800, 3, 5, 5, 2, 1}]}},
+                 {selected, [], [{"client@localhost", 1, 1800, 2, 2, 2, 0, 1}]}},
                 {}])
         end),
     common_test_get_prefs3().
@@ -577,7 +577,7 @@ mysql_test_set_not_implemented_prefs1() ->
                  {selected, [], []}},
                 {"insert into archive_global_prefs (us, save, expire, otr, "
                  "method_auto, method_local, method_manual, auto_save) values "
-                 "('client@localhost', 7, 1800, 5, 3, 5, 2, null)",
+                 "('client@localhost', 1, 1800, 2, 2, 2, 0, null)",
                  {updated, 1}},
                 {"select * from archive_jid_prefs where us = 'client@localhost' "
                  "and with_user = 'romeo' and with_server = 'montague.net' "
@@ -585,7 +585,7 @@ mysql_test_set_not_implemented_prefs1() ->
                  {selected, [], []}},
                 {"insert into archive_jid_prefs (us, with_user, with_server, "
                  "with_resource, exactmatch, save, expire, otr) values ('client@localhost', "
-                 "'romeo', 'montague.net', null, 1, 7, 3600, 1)",
+                 "'romeo', 'montague.net', null, 1, 0, 3600, 0)",
                  {updated, 1}},
                 {}])
         end),

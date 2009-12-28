@@ -512,7 +512,7 @@ mysql_test_insert2() ->
                 {},
                 {"insert into archive_jid_prefs (us, with_user, with_server, "
                  "with_resource, exactmatch, save, expire, otr) values ('test@example.com', "
-                 "'juliet', 'example.com', null, 1, 0, 3600, 3)",
+                 "'juliet', 'example.com', null, 1, 1, 3600, 2)",
                  {updated, 1}},
                 {}])
         end),
@@ -530,11 +530,11 @@ mysql_test_update3() ->
         fun() ->
             ejabberd_odbc:start([
                 {},
-                {"update archive_jid_prefs set save = 7, otr = 5",
+                {"update archive_jid_prefs set save = 0, otr = 4",
                  {updated, 1}},
                 {"select save, otr from archive_jid_prefs "
                  "where (with_user = 'juliet')",
-                 {selected, [], [{"7", "5"}]}},
+                 {selected, [], [{"0", "4"}]}},
                 {}])
         end),
     common_test_update3().

@@ -129,11 +129,27 @@ test_match_to_sql5() ->
 %% All supported functions test.
 test_match_to_sql6() ->
     TableInfo = get_table_info(archive_jid_prefs),
-    ?assert(
+    QueryBodyFull = query_body_full(TableInfo),
+    {"(((not(not(exactmatch)) = exactmatch) and "
+     "((1 = exactmatch) and ((exactmatch = 0) and ((exactmatch <> (exactmatch = 1)) "
+     "and (((exactmatch = 0) <> exactmatch) and (((1 | 0) = exactmatch) and "
+     "((exactmatch <> (0 & 1)) and ((abs(expire) = expire) and (expire < expire))))))))) "
+     "or ((expire <= expire) or (((expire > expire) and ((expire >= expire) and "
+     "((expire <> expire) and ((expire <> expire) and (((expire & expire) = expire) "
+     "and ((expire | expire) = expire)))))) or (((expire + expire) > expire) or "
+     "(((expire - expire) < expire) or (((expire * expire) = expire) or "
+     "((expire / expire) <> expire)))))))",
+     QueryBodyFull} =
         ejabberd_storage_odbc:ms_to_sql(
             ets:fun2ms(
                 fun(#archive_jid_prefs{exactmatch = ExactMatch, expire = Expire} = R)
                     when (not (not ExactMatch)) =:= ExactMatch andalso
+                         true =:= ExactMatch andalso
+                         ExactMatch =:= false andalso
+                         (ExactMatch =/= (ExactMatch =:= true)) andalso
+                         ((ExactMatch =:= false) =/= ExactMatch) andalso
+                         ((true or false) =:= ExactMatch) andalso
+                         (ExactMatch =/= (false and true)) andalso
                          abs(Expire) == Expire andalso
                          Expire < Expire orelse
                          Expire =< Expire orelse
@@ -148,15 +164,7 @@ test_match_to_sql6() ->
                          Expire * Expire =:= Expire orelse
                          Expire / Expire =/= Expire ->
                         R
-                end), TableInfo)
-    =:=
-        {"(((not(not(exactmatch)) = exactmatch) and ((abs(expire) = expire) and "
-         "(expire < expire))) or ((expire <= expire) or (((expire > expire) and "
-         "((expire >= expire) and ((expire <> expire) and ((expire <> expire) and "
-         "(((expire & expire) = expire) and ((expire | expire) = expire)))))) or "
-         "(((expire + expire) > expire) or (((expire - expire) < expire) or "
-         "(((expire * expire) = expire) or ((expire / expire) <> expire)))))))",
-         query_body_full(TableInfo)}).
+                end), TableInfo).
 
 %% Tuples decoding test.
 test_match_to_sql7() ->
