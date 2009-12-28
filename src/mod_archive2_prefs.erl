@@ -80,14 +80,15 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
                     broadcast_iq(From, IQ),
-                    {auto_states, AutoStates}
+                    {auto_states, clear_with_auto_states(From, AutoStates)}
                 end,
             ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
         session ->
             {atomic,
              {auto_states,
-              update_session_auto_states(From, AutoSave, AutoStates)}};
+              update_session_auto_states(From, AutoSave,
+                    clear_with_auto_states(From, AutoStates))}};
         _ ->
             {aborted, {throw, {error, 'bad-request'}}}
     end.
