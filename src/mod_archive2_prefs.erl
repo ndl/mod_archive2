@@ -125,14 +125,14 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
                     case AutoState#auto_state.session_auto_save of
                         false ->
                             false;
-                        _ ->
+                        AutoSave ->
                             case dict:find(With, AutoState#auto_state.with) of
                                 {ok, Result} ->
                                     Result;
                                 _ ->
                                     should_auto_archive2(From, With, AutoStates,
-                                        AutoState#auto_state.session_auto_save,
-                                        DefaultGlobalPrefs, ShouldCachePrefs)
+                                        AutoSave, DefaultGlobalPrefs,
+                                        ShouldCachePrefs)
                             end
                     end;
                 _ ->
@@ -149,8 +149,8 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
     F =
         fun() ->
             GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
-            if SessionAutoSave orelse
-                GlobalPrefs#archive_global_prefs.auto_save ->
+            if SessionAutoSave =:= true orelse
+                GlobalPrefs#archive_global_prefs.auto_save =:= true ->
                 case get_effective_jid_prefs(From, With) of
                     undefined ->
                         true;
