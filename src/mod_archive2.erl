@@ -37,22 +37,26 @@
 %% read_only -> true | false - if true, no client modifications either to
 %%     collections or to archiving settings are allowed.
 %%
-%%  default_expire -> default time in seconds before collections are wiped out -
-%%      or infinity atom.
+%% default_expire -> default time in seconds before collections are wiped out -
+%%     or infinity atom.
 %%
-%%  enforce_min_expire -> minimal time in seconds before collections are wiped out
-%%      that the user is allowed to set.
+%% enforce_min_expire -> minimal time in seconds before collections are wiped out
+%%     that the user is allowed to set.
 %%
-%%  enforce_max_expire -> maximal time in seconds before collections are wiped out
-%%      that the user is allowed to set - or infinity atom.
+%% enforce_max_expire -> maximal time in seconds before collections are wiped out
+%%     that the user is allowed to set - or infinity atom.
 %%
-%%  replication_expire -> time in seconds before 'removed' replication
-%%      information if wiped out or infinity atom to disable.
+%% replication_expire -> time in seconds before 'removed' replication
+%%     information if wiped out or infinity atom to disable.
 %%
-%%  session_duration -> time in secondes before the timeout of a session.
+%% session_duration -> time in secondes before the timeout of a session.
 %%
-%%  wipeout_interval -> time in seconds between wipeout runs or infinity atom
-%%                      to disable.
+%% wipeout_interval -> time in seconds between wipeout runs or infinity atom
+%%     to disable.
+%%
+%% prefs_cache_interval -> time in seconds between prefs cache flushes,
+%%     infinity to never flush cache (might be heavy on RAM!), zero to disable
+%%     caching.
 %%
 %% Default values are listed below in as DEFINES.
 %%--------------------------------------------------------------------
@@ -82,9 +86,11 @@
                 default_global_prefs,
                 dbinfo,
                 auto_states,
+                should_cache_prefs,
                 sessions,
                 sessions_expiration_timer,
-                collections_expiration_timer}).
+                collections_expiration_timer,
+                prefs_cache_expiration_timer}).
 
 -define(PROCNAME, ejabberd_mod_archive2).
 -define(HOOK_SEQ, 50).
@@ -92,6 +98,7 @@
 -define(DEFAULT_RDBMS, mnesia).
 -define(DEFAULT_SESSION_DURATION, 1800). % 30 minutes
 -define(DEFAULT_WIPEOUT_INTERVAL, 86400). % 1 day
+-define(DEFAULT_PREFS_CACHE_INTERVAL, 1800). % 30 minutes
 -define(DEFAULT_AUTO_SAVE, false).
 -define(DEFAULT_EXPIRE, infinity).
 -define(DEFAULT_REPLICATION_EXPIRE, 31536000). % 1 year
@@ -154,6 +161,9 @@ init([Host, Opts]) ->
         gen_mod:get_opt(session_duration, Opts, ?DEFAULT_SESSION_DURATION),
     WipeOutInterval =
         gen_mod:get_opt(wipeout_interval, Opts, ?DEFAULT_WIPEOUT_INTERVAL),
+    PrefsCacheInterval =
+        gen_mod:get_opt(prefs_cache_interval, Opts,
+            ?DEFAULT_PREFS_CACHE_INTERVAL),
     AutoSave =
         gen_mod:get_opt(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
     Expire =
@@ -204,14 +214,23 @@ init([Host, Opts]) ->
             N when is_integer(N) ->
                 timer:send_interval(1000 * N, expire_collections)
         end,
+    {ok, PrefsCacheExpirationTimer} =
+        case PrefsCacheInterval of
+            N2 when is_integer(N2) andalso N2 > 0 ->
+                timer:send_interval(1000 * N2, expire_prefs_cache);
+            _ ->
+                {ok, undefined}
+        end,
     % We're done - return our state
     {ok, #state{host = Host,
                 options = Opts,
                 default_global_prefs = GlobalPrefs,
                 auto_states = dict:new(),
+                should_cache_prefs = PrefsCacheExpirationTimer =/= 0,
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
-                collections_expiration_timer = CollectionsExpirationTimer}}.
+                collections_expiration_timer = CollectionsExpirationTimer,
+                prefs_cache_expiration_timer = PrefsCacheExpirationTimer}}.
 
 init_mnesia_tables() ->
     mnesia:create_table(archive_collection,
@@ -252,6 +271,7 @@ terminate(_Reason, State) ->
     % Cancel timers, if present
     timer:cancel(State#state.sessions_expiration_timer),
     timer:cancel(State#state.collections_expiration_timer),
+    timer:cancel(State#state.prefs_cache_expiration_timer),
     % Unregister our provided features
     mod_disco:unregister_feature(HostB, ?NS_ARCHIVING),
     mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_AUTO),
@@ -377,7 +397,8 @@ handle_call(stop, _From, State) ->
 handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
     AutoStates = State#state.auto_states,
     Prefs = State#state.default_global_prefs,
-    case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs) of
+    case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs,
+        State#state.should_cache_prefs) of
         {true, NewAutoStates} ->
             Sessions =
                 State#state.sessions,
@@ -427,6 +448,10 @@ handle_info(expire_collections, State) ->
     mod_archive2_maintenance:expire_collections(
         Host, DefaultExpire, ReplicationExpire, RDBMS),
     {noreply, State};
+
+handle_info(expire_prefs_cache, State) ->
+    {noreply, State#state{auto_states =
+        mod_archive2_prefs:expire_prefs_cache(State#state.auto_states)}};
 
 handle_info(_Info, State) ->
     {noreply, State}.

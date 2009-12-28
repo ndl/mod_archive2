@@ -284,6 +284,20 @@ mod_archive2_prefs_mnesia_test_() ->
     ]
 }.
 
+mod_archive2_prefs_test_() ->
+{
+    foreach,
+    local,
+    fun prefs_tests_setup/0,
+    fun prefs_tests_teardown/1,
+    [
+        ?test_gen1(test_prefs_cache_expire)
+    ]
+}.
+
+prefs_tests_setup() -> ok.
+prefs_tests_teardown(_) -> ok.
+
 create_auto_states(Value) ->
     dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
        dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
@@ -427,7 +441,8 @@ common_test_should_auto_archive1() ->
             exmpp_jid:parse(?JID),
             exmpp_jid:parse("romeo@montague.net"),
             create_auto_states(true),
-            mod_archive2_prefs:default_global_prefs(true, 3600)).
+            mod_archive2_prefs:default_global_prefs(true, 3600),
+            true).
 
 mysql_test_update_prefs1() ->
     ejabberd_storage:transaction(?HOST,
@@ -529,7 +544,8 @@ common_test_should_auto_archive2() ->
             exmpp_jid:parse(?JID),
             exmpp_jid:parse("romeo@montague.net"),
             create_auto_states(true),
-            mod_archive2_prefs:default_global_prefs(true, 3600)).
+            mod_archive2_prefs:default_global_prefs(true, 3600),
+            true).
 
 mysql_test_itemremove_prefs1() ->
     ejabberd_storage:transaction(?HOST,
@@ -575,7 +591,7 @@ mysql_test_auto1() ->
 
 common_test_auto1() ->
     AutoStates = create_auto_states(true),
-    {atomic, AutoStates} =
+    {atomic, {auto_states, AutoStates}} =
         mod_archive2_prefs:auto(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -721,3 +737,8 @@ common_test_set_not_allowed_expire_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, 0}).
+
+test_prefs_cache_expire(_) ->
+    AutoStates = create_auto_states(true),
+    AutoStates =
+        mod_archive2_prefs:expire_prefs_cache(create_auto_states_with(true)).

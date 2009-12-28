@@ -38,7 +38,7 @@ general_test_() ->
         client:session_teardown,
         [
             %?test_gen1(test_disco),
-            ?test_gen1(test_expiration),
+            ?test_gen1(test_collections_expiration),
             ?test_gen1(test_remove_user),
             ?test_gen1(test_remove_user2)
         ]).
@@ -58,7 +58,7 @@ general_test_() ->
     %?debugFmt("2: ~p~n", [
     %    DiscoSorted]).
 
-test_expiration(F) ->
+test_collections_expiration(F) ->
     erlang:set_cookie(node(), ?SERVERCOOKIE),
     Node = list_to_atom(?SERVERNAME "@" ?SERVERHOST),
     RDBMS =

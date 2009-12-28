@@ -32,7 +32,8 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -export([pref/5, auto/3, itemremove/3, default_global_prefs/2,
-         should_auto_archive/4,
+         should_auto_archive/5,
+         expire_prefs_cache/1,
          get_effective_jid_prefs/2, get_global_prefs/2]).
 
 -include("mod_archive2.hrl").
@@ -79,7 +80,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
                     broadcast_iq(From, IQ),
-                    AutoStates
+                    {auto_states, AutoStates}
                 end,
             ejabberd_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
@@ -114,7 +115,8 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates) ->
 
 %% Returns true if collections for given From JID with given With JID
 %% should be auto-archived.
-should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs) ->
+should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
+    ShouldCachePrefs) ->
     case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
@@ -129,20 +131,20 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs) ->
                                 _ ->
                                     should_auto_archive2(From, With, AutoStates,
                                         AutoState#auto_state.session_auto_save,
-                                        DefaultGlobalPrefs)
+                                        DefaultGlobalPrefs, ShouldCachePrefs)
                             end
                     end;
                 _ ->
                     should_auto_archive2(From, With, AutoStates, undefined,
-                        DefaultGlobalPrefs)
+                        DefaultGlobalPrefs, ShouldCachePrefs)
             end;
         _ ->
             should_auto_archive2(From, With, AutoStates, undefined,
-                DefaultGlobalPrefs)
+                DefaultGlobalPrefs, ShouldCachePrefs)
     end.
 
 should_auto_archive2(From, With, AutoStates, SessionAutoSave,
-    DefaultGlobalPrefs) ->
+    DefaultGlobalPrefs, ShouldCachePrefs) ->
     F =
         fun() ->
             GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
@@ -163,11 +165,28 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
         end,
     case ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, Value} when is_boolean(Value) ->
-            {Value, update_with_auto_states(From, With, Value, AutoStates)};
+            case ShouldCachePrefs of
+                true ->
+                    {Value,
+                     update_with_auto_states(From, With, Value, AutoStates)};
+                false ->
+                    {Value, AutoStates}
+            end;
         Result ->
             ?ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
             {false, AutoStates}
     end.
+
+expire_prefs_cache(AutoStates) ->
+    dict:map(
+        fun(_US, Resources) ->
+            dict:map(
+                fun(_Resource, AutoState) ->
+                    AutoState#auto_state{with = dict:new()}
+                end,
+                Resources)
+        end,
+        AutoStates).
 
 %%--------------------------------------------------------------------
 %% Helper functions
