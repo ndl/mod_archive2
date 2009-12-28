@@ -157,51 +157,67 @@ handle_query({update, R, MS}, DbInfo) ->
     convert_change_query_result(Result, updated, DbInfo);
 
 handle_query({insert, Records}, DbInfo) ->
-    % TODO: optimize for those RDBMS that have multiple insert!
-    {Count, TableInfo} =
+    RDBMS = DbInfo#storage_backend.rdbms,
+    {LastTableInfo, LastStmt} =
         lists:foldl(
-            fun(R, {N, _}) ->
+            fun(R, {PrevTableInfo, Stmt}) ->
                 TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
-                Result =
-                    sql_query(
-                        join_non_empty(
-                        ["insert into",
-                         atom_to_list(TableInfo#table.name),
-                         get_insert_fields(TableInfo),
-                         "values",
-                         get_insert_values(R, TableInfo)], " ")),
-                case Result of
-                    {error, _} ->
-                        throw(Result);
-                    _ ->
-                    {N + 1, TableInfo}
-                end
+                Values = get_insert_values(R, TableInfo),
+                NewStmt =
+                    if Stmt =/= [] andalso
+                        (RDBMS =:= sqlite orelse
+                         length(Stmt) + length(Values) >
+                             ?MAX_QUERY_LENGTH  - 2 orelse
+                         TableInfo#table.name =/= PrevTableInfo#table.name) ->
+                        sql_query(Stmt), [];
+                       true ->
+                        Stmt
+                    end,
+                NewStmt2 =
+                    case NewStmt of
+                        [] ->
+                            join_non_empty(
+                                ["insert into",
+                                 atom_to_list(TableInfo#table.name),
+                                 get_insert_fields(TableInfo),
+                                 "values",
+                                 Values], " ");
+                        _ ->
+                            Stmt ++ ", " ++ Values
+                    end,
+                {TableInfo, NewStmt2}
             end,
-            {0, undefined},
+            {undefined, []},
             Records),
+    case LastStmt of
+        [] ->
+            ok;
+        _ ->
+            sql_query(LastStmt)
+    end,
     LastKey =
-        case lists:member(autoid, TableInfo#table.types) of
+        case lists:member(autoid, LastTableInfo#table.types) of
             true ->
-                case TableInfo#table.rdbms of
+                case RDBMS of
                     mysql ->
                         {selected, _, [{ID}]} =
                             sql_query("select LAST_INSERT_ID()"),
-                        decode(ID, integer, TableInfo);
+                        decode(ID, integer, LastTableInfo);
                     sqlite ->
                         {selected, _, [{ID}]} =
                             sql_query("select last_insert_rowid()"),
-                        decode(ID, integer, TableInfo);
+                        decode(ID, integer, LastTableInfo);
                     pgsql ->
                         {selected, _, [{ID}]} =
                             sql_query("select currval('" ++
-                                      atom_to_list(TableInfo#table.name) ++
+                                      atom_to_list(LastTableInfo#table.name) ++
                                       "_id_seq')"),
-                        decode(ID, integer, TableInfo)
+                        decode(ID, integer, LastTableInfo)
                 end;
             _ ->
                 undefined
         end,
-    {inserted, Count, LastKey};
+    {inserted, length(Records), LastKey};
 
 handle_query({sql_query, Query}, _DbInfo) ->
     sql_query(lists:flatten(Query));

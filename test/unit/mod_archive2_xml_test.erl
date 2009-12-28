@@ -488,22 +488,16 @@ mysql_test_links(Pid) ->
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
                  "'1469-07-21 02:56:15', '2002-12-31 23:59:59', 1, 0, null, "
-                 "null, null, null)",
-                 {updated, 1}},
-                {"insert into archive_collection (prev_id, next_id, us, with_user, "
-                 "with_server, with_resource, utc, change_utc, version, deleted, "
-                 "subject, thread, crypt, extra) values (null, null, "
+                 "null, null, null), "
+                 "(null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
                  "'1469-07-21 03:16:37', '2001-12-31 23:59:59', 1, 0, null, "
-                 "null, null, null)",
-                 {updated, 1}},
-                {"insert into archive_collection (prev_id, next_id, us, with_user, "
-                 "with_server, with_resource, utc, change_utc, version, deleted, "
-                 "subject, thread, crypt, extra) values (null, null, "
+                 "null, null, null), "
+                 "(null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
                  "'1469-07-21 03:01:54', '2000-12-31 23:59:59', 1, 0, null, "
                  "null, null, null)",
-                 {updated, 1}},
+                 {updated, 3}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'balcony') "

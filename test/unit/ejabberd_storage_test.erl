@@ -166,12 +166,10 @@ mysql_test_insert1() ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
-                 {updated, 1}},
-                {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (null, '1999-11-30 19:01:02', 0, 'Hi there!', "
-                 "'smb', null)",
-                 {updated, 1}},
+                 "name, jid) values "
+                 "(null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null), "
+                 "(null, '1999-11-30 19:01:02', 0, 'Hi there!', 'smb', null)",
+                 {updated, 2}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {}])
         end),
