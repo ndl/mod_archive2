@@ -143,11 +143,61 @@
 
 -define(PREFS_TC4_RESULT,
     {atomic,
+     {auto_states,
+      {dict,1,16,16,8,80,48,
+       {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+       {{[],[],[],[],[],[],[],
+         [["client@localhost"|
+           {dict,1,16,16,8,80,48,
+            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+            {{[],
+              [["res"|{auto_state,true,undefined}]],
+              [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+         [],[],[],[],[],[],[],[]}}}}}).
+
+-define(SHOULD_AUTO_ARCHIVE1,
+{true,
+ {dict,1,16,16,8,80,48,
+  {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+  {{[],[],[],[],[],[],[],
+    [["client@localhost"|
+      {dict,1,16,16,8,80,48,
+       {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+       {{[],
+         [["res"|
+           {auto_state,true,
+            {dict,1,16,16,8,80,48,
+             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+             {{[],[],[],[],[],[],[],[],
+               [[{jid,<<"romeo@montague.net">>,<<"romeo">>,
+                  <<"montague.net">>,undefined}|
+                 true]],
+               [],[],[],[],[],[],[]}}}}]],
+         [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+    [],[],[],[],[],[],[],[]}}}}).
+
+-define(SHOULD_AUTO_ARCHIVE2,
+    {false,
      {dict,1,16,16,8,80,48,
-          {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-          {{[],[],[],[],
-            [["client@localhost/res"|true]],
-            [],[],[],[],[],[],[],[],[],[],[]}}}}).
+      {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+      {{[],[],[],[],[],[],[],
+        [["client@localhost"|
+          {dict,1,16,16,8,80,48,
+           {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+           {{[],
+             [["res"|
+               {auto_state,true,
+                {dict,1,16,16,8,80,48,
+                 {[],[],[],[],[],[],[],[],[],[],[],[],[],[],
+                  [],[]},
+                 {{[],[],[],[],[],[],[],[],
+                   [[{jid,<<"romeo@montague.net">>,
+                      <<"romeo">>,<<"montague.net">>,
+                      undefined}|
+                     false]],
+                   [],[],[],[],[],[],[]}}}}]],
+             [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+        [],[],[],[],[],[],[],[]}}}}).
 
 -define(PREFS_TC5_RETRIEVE_RESULT,
     {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
@@ -234,6 +284,18 @@ mod_archive2_prefs_mnesia_test_() ->
     ]
 }.
 
+create_auto_states(Value) ->
+    dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
+       dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
+                        {auto_state, Value, dict:new()}}])}]).
+
+create_auto_states_with(Value) ->
+    dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
+       dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
+                        {auto_state, Value,
+                         dict:from_list([{exmpp_jid:parse(
+                             "romeo@montague.net/romeo"), Value}])}}])}]).
+
 mysql_test_default_prefs(Pid) ->
     ejabberd_storage:transaction(?HOST,
         fun() ->
@@ -255,7 +317,7 @@ common_test_default_prefs(_Pid) ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_set_prefs1() ->
@@ -282,7 +344,8 @@ mysql_test_set_prefs1() ->
     common_test_set_prefs1().
 
 common_test_set_prefs1() ->
-    {atomic, ok} =
+    CleanedAutoStates = create_auto_states(true),
+    {atomic, {auto_states, CleanedAutoStates}} =
         mod_archive2_prefs:pref(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -310,7 +373,7 @@ common_test_set_prefs1() ->
                                  exmpp_xml:attribute(otr, approve)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states_with(true),
             {0, infinity}).
 
 mysql_test_get_prefs1() ->
@@ -335,7 +398,7 @@ common_test_get_prefs1() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_should_auto_archive1() ->
@@ -359,11 +422,11 @@ mysql_test_should_auto_archive1() ->
     common_test_should_auto_archive1().
 
 common_test_should_auto_archive1() ->
-    true =
+    ?SHOULD_AUTO_ARCHIVE1 =
         mod_archive2_prefs:should_auto_archive(
             exmpp_jid:parse(?JID),
             exmpp_jid:parse("romeo@montague.net"),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             mod_archive2_prefs:default_global_prefs(true, 3600)).
 
 mysql_test_update_prefs1() ->
@@ -391,7 +454,8 @@ mysql_test_update_prefs1() ->
     common_test_update_prefs1().
 
 common_test_update_prefs1() ->
-    {atomic, ok} =
+    CleanedAutoStates = create_auto_states(false),
+    {atomic, {auto_states, CleanedAutoStates}} =
         mod_archive2_prefs:pref(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -411,7 +475,7 @@ common_test_update_prefs1() ->
                                  exmpp_xml:attribute(otr, concede)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, false}]),
+            create_auto_states_with(false),
             {0, infinity}).
 
 mysql_test_get_prefs2() ->
@@ -436,7 +500,7 @@ common_test_get_prefs2() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_should_auto_archive2() ->
@@ -460,11 +524,11 @@ mysql_test_should_auto_archive2() ->
     common_test_should_auto_archive2().
 
 common_test_should_auto_archive2() ->
-    false =
+    ?SHOULD_AUTO_ARCHIVE2 =
         mod_archive2_prefs:should_auto_archive(
             exmpp_jid:parse(?JID),
             exmpp_jid:parse("romeo@montague.net"),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             mod_archive2_prefs:default_global_prefs(true, 3600)).
 
 mysql_test_itemremove_prefs1() ->
@@ -481,7 +545,8 @@ mysql_test_itemremove_prefs1() ->
     common_test_itemremove_prefs1().
 
 common_test_itemremove_prefs1() ->
-    {atomic, ok} =
+    CleanedAutoStates = create_auto_states(true),
+    {atomic, {auto_states, CleanedAutoStates}} =
         mod_archive2_prefs:itemremove(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -491,7 +556,8 @@ common_test_itemremove_prefs1() ->
                             exmpp_xml:element(undefined, item,
                                 [exmpp_xml:attribute(jid, "romeo@montague.net"),
                                  exmpp_xml:attribute(exactmatch, "true")], [])
-                        ])))).
+                        ]))),
+            create_auto_states_with(true)).
 
 mysql_test_auto1() ->
     ejabberd_storage:transaction(?HOST,
@@ -508,7 +574,7 @@ mysql_test_auto1() ->
     common_test_auto1().
 
 common_test_auto1() ->
-    AutoStates = dict:from_list([{?JID, true}]),
+    AutoStates = create_auto_states(true),
     {atomic, AutoStates} =
         mod_archive2_prefs:auto(
             exmpp_jid:parse(?JID),
@@ -565,7 +631,7 @@ common_test_get_prefs3() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_set_not_implemented_prefs1() ->
@@ -603,7 +669,7 @@ common_test_set_not_implemented_prefs1() ->
                                  [exmpp_xml:attribute(save, stream)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_set_not_implemented_prefs2() ->
@@ -628,7 +694,7 @@ common_test_set_not_implemented_prefs2() ->
                                  exmpp_xml:attribute(save, message)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, infinity}).
 
 mysql_test_set_not_allowed_expire_prefs1() ->
@@ -653,5 +719,5 @@ common_test_set_not_allowed_expire_prefs1() ->
                                  exmpp_xml:attribute(expire, 1)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
-            dict:from_list([{?JID, true}]),
+            create_auto_states(true),
             {0, 0}).

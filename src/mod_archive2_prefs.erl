@@ -31,12 +31,14 @@
 -module(mod_archive2_prefs).
 -author('ejabberd@ndl.kiev.ua').
 
--export([pref/5, auto/3, itemremove/2, default_global_prefs/2,
+-export([pref/5, auto/3, itemremove/3, default_global_prefs/2,
          should_auto_archive/4,
          get_effective_jid_prefs/2, get_global_prefs/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
+
+-record(auto_state, {session_auto_save, with}).
 
 %%--------------------------------------------------------------------
 %% API functions
@@ -48,9 +50,10 @@ pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
     case Type of
 	    set ->
             case pref_set(From, SubEl, EnforceExpire) of
-                {atomic, ok} = Ok ->
+                {atomic, ok} ->
                     broadcast_iq(From, IQ),
-                    Ok;
+                    {atomic, {auto_states, clear_with_auto_states(
+                        From, AutoStates)}};
                 Result ->
                     Result
             end;
@@ -82,13 +85,14 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                 exmpp_jid:prep_domain_as_list(From), F);
         session ->
             {atomic,
-             dict:store(exmpp_jid:prep_to_list(From), AutoSave, AutoStates)};
+             {auto_states,
+              update_session_auto_states(From, AutoSave, AutoStates)}};
         _ ->
             {aborted, {throw, {error, 'bad-request'}}}
     end.
 
 %% Processes 'itemremove' requests from clients
-itemremove(From, #iq{type = Type, payload = SubEl} = IQ) ->
+itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     F = fun() ->
             lists:foreach(
@@ -100,9 +104,10 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ) ->
             ok
         end,
     case ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
-        {atomic, ok} = Ok ->
+        {atomic, ok} ->
             broadcast_iq(From, IQ),
-            Ok;
+            {atomic, {auto_states, clear_with_auto_states(
+               From, AutoStates)}};
         Result ->
             Result
     end.
@@ -110,35 +115,58 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ) ->
 %% Returns true if collections for given From JID with given With JID
 %% should be auto-archived.
 should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs) ->
+    case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
+        {ok, Resources} ->
+            case dict:find(exmpp_jid:resource_as_list(From), Resources) of
+                {ok, AutoState} ->
+                    case AutoState#auto_state.session_auto_save of
+                        false ->
+                            false;
+                        _ ->
+                            case dict:find(With, AutoState#auto_state.with) of
+                                {ok, Result} ->
+                                    Result;
+                                _ ->
+                                    should_auto_archive2(From, With, AutoStates,
+                                        AutoState#auto_state.session_auto_save,
+                                        DefaultGlobalPrefs)
+                            end
+                    end;
+                _ ->
+                    should_auto_archive2(From, With, AutoStates, undefined,
+                        DefaultGlobalPrefs)
+            end;
+        _ ->
+            should_auto_archive2(From, With, AutoStates, undefined,
+                DefaultGlobalPrefs)
+    end.
+
+should_auto_archive2(From, With, AutoStates, SessionAutoSave,
+    DefaultGlobalPrefs) ->
     F =
         fun() ->
-            case dict:find(exmpp_jid:prep_to_list(From), AutoStates) of
-                {ok, false} ->
-                    false;
-                Result ->
-                    GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
-                    if Result =:= {ok, true} orelse
-                        GlobalPrefs#archive_global_prefs.auto_save =:= true ->
-                        case get_effective_jid_prefs(From, With) of
-                            undefined ->
-                                true;
-                            JidPrefs ->
-                                case JidPrefs#archive_jid_prefs.save of
-                                    false -> false;
-                                    _ -> true
-                                end
-                        end;
-                       true ->
-                        false
-                    end
+            GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
+            if SessionAutoSave orelse
+                GlobalPrefs#archive_global_prefs.auto_save ->
+                case get_effective_jid_prefs(From, With) of
+                    undefined ->
+                        true;
+                    JidPrefs ->
+                        case JidPrefs#archive_jid_prefs.save of
+                            false -> false;
+                            _ -> true
+                        end
+                end;
+               true ->
+                false
             end
         end,
     case ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, Value} when is_boolean(Value) ->
-            Value;
+            {Value, update_with_auto_states(From, With, Value, AutoStates)};
         Result ->
             ?ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
-            false
+            {false, AutoStates}
     end.
 
 %%--------------------------------------------------------------------
@@ -161,17 +189,23 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
 		       true ->
                 true
 		    end,
-        AutoState =
-            case dict:find(exmpp_jid:prep_to_list(From), AutoStates) of
-                {ok, Value} ->
-                    Value;
+        AutoSave =
+            case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
+                {ok, Resources} ->
+                    case dict:find(exmpp_jid:resource_as_list(From),
+                        Resources) of
+                        {ok, AutoState} ->
+                            AutoState#auto_state.session_auto_save;
+                        _ ->
+                            undefined
+                    end;
                 _ ->
                     undefined
             end,
 		GlobalPrefsXML =
             mod_archive2_xml:global_prefs_to_xml(
                 merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs),
-                    PrefsUnSet, AutoState),
+                    PrefsUnSet, AutoSave),
         exmpp_iq:result(IQ,
             exmpp_xml:element(?NS_ARCHIVING, pref, [],
                 JidPrefsXML ++ GlobalPrefsXML))
@@ -386,4 +420,60 @@ write_prefs(Prefs) ->
             ejabberd_storage:update(Prefs);
         Result ->
             throw({error, Result})
+    end.
+
+update_with_auto_states(From, With, Value, AutoStates) ->
+    update_auto_states(
+        From,
+        fun(AutoState) ->
+            AutoState#auto_state{with =
+                dict:store(With, Value, AutoState#auto_state.with)}
+        end,
+        #auto_state{with = dict:store(With, Value, dict:new())},
+        AutoStates).
+
+update_session_auto_states(From, AutoSave, AutoStates) ->
+    update_auto_states(
+        From,
+        fun(AutoState) ->
+            AutoState#auto_state{session_auto_save = AutoState}
+        end,
+        #auto_state{session_auto_save = AutoSave},
+        AutoStates).
+
+update_auto_states(From, Updater, Default, AutoStates) ->
+    US = exmpp_jid:bare_to_list(From),
+    Resource = exmpp_jid:resource_as_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            case dict:find(Resource, Resources) of
+                {ok, AutoState} ->
+                    dict:store(US,
+                        dict:store(Resource, Updater(AutoState), Resources),
+                        AutoStates);
+                _ ->
+                    dict:store(US,
+                        dict:store(Resource, Default, Resources),
+                        AutoStates)
+            end;
+        _ ->
+            dict:store(US,
+                dict:store(Resource, Default, dict:new()),
+                AutoStates)
+    end.
+
+clear_with_auto_states(From, AutoStates) ->
+    US = exmpp_jid:bare_to_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            dict:store(
+                US,
+                dict:map(
+                    fun(_Resource, AutoState) ->
+                        AutoState#auto_state{with = dict:new()}
+                    end,
+                    Resources),
+                AutoStates);
+        _ ->
+            AutoStates
     end.

@@ -303,21 +303,22 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                     EnforceMaxExpire =
                         gen_mod:get_opt(enforce_max_expire,
                             State#state.options, ?DEFAULT_MAX_EXPIRE),
-                    mod_archive2_prefs:pref(From, IQ,
-                        State#state.default_global_prefs,
-                        State#state.auto_states,
-                        {EnforceMinExpire, EnforceMaxExpire});
+                    auto_states_reply(IQ,
+                        mod_archive2_prefs:pref(From, IQ,
+                            State#state.default_global_prefs,
+                            State#state.auto_states,
+                            {EnforceMinExpire, EnforceMaxExpire}),
+                        State);
                 'itemremove' ->
-                    mod_archive2_prefs:itemremove(From, IQ);
+                    auto_states_reply(IQ,
+                        mod_archive2_prefs:itemremove(From, IQ,
+                            State#state.auto_states),
+                        State);
 			    'auto' ->
-                    case mod_archive2_prefs:auto(From, IQ,
-                        State#state.auto_states) of
-                        {atomic, AutoStates} ->
-                            {reply, exmpp_iq:result(IQ),
-                             State#state{auto_states = AutoStates}};
-                        Result ->
-                            Result
-                    end;
+                    auto_states_reply(IQ,
+                        mod_archive2_prefs:auto(From, IQ,
+                            State#state.auto_states),
+                        State);
 			    'list' ->
                     mod_archive2_management:list(From, IQ);
 			    'modified' ->
@@ -377,7 +378,7 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
     AutoStates = State#state.auto_states,
     Prefs = State#state.default_global_prefs,
     case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs) of
-        true ->
+        {true, NewAutoStates} ->
             Sessions =
                 State#state.sessions,
             TimeOut =
@@ -387,9 +388,10 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
                     ?DEFAULT_SESSION_DURATION),
             NewSessions =
                 mod_archive2_auto:add_message(Args, TimeOut, Sessions),
-            {noreply, State#state{sessions = NewSessions}};
-        _ ->
-            {noreply, State}
+            {noreply, State#state{sessions = NewSessions,
+                auto_states = NewAutoStates}};
+        {false, NewAutoStates} ->
+            {noreply, State#state{auto_states = NewAutoStates}}
     end;
 
 handle_cast(_Msg, State) ->
@@ -439,6 +441,14 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
+
+auto_states_reply(IQ, Reply, State) ->
+    case Reply of
+        {atomic, {auto_states, AutoStates}} ->
+            {reply, exmpp_iq:result(IQ), State#state{auto_states = AutoStates}};
+            Result ->
+                Result
+    end.
 
 handle_error(Error, IQ) ->
     ?INFO_MSG("error while executing archiving request: ~p", [Error]),
