@@ -124,11 +124,11 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
                 {ok, AutoState} ->
                     case AutoState#auto_state.session_auto_save of
                         false ->
-                            false;
+                            {false, AutoStates};
                         AutoSave ->
                             case dict:find(With, AutoState#auto_state.with) of
                                 {ok, Result} ->
-                                    Result;
+                                    {Result, AutoStates};
                                 _ ->
                                     should_auto_archive2(From, With, AutoStates,
                                         AutoSave, DefaultGlobalPrefs,
