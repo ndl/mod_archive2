@@ -1,15 +1,15 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_xml.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : Support XEP-136 for messages archiving
-%%% Created : 07 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 07 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
 %%% Based on earlier works by:
 %%%  - Olivier Goffart <ogoffar@kde.org> (mnesia version)
 %%%  - Alexey Shchepin <alexey@process-one.net> (PostgreSQL version)
-%%%  - Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua> (ODBC version)
+%%%  - Alexander Tsvyashchenko <xmpp@endl.ch> (ODBC version)
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -29,7 +29,7 @@
 %%%----------------------------------------------------------------------
 
 -module(mod_archive2_xml).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 %% Our hooks
 -export([collection_from_xml/2, collection_to_xml/2,

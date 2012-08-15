@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : dbms_storage.hrl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : ejabberd common declarations for storage support
-%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%

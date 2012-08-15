@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_utils.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 helper functionality
-%%% Created : 04 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 04 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(mod_archive2_utils).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -export([list_to_bool/1, filter_undef/1, verify_iq_type/2]).
 

@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_storage.hrl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 storage-related declarations
-%%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%

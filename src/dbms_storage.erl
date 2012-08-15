@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : dbms_storage.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : ejabberd unified RDBMS and Mnesia storage support
-%%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(dbms_storage).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -include("dbms_storage.hrl").
 

@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_time.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 helper functionality
-%%% Created : 27 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 27 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(mod_archive2_time).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -export([now/0]).
 
