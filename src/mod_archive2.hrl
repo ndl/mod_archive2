@@ -30,7 +30,7 @@
 -include("ejabberd.hrl").
 -include("jlib.hrl").
 
--include("ejabberd_storage.hrl").
+-include("dbms_storage.hrl").
 
 -define(NS_ARCHIVING_AUTO, 'urn:xmpp:archive:auto').
 -define(NS_ARCHIVING_AUTO_s, "urn:xmpp:archive:auto").

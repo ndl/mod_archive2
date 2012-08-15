@@ -46,7 +46,7 @@ get_collection(undefined, _) ->
     undefined;
 
 get_collection(#archive_collection{} = C, Type) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(
+    TableInfo = dbms_storage_utils:get_table_info(
         archive_collection, ?MOD_ARCHIVE2_SCHEMA),
     get_collection(C, Type, existing, TableInfo#table.fields).
 
@@ -54,12 +54,12 @@ get_collection(undefined, _, _, _) ->
     undefined;
 
 get_collection(#archive_collection{} = C, Type, Filter, Fields) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(
+    TableInfo = dbms_storage_utils:get_table_info(
         archive_collection, ?MOD_ARCHIVE2_SCHEMA),
-    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
-    case ejabberd_storage:select([{MSHead,
+    MSHead = dbms_storage_utils:get_full_ms_head(TableInfo),
+    case dbms_storage:select([{MSHead,
         get_collection_conditions(C, Type, Filter, TableInfo),
-        ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}]) of
+        dbms_storage_utils:get_ms_body(Fields, TableInfo)}]) of
         {selected, [#archive_collection{} = OutC]} ->
             OutC;
         _ ->
@@ -72,14 +72,14 @@ get_collection_conditions(C, by_id, Filter, TableInfo) ->
     Conditions =
         filter_undef(
             [{'=:=', id,
-                ejabberd_storage_utils:encode_brackets(C#archive_collection.id)},
+                dbms_storage_utils:encode_brackets(C#archive_collection.id)},
              case Filter of
                  existing ->
                      {'=/=', deleted, true};
                  all ->
                      undefined
              end]),
-    ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo);
+    dbms_storage_utils:resolve_fields_names(Conditions, TableInfo);
 
 %% Retrieve collection from minimally filled archive_collection
 %% record: required fields are 'us', 'with_*' and 'utc'.
@@ -91,11 +91,11 @@ get_collection_conditions(C, by_link, Filter, TableInfo) ->
              {'=:=', with_server, C#archive_collection.with_server},
              {'=:=', with_resource, C#archive_collection.with_resource},
              {'=:=', utc,
-                ejabberd_storage_utils:encode_brackets(C#archive_collection.utc)},
+                dbms_storage_utils:encode_brackets(C#archive_collection.utc)},
              case Filter of
                  existing ->
                      {'=/=', deleted, true};
                  all ->
                      undefined
              end]),
-    ejabberd_storage_utils:resolve_fields_names(Conditions, TableInfo).
+    dbms_storage_utils:resolve_fields_names(Conditions, TableInfo).

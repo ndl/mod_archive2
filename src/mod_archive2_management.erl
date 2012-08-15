@@ -51,7 +51,7 @@
 
 list(From, #iq{type = Type, payload = SubEl} = IQ) ->
     mod_archive2_utils:verify_iq_type(Type, get),
-    TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
+    TableInfo = dbms_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
             Range = parse_cmd_range(SubEl),
@@ -70,7 +70,7 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
             exmpp_iq:result(IQ,
                 exmpp_xml:element(?NS_ARCHIVING, list, [], Results))
         end,
-    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 %%--------------------------------------------------------------------
 %% Retrieves modifications list
@@ -78,7 +78,7 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
 
 modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
     mod_archive2_utils:verify_iq_type(Type, get),
-    TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
+    TableInfo = dbms_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
             Range = parse_cmd_range(SubEl),
@@ -97,7 +97,7 @@ modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
             exmpp_iq:result(IQ,
                 exmpp_xml:element(?NS_ARCHIVING, modified, [], Results))
         end,
-    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 %%--------------------------------------------------------------------
 %% Removes specified collections and their messages
@@ -133,7 +133,7 @@ remove(From, #iq{type = Type, payload = SubEl}, RDBMS, Sessions) ->
                     remove_auto_archived(From, R, false, RDBMS, Sessions)
                 end
         end,
-        ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+        dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
     % TODO: is using non side effects free predicate for dict:filter dangerous?
@@ -209,13 +209,13 @@ remove_auto_archived(From, R, RemoveAlsoInDb, RDBMS, Sessions) ->
     mod_archive2_auto:filter_sessions(F, Sessions).
 
 remove_normal(From, R, RDBMS) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(archive_collection,
+    TableInfo = dbms_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     TimeConditions =
         filter_undef([
             if R#range.start_time =/= undefined ->
                 Start =
-                    ejabberd_storage_utils:encode_brackets(R#range.start_time),
+                    dbms_storage_utils:encode_brackets(R#range.start_time),
                 % Ugly special case: if end time is undefined but start is
                 % defined, 'remove' command is in 'single-collection' mode,
                 % otherwise it's in range mode.
@@ -228,16 +228,16 @@ remove_normal(From, R, RDBMS) ->
                 undefined
             end,
             if R#range.end_time =/= undefined ->
-                End = ejabberd_storage_utils:encode_brackets(R#range.end_time),
+                End = dbms_storage_utils:encode_brackets(R#range.end_time),
                 {'<', utc, End};
                true ->
                 undefined
             end]),
     WithConditions = get_with_conditions(From, R),
     Conditions =
-        ejabberd_storage_utils:resolve_fields_names(TimeConditions ++
+        dbms_storage_utils:resolve_fields_names(TimeConditions ++
             WithConditions ++ [{'=/=', deleted, true}], TableInfo),
-    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
+    MSHead = dbms_storage_utils:get_full_ms_head(TableInfo),
     MS = [{MSHead, Conditions, [ok]}],
     Count = remove_collections(MS, RDBMS),
     if (is_integer(Count) andalso Count > 0) orelse (Count =:= undefined) ->
@@ -251,13 +251,13 @@ remove_collections(MS, RDBMS) ->
         case RDBMS of
             sqlite ->
                 {selected, [{C}]} =
-                    ejabberd_storage:select(MS, [{aggregate, count}]),
+                    dbms_storage:select(MS, [{aggregate, count}]),
                 C;
             _ ->
                 undefined
         end,
     {updated, UpdatedCount} =
-        ejabberd_storage:update(#archive_collection{deleted = true}, MS),
+        dbms_storage:update(#archive_collection{deleted = true}, MS),
     Count =
         case UpdatedCount of
             undefined ->
@@ -282,7 +282,7 @@ delete_messages(MS) ->
     IDs = get_collections_ids(MS),
     lists:foreach(
         fun({ID}) ->
-            ejabberd_storage:delete(
+            dbms_storage:delete(
                 ets:fun2ms(
                     fun(#archive_message{coll_id = ID1})
                         when ID1 =:= ID ->
@@ -294,14 +294,14 @@ update_collections_links(MS) ->
     IDs = get_collections_ids(MS),
     lists:foreach(
         fun({ID}) ->
-            ejabberd_storage:update(
+            dbms_storage:update(
                 #archive_collection{prev_id = null},
                 ets:fun2ms(
                     fun(#archive_collection{prev_id = ID1})
                         when ID1 =:= ID ->
                         ok
                     end)),
-            ejabberd_storage:update(
+            dbms_storage:update(
                 #archive_collection{next_id = null},
                 ets:fun2ms(
                     fun(#archive_collection{next_id = ID1})
@@ -313,7 +313,7 @@ update_collections_links(MS) ->
 get_collections_ids([{MSHead, Conditions, _}]) ->
     MS = [{MSHead, Conditions, [{{'$1'}}]}],
     % NOTE: here we read in potentially very large piece of data :-(
-    {selected, IDs} = ejabberd_storage:select(MS),
+    {selected, IDs} = dbms_storage:select(MS),
     IDs.
 
 %%--------------------------------------------------------------------
@@ -329,14 +329,14 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
                     throw({error, 'item-not-found'});
                 C ->
                     TableInfo =
-                        ejabberd_storage_utils:get_table_info(archive_message,
+                        dbms_storage_utils:get_table_info(archive_message,
                             ?MOD_ARCHIVE2_SCHEMA),
                     Fields = TableInfo#table.fields,
                     Range = #range{exactmatch = false},
                     Results =
                         case get_items_ranged(IQ, TableInfo,
                             Range, [{'=:=', coll_id,
-                                     ejabberd_storage_utils:encode_brackets(
+                                     dbms_storage_utils:encode_brackets(
                                          C#archive_collection.id)}],
                             #archive_message.utc, Fields) of
                             {[], undefined} ->
@@ -352,7 +352,7 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
                         exmpp_xml:element(?NS_ARCHIVING, retrieve, [], Results))
             end
         end,
-    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 %%--------------------------------------------------------------------
 %% Helper functions for range requests
@@ -363,9 +363,9 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
             none -> #rsm_in{};
             R -> R
         end,
-    MSHead = ejabberd_storage_utils:get_full_ms_head(TableInfo),
+    MSHead = dbms_storage_utils:get_full_ms_head(TableInfo),
     {selected, [{Count}]} =
-        ejabberd_storage:select(
+        dbms_storage:select(
             [{MSHead,
               get_range_matching_conditions(Range, Conditions, UTCField,
                 TableInfo),
@@ -375,11 +375,11 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
         CombiRange = combine_ranges(Range, InRSM),
         Opts = get_range_opts(InRSM, UTCField),
         {selected, Rows} =
-            ejabberd_storage:select(
+            dbms_storage:select(
                 [{MSHead,
                   get_range_matching_conditions(CombiRange, Conditions,
                       UTCField, TableInfo),
-                ejabberd_storage_utils:get_ms_body(Fields, TableInfo)}], Opts),
+                dbms_storage_utils:get_ms_body(Fields, TableInfo)}], Opts),
         Items =
             if InRSM#rsm_in.direction =:= before ->
                 lists:reverse(Rows);
@@ -401,7 +401,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
                                              end_time = ActualStart,
                                              end_id = First},
                     {selected, [{Index}]} =
-                        ejabberd_storage:select(
+                        dbms_storage:select(
                             [{MSHead,
                               get_range_matching_conditions(StartRange,
                                   Conditions, UTCField, TableInfo),
@@ -422,9 +422,9 @@ get_range_matching_conditions(R, Conditions, UTCField, TableInfo) ->
         filter_undef([
             if R#range.start_time =/= undefined ->
                 Start =
-                    ejabberd_storage_utils:encode_brackets(R#range.start_time),
+                    dbms_storage_utils:encode_brackets(R#range.start_time),
                 if R#range.start_id =/= undefined ->
-                    ID = ejabberd_storage_utils:encode_brackets(
+                    ID = dbms_storage_utils:encode_brackets(
                         R#range.start_id),
                     {'orelse',
                      {'>', UTC, Start},
@@ -438,9 +438,9 @@ get_range_matching_conditions(R, Conditions, UTCField, TableInfo) ->
                undefined
             end,
             if R#range.end_time =/= undefined ->
-                End = ejabberd_storage_utils:encode_brackets(R#range.end_time),
+                End = dbms_storage_utils:encode_brackets(R#range.end_time),
                 if R#range.end_id =/= undefined ->
-                    ID = ejabberd_storage_utils:encode_brackets(
+                    ID = dbms_storage_utils:encode_brackets(
                         R#range.end_id),
                     {'orelse',
                      {'<', UTC, End},
@@ -453,7 +453,7 @@ get_range_matching_conditions(R, Conditions, UTCField, TableInfo) ->
                true ->
                 undefined
             end]),
-    ejabberd_storage_utils:resolve_fields_names(Conditions ++ RangeConditions,
+    dbms_storage_utils:resolve_fields_names(Conditions ++ RangeConditions,
         TableInfo).
 
 get_with_conditions(From, R) ->

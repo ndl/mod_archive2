@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : ejabberd_storage.erl
+%%% File    : dbms_storage.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : ejabberd unified RDBMS and Mnesia storage support
 %%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,10 +23,10 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(ejabberd_storage).
+-module(dbms_storage).
 -author('ejabberd@ndl.kiev.ua').
 
--include("ejabberd_storage.hrl").
+-include("dbms_storage.hrl").
 
 -behaviour(gen_server).
 
@@ -46,9 +46,9 @@
          transaction/2]).
 
 -define(SUPERVISOR, ejabberd_sup).
--define(BACKEND_KEY, ejabberd_storage_backend).
--define(MODULE_MNESIA, ejabberd_storage_mnesia).
--define(MODULE_ODBC, ejabberd_storage_odbc).
+-define(BACKEND_KEY, dbms_storage_backend).
+-define(MODULE_MNESIA, dbms_storage_mnesia).
+-define(MODULE_ODBC, dbms_storage_odbc).
 
 %%--------------------------------------------------------------------
 %% gen_server callbacks
@@ -178,7 +178,7 @@ forward_query(Query) ->
 forward_query(Query, State) ->
     case State#storage_backend.name of
         ?MODULE_MNESIA ->
-            ejabberd_storage_mnesia:handle_query(Query, State);
+            dbms_storage_mnesia:handle_query(Query, State);
         ?MODULE_ODBC ->
-            ejabberd_storage_odbc:handle_query(Query, State)
+            dbms_storage_odbc:handle_query(Query, State)
     end.

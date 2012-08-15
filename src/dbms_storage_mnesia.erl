@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : ejabberd_storage_mnesia.erl
+%%% File    : dbms_storage_mnesia.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : ejabberd Mnesia storage support
 %%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,12 +23,12 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(ejabberd_storage_mnesia).
+-module(dbms_storage_mnesia).
 -author('ejabberd@ndl.kiev.ua').
 
 -export([handle_query/2]).
 
--include("ejabberd_storage.hrl").
+-include("dbms_storage.hrl").
 
 %%--------------------------------------------------------------------
 %% Queries interface
@@ -38,14 +38,14 @@ handle_query({transaction, F}, _DbInfo) ->
     mnesia:transaction(F);
 
 handle_query({delete, R}, DbInfo) when is_tuple(R) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     case TableInfo#table.keys of
         1 ->
             % Common case:
             mnesia:delete({element(1, R), element(2, R)}),
             {deleted, 1};
         _ ->
-            MS = [{ejabberd_storage_utils:get_full_ms_head(TableInfo),
+            MS = [{dbms_storage_utils:get_full_ms_head(TableInfo),
                    encode_keys(R, TableInfo), ['$_']}],
             {deleted,
              delete2(mnesia:select(get_table(MS), MS, ?SELECT_NOBJECTS, write),
@@ -66,7 +66,7 @@ handle_query({select, MS, Opts}, _DbInfo) ->
     {selected, select(MS, Opts)};
 
 handle_query({update, R}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     case TableInfo#table.keys of
         1 ->
             % Common case:
@@ -74,7 +74,7 @@ handle_query({update, R}, DbInfo) ->
             mnesia:write(update_values(OldR, R, TableInfo)),
             {updated, 1};
         _ ->
-            MS = [{ejabberd_storage_utils:get_full_ms_head(TableInfo),
+            MS = [{dbms_storage_utils:get_full_ms_head(TableInfo),
                    encode_keys(R, TableInfo), ['$_']}],
             {updated,
              update2(mnesia:select(element(1, R), MS, ?SELECT_NOBJECTS, write),
@@ -82,7 +82,7 @@ handle_query({update, R}, DbInfo) ->
     end;
 
 handle_query({update, R, [{MatchHead, MatchConditions, _}]}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     % Make sure MS body is what we need, not what user specified - he will not
     % see its result anyway ...
     MS = [{MatchHead, MatchConditions, ['$_']}],
@@ -97,7 +97,7 @@ handle_query({insert, Records}, DbInfo) ->
     {Count, LastKey} =
         lists:foldl(
             fun(R, {N, _}) ->
-                TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+                TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
                 KeyType = lists:nth(1, TableInfo#table.types),
                 Key =
                     if element(2, R) =:= undefined andalso
@@ -298,7 +298,7 @@ correct_field_index([{MatchHead, _MatchConditions, MatchBody}], Index) ->
         ['$_'] ->
             Index;
 	    [{MatchBodyRecord}] ->
-            ejabberd_storage_utils:elem_index(MatchVar,
+            dbms_storage_utils:elem_index(MatchVar,
                 tuple_to_list(MatchBodyRecord))
     end.
 
@@ -348,5 +348,5 @@ get_table([{MatchHead, _, _}]) -> element(1, MatchHead).
 encode_keys(R, TableInfo) ->
     [{'=:=',
       list_to_atom("$" ++ integer_to_list(N)),
-      ejabberd_storage_utils:encode_brackets(element(N + 1, R))} ||
+      dbms_storage_utils:encode_brackets(element(N + 1, R))} ||
      N <- lists:seq(1, TableInfo#table.keys)].

@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : ejabberd_storage_utils.erl
+%%% File    : dbms_storage_utils.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : ejabberd storage helper functionality
 %%% Created : 04 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,10 +23,10 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(ejabberd_storage_utils).
+-module(dbms_storage_utils).
 -author('ejabberd@ndl.kiev.ua').
 
--include("ejabberd_storage.hrl").
+-include("dbms_storage.hrl").
 
 -export([elem_index/2, get_table_info/2, get_full_ms_head/1, get_ms_body/2,
          resolve_fields_names/2, encode_brackets/1, decode_brackets/1]).

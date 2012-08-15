@@ -120,7 +120,7 @@ start_link(Host, Opts) ->
 start(Host, Opts) ->
     % Start our storage manager first
     RDBMS = gen_mod:get_opt(rdbms, Opts, ?DEFAULT_RDBMS),
-    ejabberd_storage:start(Host,
+    dbms_storage:start(Host,
         [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     % Now start ourselves
     Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
@@ -139,7 +139,7 @@ stop(Host) ->
     gen_server:call(Proc, stop),
     supervisor:delete_child(ejabberd_sup, Proc),
     % Stop our storage manager
-    ejabberd_storage:stop(Host).
+    dbms_storage:stop(Host).
 
 %%====================================================================
 %% gen_server callbacks

@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : ejabberd_storage_odbc.erl
+%%% File    : dbms_storage_odbc.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : ejabberd ODBC storage support
 %%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,11 +23,11 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(ejabberd_storage_odbc).
+-module(dbms_storage_odbc).
 -author('ejabberd@ndl.kiev.ua').
 
 -include_lib("exmpp/include/exmpp.hrl").
--include("ejabberd_storage.hrl").
+-include("dbms_storage.hrl").
 
 -export([handle_query/2, encode/3, ms_to_sql/2]).
 
@@ -39,7 +39,7 @@
 %%--------------------------------------------------------------------
 
 handle_query({delete, R}, DbInfo) when is_tuple(R) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     Result =
         sql_query(
             join_non_empty(
@@ -50,7 +50,7 @@ handle_query({delete, R}, DbInfo) when is_tuple(R) ->
     convert_change_query_result(Result, deleted, DbInfo);
 
 handle_query({delete, MS}, DbInfo) when is_list(MS) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, _BodyMS} =
         ms_to_sql(MS, TableInfo),
     Result =
@@ -62,7 +62,7 @@ handle_query({delete, MS}, DbInfo) when is_list(MS) ->
     convert_change_query_result(Result, deleted, DbInfo);
 
 handle_query({read, R}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     {selected, _, Rows} =
         sql_query(
             join_non_empty(
@@ -77,7 +77,7 @@ handle_query({read, R}, DbInfo) ->
         TableInfo, undefined)};
 
 handle_query({select, MS, Opts}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(MS, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, {RequestedFields, _} = BodyMS} = ms_to_sql(MS, TableInfo),
     {OrderBy, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
@@ -129,7 +129,7 @@ handle_query({select, MS, Opts}, DbInfo) ->
     {selected, convert_rows(Rows, BodyMS, TableInfo, Aggregate)};
 
 handle_query({update, R}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     Result =
         sql_query(
@@ -143,7 +143,7 @@ handle_query({update, R}, DbInfo) ->
     convert_change_query_result(Result, updated, DbInfo);
 
 handle_query({update, R, MS}, DbInfo) ->
-    TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+    TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
     Set = get_update_set_stmt(R, TableInfo),
     {WhereMS, _BodyMS} = ms_to_sql(MS, TableInfo),
     Result =
@@ -161,7 +161,7 @@ handle_query({insert, Records}, DbInfo) ->
     {LastTableInfo, LastStmt} =
         lists:foldl(
             fun(R, {PrevTableInfo, Stmt}) ->
-                TableInfo = ejabberd_storage_utils:get_table_info(R, DbInfo),
+                TableInfo = dbms_storage_utils:get_table_info(R, DbInfo),
                 Values = get_insert_values(R, TableInfo),
                 NewStmt =
                     if Stmt =/= [] andalso
@@ -319,7 +319,7 @@ ms_to_sql([{MatchHead, MatchConditions, MatchBody}], TableInfo) ->
                 {[], [{value, ok}]};
             _ ->
                 [SingleMBR] = MatchBody,
-                MBR = ejabberd_storage_utils:decode_brackets(SingleMBR),
+                MBR = dbms_storage_utils:decode_brackets(SingleMBR),
                 BodyResults =
                     [parse_match_body(Expr, MatchVarsDict) ||
                         Expr <- tuple_to_list(MBR)],
@@ -347,7 +347,7 @@ annotate_match_condition(Value, {MatchVarsDict, TableInfo}) when is_atom(Value) 
             {{value, Value}, undefined};
         _ ->
             {{field, Field},
-             lists:nth(ejabberd_storage_utils:elem_index(Field,
+             lists:nth(dbms_storage_utils:elem_index(Field,
                 TableInfo#table.fields), TableInfo#table.types)}
     end;
 
@@ -363,16 +363,16 @@ annotate_match_condition(Value, _Context) when is_float(Value) ->
 annotate_match_condition({element, N, {const, R}}, Context)
     when is_integer(N) andalso is_tuple(R) ->
     annotate_match_condition(
-        ejabberd_storage_utils:encode_brackets(element(N, R)), Context);
+        dbms_storage_utils:encode_brackets(element(N, R)), Context);
 
 % Variables support.
 annotate_match_condition({const, Value}, Context) ->
     annotate_match_condition(
-        ejabberd_storage_utils:encode_brackets(Value), Context);
+        dbms_storage_utils:encode_brackets(Value), Context);
 
 % Record support: currently used for DateTime only.
 annotate_match_condition({_} = R, _Context) ->
-    {{value, ejabberd_storage_utils:decode_brackets(R)}, time};
+    {{value, dbms_storage_utils:decode_brackets(R)}, time};
 
 % Unary operations support.
 annotate_match_condition({GuardFun, Op1}, Context) ->
@@ -636,10 +636,10 @@ convert_value(Values, RequestedFields, Result, TableInfo) ->
     case Result of
         {field, Field} ->
             TypeIndex =
-                ejabberd_storage_utils:elem_index(Field,
+                dbms_storage_utils:elem_index(Field,
                     TableInfo#table.fields),
             ValueIndex =
-                ejabberd_storage_utils:elem_index(Field, RequestedFields),
+                dbms_storage_utils:elem_index(Field, RequestedFields),
             decode(lists:nth(ValueIndex, Values),
                 lists:nth(TypeIndex, TableInfo#table.types), TableInfo);
         {value, Value} ->
@@ -683,7 +683,7 @@ encode({{Year, Month, Day}, {Hour, Minute, Second}}, time, _) ->
                       [Year, Month, Day, Hour, Minute, Second]));
 
 encode(Value, {enum, Enums}, _TableInfo) ->
-    integer_to_list(ejabberd_storage_utils:elem_index(Value, Enums) - 1);
+    integer_to_list(dbms_storage_utils:elem_index(Value, Enums) - 1);
 
 encode(#xmlel{} = XML, xml, TableInfo) ->
     encode(exmpp_xml:document_to_list(XML), string, TableInfo);

@@ -82,7 +82,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                     broadcast_iq(From, IQ),
                     {auto_states, clear_with_auto_states(From, AutoStates)}
                 end,
-            ejabberd_storage:transaction(
+            dbms_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
         session ->
             {atomic,
@@ -105,7 +105,7 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates) ->
                 exmpp_xml:get_child_elements(SubEl)),
             ok
         end,
-    case ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
+    case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, ok} ->
             broadcast_iq(From, IQ),
             {atomic, {auto_states, clear_with_auto_states(
@@ -164,7 +164,7 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
                 false
             end
         end,
-    case ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
+    case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, Value} when is_boolean(Value) ->
             case ShouldCachePrefs of
                 true ->
@@ -230,7 +230,7 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
             exmpp_xml:element(?NS_ARCHIVING, pref, [],
                 JidPrefsXML ++ GlobalPrefsXML))
         end,
-    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 %% Processes 'set' prefs requests
 pref_set(From, PrefsXML, EnforceExpire) ->
@@ -269,7 +269,7 @@ pref_set(From, PrefsXML, EnforceExpire) ->
                 end,
                 exmpp_xml:get_elements(PrefsXML, item))
         end,
-    ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 verify_expire_range(Expire, {MinExpire, MaxExpire}) ->
     if Expire >= MinExpire andalso
@@ -337,7 +337,7 @@ get_global_prefs(From, DefaultGlobalPrefs) ->
     InPrefs =
         #archive_global_prefs{us = exmpp_jid:prep_bare_to_list(From)},
     GlobalPrefs =
-        case ejabberd_storage:read(InPrefs) of
+        case dbms_storage:read(InPrefs) of
             {selected, [Prefs]} ->
                 Prefs;
             {selected, []} ->
@@ -367,7 +367,7 @@ store_global_prefs(Prefs) ->
 %% Returns all JID prefs for given client.
 get_jid_prefs(From) ->
     US = exmpp_jid:prep_bare_to_list(From),
-    case ejabberd_storage:select(
+    case dbms_storage:select(
         ets:fun2ms(
             fun(#archive_jid_prefs{us = US1} = Prefs)
                 when US1 =:= US ->
@@ -383,7 +383,7 @@ get_jid_prefs(From) ->
 %% prefs are available with exactly these JID and ExactMatch, returns
 %% 'undefined'.
 get_jid_prefs(From, JID, ExactMatch) ->
-    case ejabberd_storage:read(#archive_jid_prefs{
+    case dbms_storage:read(#archive_jid_prefs{
         us = exmpp_jid:prep_bare_to_list(From),
         with_user = exmpp_jid:prep_node_as_list(JID),
         with_server = exmpp_jid:prep_domain_as_list(JID),
@@ -429,15 +429,15 @@ store_jid_prefs(Prefs) ->
 
 %% Remove given JID prefs.
 remove_jid_prefs(Prefs) ->
-    ejabberd_storage:delete(Prefs).
+    dbms_storage:delete(Prefs).
 
 %% Code is the same for both global and JID prefs.
 write_prefs(Prefs) ->
-    case ejabberd_storage:read(Prefs) of
+    case dbms_storage:read(Prefs) of
         {selected, []} ->
-            ejabberd_storage:insert([Prefs]);
+            dbms_storage:insert([Prefs]);
         {selected, [_]} ->
-            ejabberd_storage:update(Prefs);
+            dbms_storage:update(Prefs);
         Result ->
             throw({error, Result})
     end.

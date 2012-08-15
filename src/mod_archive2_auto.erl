@@ -78,7 +78,7 @@ add_message({Direction, From, With, Packet}, TimeOut, Sessions) ->
                             % Nothing to update, collection was just created.
                             ok;
                         _ ->
-                            ejabberd_storage:update(
+                            dbms_storage:update(
                                 #archive_collection{
                                     id = Session#session.id,
                                     change_utc = Session#session.last_access,
@@ -108,10 +108,10 @@ add_message({Direction, From, With, Packet}, TimeOut, Sessions) ->
                                 undefined
                             end,
                         body = EM#external_message.body},
-                    ejabberd_storage:insert([M]),
+                    dbms_storage:insert([M]),
                     NewSessions
                 end,
-            case ejabberd_storage:transaction(
+            case dbms_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F) of
                 {atomic, Result} ->
                     Result;
@@ -259,7 +259,7 @@ new_session({US, BareJID} = WithKey, TS, Resource, Thread, Sessions) ->
                     version = 0,
                     deleted = false,
                     thread = Thread},
-                {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
+                {inserted, 1, ID} = dbms_storage:insert([NewC]),
                 ID;
             #archive_collection{id = ID} ->
                 ID

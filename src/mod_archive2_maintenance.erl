@@ -40,7 +40,7 @@
 remove_user(From, RDBMS) ->
     Host = exmpp_jid:prep_domain_as_list(From),
     US = exmpp_jid:prep_bare_to_list(From),
-    ejabberd_storage:transaction(
+    dbms_storage:transaction(
         Host,
         fun() ->
             MS =
@@ -55,21 +55,21 @@ remove_user(From, RDBMS) ->
                     % All other RDBMSes should handle that via triggers.
                     ok
             end,
-            ejabberd_storage:delete(
+            dbms_storage:delete(
                 ets:fun2ms(
                     fun(#archive_jid_prefs{us = US1}) when US1 =:= US ->
                         ok
                     end)),
-            ejabberd_storage:delete(
+            dbms_storage:delete(
                 ets:fun2ms(
                     fun(#archive_global_prefs{us = US1}) when US1 =:= US ->
                         ok
                     end)),
-            ejabberd_storage:delete(MS)
+            dbms_storage:delete(MS)
         end).
 
 expire_collections(Host, DefaultExpire, ReplicationExpire, mnesia) ->
-    ejabberd_storage:transaction(Host,
+    dbms_storage:transaction(Host,
         fun() ->
             MS =
                 ets:fun2ms(fun(#archive_collection{} = C) -> C end),
@@ -81,12 +81,12 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, mnesia) ->
         end);
 
 expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
-    ejabberd_storage:transaction(Host,
+    dbms_storage:transaction(Host,
         fun() ->
-            Now = ejabberd_storage_odbc:encode(
+            Now = dbms_storage_odbc:encode(
                 calendar:now_to_datetime(mod_archive2_time:now()),
                 time,
-                ejabberd_storage_utils:get_table_info(archive_collection,
+                dbms_storage_utils:get_table_info(archive_collection,
                     ?MOD_ARCHIVE2_SCHEMA)),
             expire_collections_odbc(
                 DefaultExpire,
@@ -158,12 +158,12 @@ expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
                  Now, ", version = version + 1 where id in (select id from ",
                  JoinStmt, " ", WhereStmt, ")"]
         end,
-	ejabberd_storage:sql_query(Query),
+	dbms_storage:sql_query(Query),
     case ReplicationExpire of
 		infinity ->
             ok;
 		N1 when is_integer(N1) ->
-	        ejabberd_storage:sql_query(
+	        dbms_storage:sql_query(
                 ["delete from archive_collection "
 				 "where deleted = 1 "
 				 "and ",

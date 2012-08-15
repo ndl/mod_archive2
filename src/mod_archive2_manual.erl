@@ -58,22 +58,22 @@ save(From, #iq{type = Type, payload = SubEl} = IQ) ->
                     all, [id, version]) of
                     undefined ->
                         NewC = InC#archive_collection{version = 0, deleted = false},
-                        {inserted, 1, ID} = ejabberd_storage:insert([NewC]),
+                        {inserted, 1, ID} = dbms_storage:insert([NewC]),
                         NewC#archive_collection{id = ID};
                     #archive_collection{id = ID, version = OldVersion} ->
                         NewC =
                             InC#archive_collection{
                                 id = ID,
                                 version = OldVersion + 1},
-                        ejabberd_storage:update(NewC),
+                        dbms_storage:update(NewC),
                         NewC
                 end,
             Messages =
                 [M#archive_message{coll_id = OutC#archive_collection.id} ||
                  M <- InMessages],
-            ejabberd_storage:insert(Messages),
+            dbms_storage:insert(Messages),
             exmpp_iq:result(IQ,
                 exmpp_xml:element(?NS_ARCHIVING, save, [],
                     [mod_archive2_xml:collection_to_xml(chat, OutC)]))
         end,
-        ejabberd_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+        dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
