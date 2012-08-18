@@ -86,7 +86,7 @@ mod_archive2_maintenance_mnesia_test_() ->
 }.
 
 mysql_test_expire() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -191,15 +191,15 @@ mnesia_test_expire() ->
     common_test_expire(mnesia).
 
 common_test_expire(RDBMS) ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2004, 1, 1}, {0, 0, 0}},
             mod_archive2_time:start([NewTS])
         end),
     {atomic, {inserted, 3, _Key}} =
-        ejabberd_storage:transaction(?HOST,
+        dbms_storage:transaction(?HOST,
             fun() ->
-                ejabberd_storage:insert([
+                dbms_storage:insert([
                     (?ARCHIVE_COLLECTION1)#archive_collection{
                       utc = {{2003, 02, 01}, {0, 0, 0}}},
                     (?ARCHIVE_COLLECTION2)#archive_collection{

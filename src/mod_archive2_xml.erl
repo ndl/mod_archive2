@@ -117,7 +117,7 @@ collection_from_xml(From, XC) ->
     FromServer = exmpp_jid:prep_domain_as_list(From),
     % We assume that empty 'with' indicates empty previous/next element,
     % therefore we return 'null' so that we clear these elements from storage.
-    case exmpp_xml:get_attribute_as_list(XC, with, undefined) of
+    case exmpp_xml:get_attribute_as_list(XC, <<"with">>, undefined) of
         undefined ->
             null;
         JID ->
@@ -133,18 +133,18 @@ collection_from_xml(From, XC) ->
                 with_server = exmpp_jid:prep_domain_as_list(With),
                 with_resource = exmpp_jid:prep_resource_as_list(With),
                 utc = datetime_from_xml(
-                    exmpp_xml:get_attribute_as_list(XC, start, undefined)),
+                    exmpp_xml:get_attribute_as_list(XC, <<"start">>, undefined)),
                 change_utc = calendar:now_to_datetime(mod_archive2_time:now()),
                 version =
-                    case exmpp_xml:get_attribute_as_list(XC, version, undefined) of
+                    case exmpp_xml:get_attribute_as_list(XC, <<"version">>, undefined) of
                         undefined -> undefined;
                         R -> list_to_integer(R)
                     end,
                 deleted = false,
-                subject = exmpp_xml:get_attribute_as_list(XC, subject, undefined),
-                thread = exmpp_xml:get_attribute_as_list(XC, thread, undefined),
+                subject = exmpp_xml:get_attribute_as_list(XC, <<"subject">>, undefined),
+                thread = exmpp_xml:get_attribute_as_list(XC, <<"thread">>, undefined),
                 crypt = list_to_bool(
-                    exmpp_xml:get_attribute_as_list(XC, crypt, undefined)),
+                    exmpp_xml:get_attribute_as_list(XC, <<"crypt">>, undefined)),
                 extra = Extra}
         end.
 
@@ -195,10 +195,10 @@ message_from_xml(#xmlel{name = Name} = XM, Start) ->
     #archive_message{
         direction = Name,
         utc =
-            case exmpp_xml:get_attribute_as_list(XM, secs, undefined) of
+            case exmpp_xml:get_attribute_as_list(XM, <<"secs">>, undefined) of
                 undefined ->
                     datetime_from_xml(
-                        exmpp_xml:get_attribute_as_list(XM, utc, undefined));
+                        exmpp_xml:get_attribute_as_list(XM, <<"utc">>, undefined));
                 Secs ->
                     calendar:gregorian_seconds_to_datetime(
                         calendar:datetime_to_gregorian_seconds(Start) +
@@ -211,20 +211,20 @@ message_from_xml(#xmlel{name = Name} = XM, Start) ->
                 _ ->
                     exmpp_xml:get_cdata_as_list(exmpp_xml:get_element(XM, body))
             end,
-        name = exmpp_xml:get_attribute_as_list(XM, name, undefined),
-        jid = exmpp_xml:get_attribute_as_list(XM, jid, undefined)}.
+        name = exmpp_xml:get_attribute_as_list(XM, <<"name">>, undefined),
+        jid = exmpp_xml:get_attribute_as_list(XM, <<"jid">>, undefined)}.
 
 %%--------------------------------------------------------------------
 %% External messages conversion from XML.
 %%--------------------------------------------------------------------
 external_message_from_xml(#xmlel{name = message} = M) ->
-    Type = list_to_atom(exmpp_xml:get_attribute_as_list(M, type, undefined)),
+    Type = list_to_atom(exmpp_xml:get_attribute_as_list(M, <<"type">>, [])),
     Nick =
         case Type of
             groupchat ->
                 exmpp_jid:resource_as_list(
                     exmpp_jid:parse(
-                        exmpp_xml:get_attribute_as_list(M, from, undefined)));
+                        exmpp_xml:get_attribute_as_list(M, <<"from">>, undefined)));
              _ ->
                 undefined
         end,
@@ -281,25 +281,25 @@ jid_prefs_to_xml(Prefs) ->
 jid_prefs_from_xml(From, PrefsXML) ->
     JID =
         exmpp_jid:parse(
-            exmpp_xml:get_attribute_as_list(PrefsXML, jid, undefined)),
+            exmpp_xml:get_attribute_as_list(PrefsXML, <<"jid">>, undefined)),
     #archive_jid_prefs{
         us = exmpp_jid:prep_bare_to_list(From),
         with_user = exmpp_jid:prep_node_as_list(JID),
         with_server = exmpp_jid:prep_domain_as_list(JID),
         with_resource = exmpp_jid:prep_resource_as_list(JID),
         exactmatch = list_to_bool(
-            exmpp_xml:get_attribute_as_list(PrefsXML, exactmatch, "false")),
+            exmpp_xml:get_attribute_as_list(PrefsXML, <<"exactmatch">>, "false")),
         save = list_to_atom(
-            exmpp_xml:get_attribute_as_list(PrefsXML, save, "undefined")),
+            exmpp_xml:get_attribute_as_list(PrefsXML, <<"save">>, "undefined")),
         expire =
-            case exmpp_xml:get_attribute_as_list(PrefsXML, expire, undefined) of
+            case exmpp_xml:get_attribute_as_list(PrefsXML, <<"expire">>, undefined) of
                 undefined ->
                     undefined;
                 Value ->
                     list_to_integer(Value)
             end,
         otr = list_to_atom(
-            exmpp_xml:get_attribute_as_list(PrefsXML, otr, "undefined"))}.
+            exmpp_xml:get_attribute_as_list(PrefsXML, <<"otr">>, "undefined"))}.
 
 global_prefs_to_xml(Prefs, UnSet, AutoState) ->
     filter_undef(
@@ -373,21 +373,21 @@ global_prefs_from_xml(From, PrefsXML) ->
 global_prefs_from_xml2(#xmlel{name = default} = Element) ->
     #archive_global_prefs{
         save = list_to_atom(
-            exmpp_xml:get_attribute_as_list(Element, save, "undefined")),
+            exmpp_xml:get_attribute_as_list(Element, <<"save">>, "undefined")),
         expire =
-            case exmpp_xml:get_attribute_as_list(Element, expire, undefined) of
+            case exmpp_xml:get_attribute_as_list(Element, <<"expire">>, undefined) of
                 undefined ->
                     undefined;
                 Value ->
                     list_to_integer(Value)
             end,
         otr = list_to_atom(
-            exmpp_xml:get_attribute_as_list(Element, otr, "undefined"))};
+            exmpp_xml:get_attribute_as_list(Element, <<"otr">>, "undefined"))};
 
 global_prefs_from_xml2(#xmlel{name = method} = Element) ->
     Use = list_to_atom(
-        exmpp_xml:get_attribute_as_list(Element, use, "undefined")),
-    case exmpp_xml:get_attribute_as_list(Element, type, undefined) of
+        exmpp_xml:get_attribute_as_list(Element, <<"use">>, "undefined")),
+    case exmpp_xml:get_attribute_as_list(Element, <<"type">>, undefined) of
        "auto" ->
            #archive_global_prefs{method_auto = Use};
        "local" ->

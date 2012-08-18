@@ -4,8 +4,6 @@
 -define(SERVERCOOKIE, 'put-cookie-here').
 -define(CLIENTNAME, "client").
 -define(CLIENTNAME2, "client2").
--define(CLIENTJID, ?CLIENTNAME "@" ?SERVERHOST).
--define(CLIENTJID2, ?CLIENTNAME2 "@" ?SERVERHOST).
 -define(PASSWORD, "password").
 -define(SERVER_TIMEOUT, 5000).
 -define(TEST_TIMEOUT, 60). % Note: here units are seconds, not milliseconds!!!

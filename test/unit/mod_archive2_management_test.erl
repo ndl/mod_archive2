@@ -101,7 +101,7 @@ mod_archive2_management_mnesia_test_() ->
 % them all calls to ejabberd_odbc:start should be placed in transaction.
 
 mysql_test_list_empty(Pid) ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -124,7 +124,7 @@ common_test_list_empty(_Pid) ->
                         [])))).
 
 mysql_test_insert1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -148,16 +148,16 @@ mysql_test_insert1() ->
 
 common_test_insert1() ->
     {atomic, {inserted, 3, _Key}} =
-        ejabberd_storage:transaction(?HOST,
+        dbms_storage:transaction(?HOST,
             fun() ->
-                ejabberd_storage:insert([
+                dbms_storage:insert([
                     ?ARCHIVE_COLLECTION1,
                     ?ARCHIVE_COLLECTION2,
                     ?ARCHIVE_COLLECTION3])
             end).
 
 mysql_test_list_all() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -191,7 +191,7 @@ common_test_list_all() ->
                     exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 mysql_test_list_max() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -240,7 +240,7 @@ get_list_range(Max, Index) ->
                             end]))])))).
 
 mysql_test_list_index() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -265,7 +265,7 @@ common_test_list_index() ->
     ?MGMT_TC4_RETRIEVE_RESULT = get_list_range(1, 1).
 
 mysql_test_list_after() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -323,7 +323,7 @@ common_test_list_after() ->
                                                [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_before() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -381,7 +381,7 @@ common_test_list_before() ->
                                                [exmpp_xml:cdata("2")])])])))).
 
 mysql_test_list_start_end() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -418,7 +418,7 @@ common_test_list_start_end() ->
                          exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], [])))).
 
 mysql_test_list_with() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -457,7 +457,7 @@ common_test_list_with() ->
                          exmpp_xml:attribute(with, "juliet@capulet.com")], [])))).
 
 mysql_test_list_exactmatch() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -484,7 +484,7 @@ common_test_list_exactmatch() ->
 
 mysql_test_remove_single() ->
     mysql_test_insert1(),
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -526,7 +526,7 @@ mnesia_test_remove_single() ->
     common_test_remove_single(mnesia).
 
 common_test_remove_single(RDBMS) ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2003, 1, 1}, {0, 0, 0}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -550,7 +550,7 @@ common_test_remove_single(RDBMS) ->
 
 mysql_test_remove_single_non_existing(_) ->
     mysql_test_insert1(),
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -581,7 +581,7 @@ common_test_remove_single_non_existing(RDBMS) ->
 mysql_test_remove_range(_) ->
     % No need to call it, as no actual DB interaction occurs.
     % mysql_test_insert1(),
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -641,7 +641,7 @@ common_test_remove_range(RDBMS) ->
                     exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 mysql_test_modified1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -676,7 +676,7 @@ common_test_modified1() ->
                     exmpp_xml:element(?NS_ARCHIVING, modified, [], [])))).
 
 mysql_test_modified2() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},

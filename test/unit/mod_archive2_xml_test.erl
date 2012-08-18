@@ -479,7 +479,7 @@ test_modified2_to_xml(_) ->
                 deleted = true}).
 
 mysql_test_links(Pid) ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -523,9 +523,9 @@ mysql_test_links(Pid) ->
 
 common_test_links(_Pid) ->
     {atomic, ?ARCHIVE_COLLECTION_WITH_LINKS_XML} =
-        ejabberd_storage:transaction(?HOST,
+        dbms_storage:transaction(?HOST,
             fun() ->
-                ejabberd_storage:insert([?ARCHIVE_COLLECTION1,
+                dbms_storage:insert([?ARCHIVE_COLLECTION1,
                                              ?ARCHIVE_COLLECTION2,
                                              ?ARCHIVE_COLLECTION3]),
                 mod_archive2_xml:collection_to_xml(chat,

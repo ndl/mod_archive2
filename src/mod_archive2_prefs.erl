@@ -66,10 +66,10 @@ pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
 auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     AutoSave = list_to_atom(
-        exmpp_xml:get_attribute_as_list(AutoEl, save, "false")),
+        exmpp_xml:get_attribute_as_list(AutoEl, <<"save">>, "false")),
     Scope =
         list_to_atom(
-            exmpp_xml:get_attribute_as_list(AutoEl, scope, "session")),
+            exmpp_xml:get_attribute_as_list(AutoEl, <<"scope">>, "session")),
     case Scope of
         global ->
             F =
@@ -172,10 +172,10 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
                      update_with_auto_states(From, With, Value, AutoStates)};
                 false ->
                     {Value, AutoStates}
-            end;
-        Result ->
-            ?ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
-            {false, AutoStates}
+            end
+%        Result ->
+%            ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
+%            {false, AutoStates}
     end.
 
 expire_prefs_cache(AutoStates) ->

@@ -65,7 +65,6 @@
 -author('xmpp@endl.ch').
 
 -behaviour(gen_server).
--behaviour(gen_mod).
 
 %% gen_mod callbacks
 -export([start_link/2, start/2, stop/1]).
@@ -82,6 +81,8 @@
 -include("mod_archive2_storage.hrl").
 
 -record(state, {host,
+                xmpp_server,
+                xmpp_api,
                 options,
                 default_global_prefs,
                 dbinfo,
@@ -92,10 +93,11 @@
                 collections_expiration_timer,
                 prefs_cache_expiration_timer}).
 
--define(PROCNAME, ejabberd_mod_archive2).
+-define(PROCNAME, mod_archive2_proc).
 -define(HOOK_SEQ, 50).
 
 -define(DEFAULT_RDBMS, mnesia).
+-define(DEFAULT_XMPP_SERVER, ejabberd2).
 -define(DEFAULT_SESSION_DURATION, 1800). % 30 minutes
 -define(DEFAULT_WIPEOUT_INTERVAL, 86400). % 1 day
 -define(DEFAULT_PREFS_CACHE_INTERVAL, 1800). % 30 minutes
@@ -114,16 +116,16 @@
 %% Description: Starts the server
 %%--------------------------------------------------------------------
 start_link(Host, Opts) ->
-    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?PROCNAME),
     gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
 start(Host, Opts) ->
     % Start our storage manager first
-    RDBMS = gen_mod:get_opt(rdbms, Opts, ?DEFAULT_RDBMS),
+    RDBMS = proplists:get_value(rdbms, Opts, ?DEFAULT_RDBMS),
     dbms_storage:start(Host,
         [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     % Now start ourselves
-    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?PROCNAME),
     ChildSpec =
         {Proc,
          {?MODULE, start_link, [Host, Opts]},
@@ -131,13 +133,15 @@ start(Host, Opts) ->
          1000,
          worker,
          [?MODULE]},
-    supervisor:start_child(ejabberd_sup, ChildSpec).
+    Supervisor = get_supervisor(Opts),
+    supervisor:start_child(Supervisor, ChildSpec).
 
 stop(Host) ->
     % Stop ourselves
-    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-    gen_server:call(Proc, stop),
-    supervisor:delete_child(ejabberd_sup, Proc),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?PROCNAME),
+    Opts = gen_server:call(Proc, stop),
+    Supervisor = get_supervisor(Opts),
+    supervisor:delete_child(Supervisor, Proc),
     % Stop our storage manager
     dbms_storage:stop(Host).
 
@@ -156,20 +160,20 @@ init([Host, Opts]) ->
     HostB = list_to_binary(Host),
     % Get options necessary for initialization
     IQDisc =
-        gen_mod:get_opt(iqdisc, Opts, one_queue),
+        proplists:get_value(iqdisc, Opts, one_queue),
     SessionDuration =
-        gen_mod:get_opt(session_duration, Opts, ?DEFAULT_SESSION_DURATION),
+        proplists:get_value(session_duration, Opts, ?DEFAULT_SESSION_DURATION),
     WipeOutInterval =
-        gen_mod:get_opt(wipeout_interval, Opts, ?DEFAULT_WIPEOUT_INTERVAL),
+        proplists:get_value(wipeout_interval, Opts, ?DEFAULT_WIPEOUT_INTERVAL),
     PrefsCacheInterval =
-        gen_mod:get_opt(prefs_cache_interval, Opts,
+        proplists:get_value(prefs_cache_interval, Opts,
             ?DEFAULT_PREFS_CACHE_INTERVAL),
     AutoSave =
-        gen_mod:get_opt(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
+        proplists:get_value(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
     Expire =
-        gen_mod:get_opt(default_expire, Opts, ?DEFAULT_EXPIRE),
+        proplists:get_value(default_expire, Opts, ?DEFAULT_EXPIRE),
     GlobalPrefs = mod_archive2_prefs:default_global_prefs(AutoSave, Expire),
-    RDBMS = gen_mod:get_opt(rdbms, Opts, ?DEFAULT_RDBMS),
+    RDBMS = proplists:get_value(rdbms, Opts, ?DEFAULT_RDBMS),
     % Initialize mnesia tables, if needed.
     case RDBMS of
         mnesia ->
@@ -178,31 +182,61 @@ init([Host, Opts]) ->
             ok
     end,
     % Add all necessary hooks
-    gen_iq_handler:add_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING, ?MODULE,
-                                  iq_archive, IQDisc),
-    gen_iq_handler:add_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING, ?MODULE,
-                                  iq_archive, IQDisc),
-    ejabberd_hooks:add(
-        remove_user,
-        HostB,
-        fun(User, Server) ->
-            mod_archive2_maintenance:remove_user(
-                exmpp_jid:make(User, Server),
-                RDBMS)
-        end,
-        ?HOOK_SEQ),
-    ejabberd_hooks:add(user_send_packet, HostB, ?MODULE, send_packet,
-                       ?HOOK_SEQ),
-    ejabberd_hooks:add(user_receive_packet, HostB, ?MODULE, receive_packet,
-                       ?HOOK_SEQ),
-    ejabberd_hooks:add(offline_message_hook, HostB, ?MODULE, receive_packet,
-                       ?HOOK_SEQ),
-    % Register our provided features
-    mod_disco:register_feature(HostB, ?NS_ARCHIVING),
-    mod_disco:register_feature(HostB, ?NS_ARCHIVING_AUTO),
-    mod_disco:register_feature(HostB, ?NS_ARCHIVING_MANAGE),
-    mod_disco:register_feature(HostB, ?NS_ARCHIVING_MANUAL),
-    mod_disco:register_feature(HostB, ?NS_ARCHIVING_PREF),
+    XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),
+    case XmppServer of
+        ejabberd2 ->
+            gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_ARCHIVING, ?MODULE,
+                                          iq_archive, IQDisc),
+            gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_ARCHIVING, ?MODULE,
+                                          iq_archive, IQDisc),
+            ejabberd_hooks:add(
+                remove_user,
+                Host,
+                fun(User, Server) ->
+                    mod_archive2_maintenance:remove_user(
+                        exmpp_jid:make(User, Server),
+                        RDBMS)
+                end,
+                ?HOOK_SEQ),
+            ejabberd_hooks:add(user_send_packet, Host, ?MODULE, send_packet,
+                               ?HOOK_SEQ),
+            ejabberd_hooks:add(user_receive_packet, Host, ?MODULE, receive_packet,
+                               ?HOOK_SEQ),
+            ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, receive_packet,
+                               ?HOOK_SEQ),
+            % Register our provided features
+            mod_disco:register_feature(Host, ?NS_ARCHIVING),
+            mod_disco:register_feature(Host, ?NS_ARCHIVING_AUTO),
+            mod_disco:register_feature(Host, ?NS_ARCHIVING_MANAGE),
+            mod_disco:register_feature(Host, ?NS_ARCHIVING_MANUAL),
+            mod_disco:register_feature(Host, ?NS_ARCHIVING_PREF);
+        ejabberd3 ->
+            gen_iq_handler:add_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING, ?MODULE,
+                                          iq_archive, IQDisc),
+            gen_iq_handler:add_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING, ?MODULE,
+                                          iq_archive, IQDisc),
+            ejabberd_hooks:add(
+                remove_user,
+                HostB,
+                fun(User, Server) ->
+                    mod_archive2_maintenance:remove_user(
+                        exmpp_jid:make(User, Server),
+                        RDBMS)
+                end,
+                ?HOOK_SEQ),
+            ejabberd_hooks:add(user_send_packet, HostB, ?MODULE, send_packet,
+                               ?HOOK_SEQ),
+            ejabberd_hooks:add(user_receive_packet, HostB, ?MODULE, receive_packet,
+                               ?HOOK_SEQ),
+            ejabberd_hooks:add(offline_message_hook, HostB, ?MODULE, receive_packet,
+                               ?HOOK_SEQ),
+            % Register our provided features
+            mod_disco:register_feature(HostB, ?NS_ARCHIVING),
+            mod_disco:register_feature(HostB, ?NS_ARCHIVING_AUTO),
+            mod_disco:register_feature(HostB, ?NS_ARCHIVING_MANAGE),
+            mod_disco:register_feature(HostB, ?NS_ARCHIVING_MANUAL),
+            mod_disco:register_feature(HostB, ?NS_ARCHIVING_PREF)
+    end,
     % Setup timers for auto-archived sessions cleaning and collections
     % expiration
     {ok, SessionsExpirationTimer} =
@@ -221,8 +255,15 @@ init([Host, Opts]) ->
             _ ->
                 {ok, undefined}
         end,
+    XmppApi =
+        case XmppServer of
+            ejabberd2 -> 'xmpp_api_ejabberd';
+            ejabberd3 -> 'xmpp_api_ejabberd'
+        end,
     % We're done - return our state
     {ok, #state{host = Host,
+                xmpp_server = XmppServer,
+                xmpp_api = XmppApi,
                 options = Opts,
                 default_global_prefs = GlobalPrefs,
                 auto_states = dict:new(),
@@ -267,28 +308,49 @@ init_mnesia_tables() ->
 %% The return value is ignored.
 %%--------------------------------------------------------------------
 terminate(_Reason, State) ->
-    HostB = list_to_binary(State#state.host),
+    Host = State#state.host,
+    HostB = list_to_binary(Host),
     % Cancel timers, if present
     timer:cancel(State#state.sessions_expiration_timer),
     timer:cancel(State#state.collections_expiration_timer),
     timer:cancel(State#state.prefs_cache_expiration_timer),
     % Unregister our provided features
-    mod_disco:unregister_feature(HostB, ?NS_ARCHIVING),
-    mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_AUTO),
-    mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_MANAGE),
-    mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_MANUAL),
-    mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_PREF),
-    % Unregister all hooks
-    gen_iq_handler:remove_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING),
-    gen_iq_handler:remove_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING),
-    ejabberd_hooks:delete(remove_user, HostB, ?MODULE, remove_user,
-        ?HOOK_SEQ),
-    ejabberd_hooks:delete(user_send_packet, HostB, ?MODULE, send_packet,
-        ?HOOK_SEQ),
-    ejabberd_hooks:delete(user_receive_packet, HostB, ?MODULE, receive_packet,
-        ?HOOK_SEQ),
-    ejabberd_hooks:delete(offline_message_hook, HostB, ?MODULE, receive_packet,
-        ?HOOK_SEQ),
+    case State#state.xmpp_server of
+        ejabberd2 ->
+            mod_disco:unregister_feature(Host, ?NS_ARCHIVING),
+            mod_disco:unregister_feature(Host, ?NS_ARCHIVING_AUTO),
+            mod_disco:unregister_feature(Host, ?NS_ARCHIVING_MANAGE),
+            mod_disco:unregister_feature(Host, ?NS_ARCHIVING_MANUAL),
+            mod_disco:unregister_feature(Host, ?NS_ARCHIVING_PREF),
+            % Unregister all hooks
+            gen_iq_handler:remove_iq_handler(ejabberd_local, Host, ?NS_ARCHIVING),
+            gen_iq_handler:remove_iq_handler(ejabberd_sm, Host, ?NS_ARCHIVING),
+            ejabberd_hooks:delete(remove_user, Host, ?MODULE, remove_user,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(user_send_packet, Host, ?MODULE, send_packet,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(user_receive_packet, Host, ?MODULE, receive_packet,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(offline_message_hook, Host, ?MODULE, receive_packet,
+                ?HOOK_SEQ);
+        ejabberd3 ->
+            mod_disco:unregister_feature(HostB, ?NS_ARCHIVING),
+            mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_AUTO),
+            mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_MANAGE),
+            mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_MANUAL),
+            mod_disco:unregister_feature(HostB, ?NS_ARCHIVING_PREF),
+            % Unregister all hooks
+            gen_iq_handler:remove_iq_handler(ejabberd_local, HostB, ?NS_ARCHIVING),
+            gen_iq_handler:remove_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING),
+            ejabberd_hooks:delete(remove_user, HostB, ?MODULE, remove_user,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(user_send_packet, HostB, ?MODULE, send_packet,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(user_receive_packet, HostB, ?MODULE, receive_packet,
+                ?HOOK_SEQ),
+            ejabberd_hooks:delete(offline_message_hook, HostB, ?MODULE, receive_packet,
+                ?HOOK_SEQ)
+    end,
     ok.
 
 %%--------------------------------------------------------------------
@@ -300,11 +362,32 @@ terminate(_Reason, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
+% ejabberd 3.x version:
+handle_call({From, _To, #iq{type = _Type, payload = _SubEl} = IQ}, CallFrom, State) ->
+    XmppApi = State#state.xmpp_api,
+    LServer = exmpp_jid:prep_domain_as_list(From),
+    case lists:member(LServer, XmppApi:get_valid_hosts()) of
+        false ->
+            {reply, exmpp_iq:error(IQ, 'not-allowed'), State};
+        true ->
+            handle_call2({From, _To, IQ}, CallFrom, State)
+    end;
+
+% ejabberd 2.x version:
+% handle_call({From, To, #iq{type = Type, sub_el = SubEl} = IQ}, CallFrom, State) ->
+%     handle_call({From, To, #iq{type = Type, payload = exmpp_xml:get_child_elements(SubEl)}}, CallFrom, State).
+
+% Send back options to use to calculate proper supervisor
+% to remove ourselves from.
+handle_call(stop, _From, State) ->
+    {stop, normal, State#state.options, State}.
+
+handle_call2({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
     #xmlel{name = Name} = SubEl,
+    XmppApi = State#state.xmpp_api,
     F =
         fun() ->
-            case gen_mod:get_opt(
+            case proplists:get_value(
                 read_only, State#state.options, ?DEFAULT_READ_ONLY) of
                 false ->
                     ok;
@@ -318,10 +401,10 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
 	        case Name of
                 'pref' ->
                     EnforceMinExpire =
-                        gen_mod:get_opt(enforce_min_expire,
+                        proplists:get_value(enforce_min_expire,
                             State#state.options, ?DEFAULT_MIN_EXPIRE),
                     EnforceMaxExpire =
-                        gen_mod:get_opt(enforce_max_expire,
+                        proplists:get_value(enforce_max_expire,
                             State#state.options, ?DEFAULT_MAX_EXPIRE),
                     auto_states_reply(IQ,
                         mod_archive2_prefs:pref(From, IQ,
@@ -349,7 +432,7 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                     mod_archive2_manual:save(From, IQ);
 			    'remove' ->
                     RDBMS =
-                        gen_mod:get_opt(
+                        proplists:get_value(
                             rdbms, State#state.options, ?DEFAULT_RDBMS),
                     case mod_archive2_management:remove(From, IQ, RDBMS,
                         State#state.sessions) of
@@ -370,23 +453,20 @@ handle_call({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
         {atomic, R} ->
             {reply, R, State};
         {error, Error} ->
-            {reply, handle_error(Error, IQ), State};
+            {reply, handle_error(Error, IQ, XmppApi), State};
         {aborted, {error, Error}} ->
-            {reply, handle_error(Error, IQ), State};
+            {reply, handle_error(Error, IQ, XmppApi), State};
         {aborted, {throw, {error, Error}}} ->
-            {reply, handle_error(Error, IQ), State};
+            {reply, handle_error(Error, IQ, XmppApi), State};
         {aborted, Error} ->
-            {reply, handle_error(Error, IQ), State};
+            {reply, handle_error(Error, IQ, XmppApi), State};
         {'EXIT', Ex} ->
-            ?ERROR_MSG("catched exit: ~p", [Ex]),
+            XmppApi:error_msg("catched exit: ~p", [Ex]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State};
         Result ->
-            ?ERROR_MSG("unexpected result: ~p", [Result]),
+            XmppApi:error_msg("unexpected result: ~p", [Result]),
             {reply, exmpp_iq:error(IQ, 'internal-server-error'), State}
-    end;
-
-handle_call(stop, _From, State) ->
-    {stop, normal, ok, State}.
+    end.
 
 %%--------------------------------------------------------------------
 %% Function: handle_cast(Msg, State) -> {noreply, State} |
@@ -403,7 +483,7 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
             Sessions =
                 State#state.sessions,
             TimeOut =
-                gen_mod:get_opt(
+                proplists:get_value(
                     session_duration,
                     State#state.options,
                     ?DEFAULT_SESSION_DURATION),
@@ -427,7 +507,7 @@ handle_cast(_Msg, State) ->
 handle_info(expire_sessions, State) ->
     Sessions = State#state.sessions,
     TimeOut =
-        gen_mod:get_opt(
+        proplists:get_value(
             session_duration,
             State#state.options,
             ?DEFAULT_SESSION_DURATION),
@@ -437,11 +517,11 @@ handle_info(expire_sessions, State) ->
 handle_info(expire_collections, State) ->
     Host = State#state.host,
     RDBMS =
-        gen_mod:get_opt(rdbms, State#state.options, ?DEFAULT_RDBMS),
+        proplists:get_value(rdbms, State#state.options, ?DEFAULT_RDBMS),
     DefaultExpire =
-        gen_mod:get_opt(default_expire, State#state.options, ?DEFAULT_EXPIRE),
+        proplists:get_value(default_expire, State#state.options, ?DEFAULT_EXPIRE),
     ReplicationExpire =
-        gen_mod:get_opt(
+        proplists:get_value(
             replication_expire,
             State#state.options,
             ?DEFAULT_REPLICATION_EXPIRE),
@@ -475,8 +555,8 @@ auto_states_reply(IQ, Reply, State) ->
                 Result
     end.
 
-handle_error(Error, IQ) ->
-    ?INFO_MSG("error while executing archiving request: ~p", [Error]),
+handle_error(Error, IQ, XmppApi) ->
+    XmppApi:info_msg("error while executing archiving request: ~p", [Error]),
     if is_atom(Error) ->
         exmpp_iq:error(IQ, Error);
        true ->
@@ -485,13 +565,8 @@ handle_error(Error, IQ) ->
 
 iq_archive(From, To, IQ) ->
     LServer = exmpp_jid:prep_domain_as_list(From),
-    case lists:member(LServer, ?MYHOSTS) of
-        false ->
-            exmpp_iq:error(IQ, 'not-allowed');
-        true ->
-            Proc = gen_mod:get_module_proc(LServer, ?PROCNAME),
-            gen_server:call(Proc, {From, To, IQ})
-    end.
+    Proc = mod_archive2_utils:get_module_proc(LServer, ?PROCNAME),
+    gen_server:call(Proc, {From, To, IQ}).
 
 send_packet(From, To, Packet) ->
     add_packet(to, From, To, Packet).
@@ -504,16 +579,19 @@ receive_packet(_JID, From, To, Packet) ->
 
 add_packet(Direction, OurJID, With, Packet) ->
     Host = exmpp_jid:prep_domain_as_list(OurJID),
-    case lists:member(Host, ?MYHOSTS) of
-        true ->
-            case exmpp_xml:get_name_as_atom(Packet) of
-                message ->
-                    Proc = gen_mod:get_module_proc(Host, ?PROCNAME),
-                    gen_server:cast(
-                        Proc, {add_message, {Direction, OurJID, With, Packet}});
-                _ ->
-                    false
-            end;
-        false ->
+    case exmpp_xml:get_name_as_atom(Packet) of
+        message ->
+            Proc = mod_archive2_utils:get_module_proc(Host, ?PROCNAME),
+            gen_server:cast(Proc, {add_message, {Direction, OurJID, With, Packet}});
+        _ ->
             false
+    end.
+
+get_supervisor(Opts) ->
+    XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),
+    case XmppServer of
+        ejabberd2 ->
+            'ejabberd_sup';
+        ejabberd3 ->
+            'ejabberd_sup'
     end.

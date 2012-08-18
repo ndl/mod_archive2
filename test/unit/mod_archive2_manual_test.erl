@@ -98,7 +98,7 @@ mod_archive2_manual_mnesia_test_() ->
 }.
 
 mysql_test_upload() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -144,7 +144,7 @@ common_test_upload() ->
                         [?ARCHIVE_COLLECTION_COMPLETE])))).
 
 mysql_test_retrieve_all() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -189,7 +189,7 @@ common_test_retrieve_all() ->
                         [])))).
 
 mysql_test_update() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -225,7 +225,7 @@ common_test_update() ->
                 extra = exmpp_xml:element(undefined, x, [], [])})
     end,
     {atomic, XC} =
-        ejabberd_storage:transaction(?HOST, F),
+        dbms_storage:transaction(?HOST, F),
     ?MANUAL_TC3_UPDATE_RESULT =
         mod_archive2_manual:save(
             exmpp_jid:parse(?JID),
@@ -236,7 +236,7 @@ common_test_update() ->
                         [XC])))).
 
 mysql_test_retrieve_max() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -282,7 +282,7 @@ common_test_retrieve_max() ->
                           exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])])))).
 
 mysql_test_retrieve_empty() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},

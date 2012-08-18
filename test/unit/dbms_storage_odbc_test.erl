@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : ejabberd_storage_odbc_test.erl
+%%% File    : dbms_storage_odbc_test.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%% Purpose : mod_archive2 ODBC storage unit testing
 %%% Created : 30 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
@@ -23,7 +23,7 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(ejabberd_storage_odbc_test).
+-module(dbms_storage_odbc_test).
 -author('ejabberd@ndl.kiev.ua').
 
 -include("mod_archive2.hrl").
@@ -70,7 +70,7 @@ get_table_info(TableName) ->
 test_match_to_sql1() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
             [{#archive_message{id = '$1', coll_id = '_', utc = '$2',
                                direction = '_', body = '$3', name = '_',
                                jid = '_'},
@@ -83,7 +83,7 @@ test_match_to_sql1() ->
 test_match_to_sql2() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
@@ -95,7 +95,7 @@ test_match_to_sql2() ->
 test_match_to_sql3() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
 	        fun(#archive_message{id = ID, utc = UTC} = R) when
 		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
@@ -107,7 +107,7 @@ test_match_to_sql3() ->
 test_match_to_sql4() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
 	    ets:fun2ms(
 	        fun(#archive_message{id = 1, utc = ?QUERY_DATE} = R) ->
 		    R
@@ -118,7 +118,7 @@ test_match_to_sql4() ->
 test_match_to_sql5() ->
     TableInfo = get_table_info(archive_jid_prefs),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(
                 fun(#archive_jid_prefs{with_user = "juliet",
                                        save = Save, otr = OTR}) ->
@@ -140,7 +140,7 @@ test_match_to_sql6() ->
      "(((expire - expire) < expire) or (((expire * expire) = expire) or "
      "((expire / expire) <> expire)))))))",
      QueryBodyFull} =
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(
                 fun(#archive_jid_prefs{exactmatch = ExactMatch, expire = Expire} = R)
                     when (not (not ExactMatch)) =:= ExactMatch andalso
@@ -170,7 +170,7 @@ test_match_to_sql6() ->
 test_match_to_sql7() ->
     TableInfo = get_table_info(archive_collection),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
                            US =:= "client@localhost",
                            UTC < {{1469,7,21},{2,56,15}} orelse
@@ -185,7 +185,7 @@ test_match_to_sql7() ->
 test_match_to_sql8() ->
     TableInfo = get_table_info(archive_collection),
     ?assert(
-        ejabberd_storage_odbc:ms_to_sql(
+        dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
                            US =:= "client@localhost",
                            UTC < {{1469,7,21},{2,56,15}} orelse

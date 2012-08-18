@@ -245,7 +245,7 @@ mod_archive2_auto_mnesia_test_() ->
 }.
 
 mysql_test_auto_new_and_update() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -327,7 +327,7 @@ mysql_test_auto_new_and_update() ->
     common_test_auto_new_and_update().
 
 common_test_auto_new_and_update() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 5}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -346,7 +346,7 @@ common_test_auto_new_and_update() ->
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 5}}, _, 0, undefined}}] = Threads,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 6}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -365,7 +365,7 @@ common_test_auto_new_and_update() ->
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
     [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 6}}, _, 1, "balcony"}}] = Threads2,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 7}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -384,7 +384,7 @@ common_test_auto_new_and_update() ->
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
     [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 7}}, _, 2, "balcony"}}] = Threads3,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {4, 4, 7}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -401,7 +401,7 @@ common_test_auto_new_and_update() ->
     Threads4 = dict:to_list(dict:fetch(KeyWith4, NewSessions3)),
     [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
         {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads4,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {5, 4, 7}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -424,7 +424,7 @@ common_test_auto_new_and_update() ->
       {{2010, 1, 2}, {5, 4, 7}}, _, 0, undefined}}] = Threads5.
 
 mysql_test_auto_thread_new_and_update() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -471,7 +471,7 @@ mysql_test_auto_thread_new_and_update() ->
     common_test_auto_thread_new_and_update().
 
 common_test_auto_thread_new_and_update() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 5}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -490,7 +490,7 @@ common_test_auto_thread_new_and_update() ->
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 5}}, _, 0, undefined}}] = Threads,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 6}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -509,7 +509,7 @@ common_test_auto_thread_new_and_update() ->
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
     [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
         {{2010, 1, 2}, {3, 4, 6}}, _, 1, "balcony"}}] = Threads2,
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             NewTS = {{2010, 1, 2}, {3, 4, 7}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
@@ -530,7 +530,7 @@ common_test_auto_thread_new_and_update() ->
         {{2010, 1, 2}, {3, 4, 7}}, _, 2, "chamber"}}] = Threads3.
 
 mysql_test_remove_open() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},

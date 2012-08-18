@@ -311,7 +311,7 @@ create_auto_states_with(Value) ->
                              "romeo@montague.net/romeo"), Value}])}}])}]).
 
 mysql_test_default_prefs(Pid) ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -335,7 +335,7 @@ common_test_default_prefs(_Pid) ->
             {0, infinity}).
 
 mysql_test_set_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -391,7 +391,7 @@ common_test_set_prefs1() ->
             {0, infinity}).
 
 mysql_test_get_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -416,7 +416,7 @@ common_test_get_prefs1() ->
             {0, infinity}).
 
 mysql_test_should_auto_archive1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -445,7 +445,7 @@ common_test_should_auto_archive1() ->
             true).
 
 mysql_test_update_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -494,7 +494,7 @@ common_test_update_prefs1() ->
             {0, infinity}).
 
 mysql_test_get_prefs2() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -519,7 +519,7 @@ common_test_get_prefs2() ->
             {0, infinity}).
 
 mysql_test_should_auto_archive2() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -548,7 +548,7 @@ common_test_should_auto_archive2() ->
             true).
 
 mysql_test_itemremove_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -576,7 +576,7 @@ common_test_itemremove_prefs1() ->
             create_auto_states_with(true)).
 
 mysql_test_auto1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -602,7 +602,7 @@ common_test_auto1() ->
             AutoStates).
 
 mysql_test_auto2() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -627,7 +627,7 @@ common_test_auto2() ->
             dict:new()).
 
 mysql_test_get_prefs3() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -651,7 +651,7 @@ common_test_get_prefs3() ->
             {0, infinity}).
 
 mysql_test_set_not_implemented_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -689,7 +689,7 @@ common_test_set_not_implemented_prefs1() ->
             {0, infinity}).
 
 mysql_test_set_not_implemented_prefs2() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},
@@ -714,7 +714,7 @@ common_test_set_not_implemented_prefs2() ->
             {0, infinity}).
 
 mysql_test_set_not_allowed_expire_prefs1() ->
-    ejabberd_storage:transaction(?HOST,
+    dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
                 {},

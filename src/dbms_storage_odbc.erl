@@ -518,7 +518,7 @@ is_match_variable(_Variable) ->
 %% Wrapper for ejabberd_odbc:sql_query_t for easier debugging.
 %%
 sql_query(Query) ->
-    %%?MYDEBUG("running query: ~p", [lists:flatten(Query)]),
+    %?MYDEBUG("running query: ~p", [lists:flatten(Query)]),
     case catch ejabberd_odbc:sql_query_t(Query) of
         {'EXIT', Error} ->
             %?ERROR_MSG("unhandled exception during query: ~p", [Error]),

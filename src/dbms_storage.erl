@@ -103,13 +103,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 start(Host, Opts) ->
-    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?MODULE),
     Spec = {Proc, {?MODULE, start_link, [Host, Opts]},
             transient, 1000, worker, [?MODULE]},
     supervisor:start_child(?SUPERVISOR, Spec).
 
 stop(Host) ->
-    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?MODULE),
     supervisor:terminate_child(?SUPERVISOR, Proc),
     supervisor:delete_child(?SUPERVISOR, Proc).
 
@@ -118,7 +118,7 @@ stop(Host) ->
 %%--------------------------------------------------------------------
 
 start_link(Host, Opts) ->
-    Proc = gen_mod:get_module_proc(Host, ?MODULE),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?MODULE),
     gen_server:start_link({local, Proc}, ?MODULE, [Host, Opts], []).
 
 %% Depending on argument type:
@@ -165,7 +165,7 @@ sql_query(Query) ->
 
 %% Runs transaction.
 transaction(Host, F) ->
-    gen_server:call(gen_mod:get_module_proc(Host, ?MODULE), {transaction, F}).
+    gen_server:call(mod_archive2_utils:get_module_proc(Host, ?MODULE), {transaction, F}).
 
 %%--------------------------------------------------------------------
 %% Helper functions

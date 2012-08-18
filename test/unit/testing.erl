@@ -42,12 +42,12 @@ common_tests_setup(RDBMS) ->
         true -> ok
     end,
     {ok, Pid} =
-        ejabberd_storage:start(
+        dbms_storage:start(
             ?HOST, [{rdbms, RDBMS}, {schema, ?MOD_ARCHIVE2_SCHEMA}]),
     Pid.
 
 common_tests_teardown(_Pid) ->
-    ejabberd_storage:stop(?HOST).
+    dbms_storage:stop(?HOST).
 
 mysql_tests_setup() ->
     common_tests_setup(mysql).

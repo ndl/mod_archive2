@@ -115,7 +115,7 @@ remove(From, #iq{type = Type, payload = SubEl}, RDBMS, Sessions) ->
             InR
         end,
     F =
-        case list_to_bool(exmpp_xml:get_attribute_as_list(SubEl, open,
+        case list_to_bool(exmpp_xml:get_attribute_as_list(SubEl, <<"open">>,
             undefined)) of
             true ->
                 % FIXME: if no collections were removed, we should have returned
@@ -485,18 +485,18 @@ get_with_conditions(From, R) ->
 parse_cmd_range(#xmlel{} = Range) ->
     #range{
         with =
-            case exmpp_xml:get_attribute_as_list(Range, with, undefined) of
+            case exmpp_xml:get_attribute_as_list(Range, <<"with">>, undefined) of
                    undefined -> undefined;
                    R -> exmpp_jid:parse(R)
             end,
         start_time = mod_archive2_xml:datetime_from_xml(
-            exmpp_xml:get_attribute_as_list(Range, start, undefined)),
+            exmpp_xml:get_attribute_as_list(Range, <<"start">>, undefined)),
         end_time = mod_archive2_xml:datetime_from_xml(
-            exmpp_xml:get_attribute_as_list(Range, 'end', undefined)),
+            exmpp_xml:get_attribute_as_list(Range, <<"end">>, undefined)),
         start_id = undefined,
         end_id = undefined,
         exactmatch = list_to_bool(
-            exmpp_xml:get_attribute_as_list(Range, exactmatch, "false"))}.
+            exmpp_xml:get_attribute_as_list(Range, <<"exactmatch">>, "false"))}.
 
 combine_ranges(Range, InRSM) ->
     case InRSM#rsm_in.direction of

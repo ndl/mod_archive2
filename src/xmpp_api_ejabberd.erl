@@ -1,10 +1,10 @@
 %%%----------------------------------------------------------------------
-%%% File    : mod_archive2_utils.erl
+%%% File    : xmpp_api_ejabberd.erl
 %%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
-%%% Purpose : mod_archive2 helper functionality
-%%% Created : 04 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
+%%% Purpose : Support XEP-136 for messages archiving
+%%% Created : 18 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
-%%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
+%%% mod_archive2, Copyright (C) 2009,2012 Alexander Tsvyashchenko
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -23,26 +23,18 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(mod_archive2_utils).
+-module(xmpp_api_ejabberd).
 -author('xmpp@endl.ch').
 
--export([list_to_bool/1, filter_undef/1, verify_iq_type/2, get_module_proc/2]).
+-include("ejabberd.hrl").
 
-list_to_bool("false") -> false;
-list_to_bool("true") -> true;
-list_to_bool("0") -> false;
-list_to_bool("1") -> true;
-list_to_bool(undefined) -> undefined.
+-export([get_valid_hosts/0, info_msg/2, error_msg/2]).
 
-filter_undef(List) ->
-    [Element || Element <- List, Element =/= undefined].
+get_valid_hosts() ->
+    ?MYHOSTS.
 
-verify_iq_type(IqType, ExpectedType) ->
-    case IqType of
-        ExpectedType -> ok;
-        _ -> throw({error, 'bad-request'})
-    end.
+info_msg(Format, Opts) ->
+    ?INFO_MSG(Format, Opts).
 
-%% From gen_mod.
-get_module_proc(Host, Base) ->
-    list_to_atom(atom_to_list(Base) ++ "_" ++ Host).
+error_msg(Format, Opts) ->
+    ?ERROR_MSG(Format, Opts).
