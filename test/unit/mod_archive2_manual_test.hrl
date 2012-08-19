@@ -17,8 +17,7 @@
 -define(MANUAL_TC2_RETRIEVE_RESULT,
     {atomic,
         {iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
-         {xmlel,?NS_ARCHIVING,[],retrieve,[],
-          [{xmlel,undefined,[],chat,
+         {xmlel,?NS_ARCHIVING,[],chat,
             [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
              {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
              {xmlattr,undefined,<<"subject">>,<<"Subject">>},
@@ -45,7 +44,7 @@
                {xmlel,'http://jabber.org/protocol/rsm',[],last,[],
                 [{xmlcdata,_}]},
                {xmlel,'http://jabber.org/protocol/rsm',[],count,[],
-                [{xmlcdata,<<"3">>}]}]}]}]},
+                [{xmlcdata,<<"3">>}]}]}]},
          undefined,undefined,'jabber:client'}}).
 
 -define(MANUAL_TC3_UPDATE_RESULT,
@@ -66,8 +65,7 @@
 -define(MANUAL_TC4_RETRIEVE_RESULT,
     {atomic,
         {iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
-         {xmlel,?NS_ARCHIVING,[],retrieve,[],
-          [{xmlel,undefined,[],chat,
+         {xmlel,?NS_ARCHIVING,[],chat,
             [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
              {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
              {xmlattr,undefined,<<"subject">>,<<"Subject2">>},
@@ -89,5 +87,5 @@
                {xmlel,'http://jabber.org/protocol/rsm',[],last,[],
                 [{xmlcdata,_}]},
                {xmlel,'http://jabber.org/protocol/rsm',[],count,[],
-                [{xmlcdata,<<"3">>}]}]}]}]},
+                [{xmlcdata,<<"3">>}]}]}]},
          undefined,undefined,'jabber:client'}}).

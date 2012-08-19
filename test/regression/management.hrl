@@ -79,10 +79,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"juliet@capulet.com/chamber">>},
            {xmlattr,undefined,<<"start">>,
@@ -124,7 +121,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"4">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"4">>}]}]}]}]}}).
 
 -define(MANAGEMENT_TC4_RETRIEVE_RESULT,
     {received_packet,iq,"error",

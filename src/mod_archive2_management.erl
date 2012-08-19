@@ -342,14 +342,14 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
                             {[], undefined} ->
                                 [];
                             {Items, OutRSM} ->
-                                [exmpp_xml:append_children(
-                                    mod_archive2_xml:collection_to_xml(chat, C),
                                     [mod_archive2_xml:message_to_xml(M,
                                         C#archive_collection.utc) ||
-                                     M <- Items] ++ OutRSM)]
+                                     M <- Items] ++ OutRSM
                         end,
+                    #xmlel{attrs = Attrs, children = Children} =
+                        mod_archive2_xml:collection_to_xml(chat, C),
                     exmpp_iq:result(IQ,
-                        exmpp_xml:element(?NS_ARCHIVING, retrieve, [], Results))
+                        exmpp_xml:element(?NS_ARCHIVING, chat, Attrs, Children ++ Results))
             end
         end,
     dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).

@@ -56,10 +56,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"juliet@capulet.com/chamber">>},
            {xmlattr,undefined,<<"start">>,
@@ -83,7 +80,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"1">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"1">>}]}]}]}]}}).
 
 -define(MANUAL_TC2_CHANGE_RESULT,
     {received_packet,iq,"result",
@@ -117,10 +114,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"juliet@capulet.com/chamber">>},
            {xmlattr,undefined,<<"start">>,
@@ -144,7 +138,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"1">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"1">>}]}]}]}]}}).
 
 -define(MANUAL_TC3_CHANGE_RESULT,
     {received_packet,iq,"result",
@@ -178,10 +172,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"juliet@capulet.com/chamber">>},
            {xmlattr,undefined,<<"start">>,
@@ -223,7 +214,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"4">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"4">>}]}]}]}]}}).
 
 -define(MANUAL_TC4_UPLOAD_RESULT,
     {received_packet,iq,"result",
@@ -256,10 +247,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"balcony@house.capulet.com">>},
            {xmlattr,undefined,<<"start">>,
@@ -294,7 +282,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"3">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"3">>}]}]}]}]}}).
 
 -define(MANUAL_TC5_UPLOAD_RESULT,
     {received_packet,iq,"result",
@@ -331,10 +319,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,<<"benvolio@montague.net">>},
            {xmlattr,undefined,<<"start">>,
             <<"1469-07-21T03:01:54.000000Z">>},
@@ -366,7 +351,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"2">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"2">>}]}]}]}]}}).
 
 -define(MANUAL_TC5_CHANGE_RESULT,
     {received_packet,iq,"result",
@@ -404,10 +389,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"balcony@house.capulet.com">>},
            {xmlattr,undefined,<<"start">>,
@@ -448,7 +430,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"3">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"3">>}]}]}]}]}}).
 
 -define(MANUAL_TC6_CHANGE_RESULT,
     {received_packet,iq,"result",
@@ -481,10 +463,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,
             <<"balcony@house.capulet.com">>},
            {xmlattr,undefined,<<"start">>,
@@ -519,7 +498,7 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"3">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"3">>}]}]}]}]}}).
 
 -define(MANUAL_TC7_CHANGE_RESULT,
     {received_packet,iq,"result",
@@ -559,10 +538,7 @@
         <<?CLIENTJID "/", _/binary>>},
        {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
        {xmlattr,undefined,<<"type">>,<<"result">>}],
-      [{xmlel,?NS_ARCHIVING,
-        [{?NS_ARCHIVING,none}],
-        retrieve,[],
-        [{xmlel,undefined,[],chat,
+        [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
           [{xmlattr,undefined,<<"with">>,<<"benvolio@montague.net">>},
            {xmlattr,undefined,<<"start">>,
             <<"1469-07-21T03:01:54.000000Z">>},
@@ -603,4 +579,4 @@
               [{xmlcdata,_}]},
              {xmlel,'http://jabber.org/protocol/rsm',[],count,
               [],
-              [{xmlcdata,<<"2">>}]}]}]}]}]}}).
+              [{xmlcdata,<<"2">>}]}]}]}]}}).

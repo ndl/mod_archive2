@@ -63,10 +63,7 @@
                 <<?CLIENTJID "/", _/binary>>},
             {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
             {xmlattr,undefined,<<"type">>,<<"result">>}],
-           [{xmlel,?NS_ARCHIVING,
-                [{?NS_ARCHIVING,none}],
-                retrieve,[],
-                [{xmlel,undefined,[],chat,
+                [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
                      [{xmlattr,undefined,<<"with">>,<<?CLIENTJID2>>},
                       {xmlattr,undefined,<<"start">>,
                           _},
@@ -86,7 +83,7 @@
                                [{xmlcdata,_}]},
                            {xmlel,'http://jabber.org/protocol/rsm',[],count,
                                [],
-                               [{xmlcdata,<<"1">>}]}]}]}]}]}}).
+                               [{xmlcdata,<<"1">>}]}]}]}]}}).
 
 -define(AUTO_TC1_RETRIEVE_RESULT3,
     {received_packet,iq,"result",
@@ -128,10 +125,7 @@
                 <<?CLIENTJID "/", _/binary>>},
             {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
             {xmlattr,undefined,<<"type">>,<<"result">>}],
-           [{xmlel,?NS_ARCHIVING,
-                [{?NS_ARCHIVING,none}],
-                retrieve,[],
-                [{xmlel,undefined,[],chat,
+                [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
                      [{xmlattr,undefined,<<"with">>,
                           <<?CLIENTJID2 "/", _/binary>>},
                       {xmlattr,undefined,<<"start">>,
@@ -158,7 +152,7 @@
                                [{xmlcdata,_}]},
                            {xmlel,'http://jabber.org/protocol/rsm',[],count,
                                [],
-                               [{xmlcdata,<<"2">>}]}]}]}]}]}}).
+                               [{xmlcdata,<<"2">>}]}]}]}]}}).
 
 -define(AUTO_TC1_RETRIEVE_RESULT5,
     {received_packet,iq,"result",
@@ -206,10 +200,7 @@
                 <<?CLIENTJID "/", _/binary>>},
             {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
             {xmlattr,undefined,<<"type">>,<<"result">>}],
-           [{xmlel,?NS_ARCHIVING,
-                [{?NS_ARCHIVING,none}],
-                retrieve,[],
-                [{xmlel,undefined,[],chat,
+                [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
                      [{xmlattr,undefined,<<"with">>,<<?CLIENTJID2>>},
                       {xmlattr,undefined,<<"start">>,
                           _},
@@ -230,7 +221,7 @@
                                [{xmlcdata,_}]},
                            {xmlel,'http://jabber.org/protocol/rsm',[],count,
                                [],
-                               [{xmlcdata,<<"1">>}]}]}]}]}]}}).
+                               [{xmlcdata,<<"1">>}]}]}]}]}}).
 
 -define(AUTO_TC1_RETRIEVE_RESULT7,
     {received_packet,iq,"result",
@@ -279,10 +270,7 @@
                 <<?CLIENTJID "/", _/binary>>},
             {xmlattr,undefined,<<"id">>,<<"stanza-",_/binary>>},
             {xmlattr,undefined,<<"type">>,<<"result">>}],
-           [{xmlel,?NS_ARCHIVING,
-                [{?NS_ARCHIVING,none}],
-                retrieve,[],
-                [{xmlel,undefined,[],chat,
+                [{xmlel,?NS_ARCHIVING,[{?NS_ARCHIVING, none}],chat,
                      [{xmlattr,undefined,<<"with">>,
                           <<?CLIENTJID2 "/", _/binary>>},
                       {xmlattr,undefined,<<"start">>,
@@ -310,4 +298,4 @@
                                [{xmlcdata,_}]},
                            {xmlel,'http://jabber.org/protocol/rsm',[],count,
                                [],
-                               [{xmlcdata,<<"2">>}]}]}]}]}]}}).
+                               [{xmlcdata,<<"2">>}]}]}]}]}}).
