@@ -82,7 +82,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "list",
-                    [exmpp_xml:attribute("with", ?CLIENTJID2)],
+                    [exmpp_xml:attribute(<<"with">>, ?CLIENTJID2)],
                     []))),
     ?assert(With =:= <<?CLIENTJID2>>),
     ?AUTO_TC1_RETRIEVE_RESULT2 =
@@ -90,8 +90,8 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
-                    [exmpp_xml:attribute("with", With),
-	                 exmpp_xml:attribute("start", Start)],
+                    [exmpp_xml:attribute(<<"with">>, With),
+	                 exmpp_xml:attribute(<<"start">>, Start)],
                     []))),
     Msg2 =
         exmpp_stanza:set_recipient(
@@ -106,7 +106,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "list",
-                    [exmpp_xml:attribute("with", ?CLIENTJID2)],
+                    [exmpp_xml:attribute(<<"with">>, ?CLIENTJID2)],
                     []))),
     ?assert(With3 =/= <<?CLIENTJID2>>),
     ?assert(Start =:= Start3),
@@ -115,8 +115,8 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
-                    [exmpp_xml:attribute("with", With3),
-	                 exmpp_xml:attribute("start", Start3)],
+                    [exmpp_xml:attribute(<<"with">>, With3),
+	                 exmpp_xml:attribute(<<"start">>, Start3)],
                     []))),
     Msg3 =
         exmpp_message:set_thread(
@@ -133,7 +133,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "list",
-                    [exmpp_xml:attribute("with", ?CLIENTJID2)],
+                    [exmpp_xml:attribute(<<"with">>, ?CLIENTJID2)],
                     []))),
     ?assert(With5 =:= <<?CLIENTJID2>>),
     ?assert(Start3 =/= Start5),
@@ -142,8 +142,8 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
-                    [exmpp_xml:attribute("with", With5),
-	                 exmpp_xml:attribute("start", Start5)],
+                    [exmpp_xml:attribute(<<"with">>, With5),
+	                 exmpp_xml:attribute(<<"start">>, Start5)],
                     []))),
     Msg4 =
         exmpp_message:set_thread(
@@ -160,7 +160,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "list",
-                    [exmpp_xml:attribute("with", ?CLIENTJID2)],
+                    [exmpp_xml:attribute(<<"with">>, ?CLIENTJID2)],
                     []))),
     ?assert(With3 =:= With7),
     ?assert(Start5 =:= Start7),
@@ -169,6 +169,6 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
             exmpp_iq:get(undefined,
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
-                    [exmpp_xml:attribute("with", With7),
-	                 exmpp_xml:attribute("start", Start7)],
+                    [exmpp_xml:attribute(<<"with">>, With7),
+	                 exmpp_xml:attribute(<<"start">>, Start7)],
                     []))).

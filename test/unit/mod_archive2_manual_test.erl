@@ -37,28 +37,28 @@
 
 -define(ARCHIVE_COLLECTION_COMPLETE,
         {xmlel,undefined,[],chat,
-         [{xmlattr,undefined,with,<<"juliet@capulet.com/chamber">>},
-          {xmlattr,undefined,start,<<"1469-07-21T02:56:15.000000Z">>},
-          {xmlattr,undefined,subject,<<"Subject">>},
-          {xmlattr,undefined,thread,<<"12345">>},
-          {xmlattr,undefined,crypt,<<"true">>},
-          {xmlattr,undefined,version,<<"3">>}],
-         [{xmlel,undefined,[],previous,[{xmlattr,undefined,with,
+         [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
+          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,<<"subject">>,<<"Subject">>},
+          {xmlattr,undefined,<<"thread">>,<<"12345">>},
+          {xmlattr,undefined,<<"crypt">>,<<"true">>},
+          {xmlattr,undefined,<<"version">>,<<"3">>}],
+         [{xmlel,undefined,[],previous,[{xmlattr,undefined,<<"with">>,
                                          <<"balcony@house.capulet.com">>},
-                                        {xmlattr,undefined,start,
+                                        {xmlattr,undefined,<<"start">>,
                                          <<"1469-07-21T03:16:37.000000Z">>}], []},
-          {xmlel,undefined,[],next,[{xmlattr,undefined,with,
+          {xmlel,undefined,[],next,[{xmlattr,undefined,<<"with">>,
                                      <<"benvolio@montague.net">>},
-                                    {xmlattr,undefined,start,
+                                    {xmlattr,undefined,<<"start">>,
                                      <<"1469-07-21T03:01:54.000000Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]},
-          {xmlel,undefined,[],from,[{xmlattr,undefined,secs,<<"0">>}],
+          {xmlel,undefined,[],from,[{xmlattr,undefined,<<"secs">>,<<"0">>}],
            [{xmlel,undefined,[],body,[],
              [{xmlcdata,<<"Art thou not Romeo, and a Montague?">>}]}]},
-          {xmlel,undefined,[],to,[{xmlattr,undefined,secs,<<"11">>}],
+          {xmlel,undefined,[],to,[{xmlattr,undefined,<<"secs">>,<<"11">>}],
            [{xmlel,undefined,[],body,[],
              [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]},
-          {xmlel,undefined,[],note,[{xmlattr,undefined,utc,<<"1469-07-21T03:04:35Z">>}],
+          {xmlel,undefined,[],note,[{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35Z">>}],
            [{xmlcdata,<<"I think she might fancy me.">>}]}]}).
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
@@ -184,8 +184,8 @@ common_test_retrieve_all() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
-                        [exmpp_xml:attribute(with, "juliet@capulet.com/chamber"),
-                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
+                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
                         [])))).
 
 mysql_test_update() ->
@@ -273,8 +273,8 @@ common_test_retrieve_max() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
-                        [exmpp_xml:attribute(with, "juliet@capulet.com/chamber"),
-                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
+                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
                         [exmpp_xml:element("http://jabber.org/protocol/rsm",
                          set,
 	                     [],
@@ -302,6 +302,6 @@ common_test_retrieve_empty() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
-                        [exmpp_xml:attribute(with, "juliet@capulet.com/NOT_EXISTING"),
-                         exmpp_xml:attribute(start, "1469-07-21T02:56:15Z")],
+                        [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/NOT_EXISTING"),
+                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
                         [])))).

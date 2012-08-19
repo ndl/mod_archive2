@@ -359,7 +359,7 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
 %%--------------------------------------------------------------------
 get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
     InRSM =
-        case jlib:rsm_decode(IQ) of
+        case mod_archive2_utils:rsm_decode(IQ) of
             none -> #rsm_in{};
             R -> R
         end,
@@ -389,7 +389,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
         OutRSM =
             case Items of
                 [] ->
-                    jlib:rsm_encode(#rsm_out{count = Count});
+                    mod_archive2_utils:rsm_encode(#rsm_out{count = Count});
                 _ ->
                     [FirstRecord | _] = Items,
                     First = element(2, FirstRecord),
@@ -407,7 +407,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
                                   Conditions, UTCField, TableInfo),
                              [ok]}],
                             [{aggregate, count}]),
-                    jlib:rsm_encode(#rsm_out{count = Count, index = Index,
+                    mod_archive2_utils:rsm_encode(#rsm_out{count = Count, index = Index,
                         first = encode_rsm_position({ActualStart, First}),
                         last = encode_rsm_position({ActualEnd, Last})})
             end,

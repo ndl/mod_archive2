@@ -120,7 +120,7 @@ common_test_list_empty(_Pid) ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
-                        [exmpp_xml:attribute("with", "juliet@capulet.com")],
+                        [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com")],
                         [])))).
 
 mysql_test_insert1() ->
@@ -414,8 +414,8 @@ common_test_list_start_end() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
-                        [exmpp_xml:attribute(start, "1469-07-21T03:01:54Z"),
-                         exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], [])))).
+                        [exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z"),
+                         exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37Z")], [])))).
 
 mysql_test_list_with() ->
     dbms_storage:transaction(?HOST,
@@ -453,8 +453,8 @@ common_test_list_with() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
-                        [exmpp_xml:attribute('end', "1469-07-21T03:16:37Z"),
-                         exmpp_xml:attribute(with, "juliet@capulet.com")], [])))).
+                        [exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37Z"),
+                         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com")], [])))).
 
 mysql_test_list_exactmatch() ->
     dbms_storage:transaction(?HOST,
@@ -478,9 +478,9 @@ common_test_list_exactmatch() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
-                        [exmpp_xml:attribute('end', "1469-07-21T03:16:37Z"),
-                         exmpp_xml:attribute(with, "juliet@capulet.com"),
-                         exmpp_xml:attribute(exactmatch, "1")], [])))).
+                        [exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37Z"),
+                         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
+                         exmpp_xml:attribute(<<"exactmatch">>, "1")], [])))).
 
 mysql_test_remove_single() ->
     mysql_test_insert1(),
@@ -537,8 +537,8 @@ common_test_remove_single(RDBMS) ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
-                        [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
-                         exmpp_xml:attribute(with, "juliet@capulet.com/chamber")], []))),
+                        [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z"),
+                         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber")], []))),
             RDBMS,
             dict:new()),
     ?MGMT_TC10_RETRIEVE_RESULT =
@@ -574,7 +574,7 @@ common_test_remove_single_non_existing(RDBMS) ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
-                        [exmpp_xml:attribute('start', "1469-07-21T02:56:14Z")], []))),
+                        [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:14Z")], []))),
             RDBMS,
             dict:new()).
 
@@ -629,8 +629,8 @@ common_test_remove_range(RDBMS) ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, remove,
-                        [exmpp_xml:attribute('start', "1469-07-21T02:56:15Z"),
-                         exmpp_xml:attribute('end', "1469-07-21T03:16:37Z")], []))),
+                        [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z"),
+                         exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37Z")], []))),
             RDBMS,
             dict:new()),
     ?MGMT_TC12_RETRIEVE_RESULT =
@@ -709,7 +709,7 @@ common_test_modified2() ->
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, modified,
-                        [exmpp_xml:attribute('start', "2001-01-01T00:00:00Z")],
+                        [exmpp_xml:attribute(<<"start">>, "2001-01-01T00:00:00Z")],
                         [])))).
 
 

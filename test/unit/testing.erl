@@ -76,4 +76,5 @@ mnesia_tests_teardown(Pid) ->
     mnesia:clear_table(archive_collection),
     mnesia:clear_table(archive_message),
     mnesia:clear_table(archive_jid_prefs),
+    mnesia:clear_table(archive_global_prefs),
     common_tests_teardown(Pid).

@@ -72,28 +72,28 @@ collection_to_xml(Name, #archive_collection{} = C) ->
         end,
     exmpp_xml:element(undefined, Name,
         filter_undef([
-            exmpp_xml:attribute(with, jid_to_string(C)),
-            exmpp_xml:attribute(start,
+            exmpp_xml:attribute(<<"with">>, jid_to_string(C)),
+            exmpp_xml:attribute(<<"start">>,
                 datetime_to_utc_string(C#archive_collection.utc)),
             if C#archive_collection.subject =/= undefined ->
-                exmpp_xml:attribute(subject, C#archive_collection.subject);
+                exmpp_xml:attribute(<<"subject">>, C#archive_collection.subject);
                true ->
                 undefined
             end,
             if C#archive_collection.thread =/= undefined ->
-                exmpp_xml:attribute(thread, C#archive_collection.thread);
+                exmpp_xml:attribute(<<"thread">>, C#archive_collection.thread);
                true ->
                 undefined
             end,
             if C#archive_collection.crypt =:= true ->
-                exmpp_xml:attribute(crypt, true);
+                exmpp_xml:attribute(<<"crypt">>, true);
                C#archive_collection.crypt =:= false ->
-                exmpp_xml:attribute(crypt, false);
+                exmpp_xml:attribute(<<"crypt">>, false);
                true ->
                 undefined
             end,
             if C#archive_collection.version =/= undefined ->
-                exmpp_xml:attribute(version, C#archive_collection.version);
+                exmpp_xml:attribute(<<"version">>, C#archive_collection.version);
                true ->
                 undefined
             end]),
@@ -171,18 +171,18 @@ message_to_xml(#archive_message{} = M, Start) ->
     exmpp_xml:element(undefined, M#archive_message.direction,
         filter_undef([
             if M#archive_message.direction == note orelse Secs < 0 ->
-                exmpp_xml:attribute(utc,
+                exmpp_xml:attribute(<<"utc">>,
                      datetime_to_utc_string(M#archive_message.utc));
                true ->
-                exmpp_xml:attribute(secs, Secs)
+                exmpp_xml:attribute(<<"secs">>, Secs)
             end,
             case M#archive_message.name of
                 undefined -> undefined;
-                Name -> exmpp_xml:attribute(name, Name)
+                Name -> exmpp_xml:attribute(<<"name">>, Name)
             end,
             case M#archive_message.jid of
                 undefined -> undefined;
-                JID -> exmpp_xml:attribute(jid, JID)
+                JID -> exmpp_xml:attribute(<<"jid">>, JID)
             end]),
         [if M#archive_message.direction == note ->
              exmpp_xml:cdata(M#archive_message.body);
@@ -256,24 +256,24 @@ jid_prefs_to_xml(Prefs) ->
     OTR = Prefs#archive_jid_prefs.otr,
     exmpp_xml:element(undefined, item,
         filter_undef([
-            exmpp_xml:attribute(jid, jid_to_string(Prefs)),
+            exmpp_xml:attribute(<<"jid">>, jid_to_string(Prefs)),
             if ExactMatch =/= undefined ->
-                exmpp_xml:attribute(exactmatch, ExactMatch);
+                exmpp_xml:attribute(<<"exactmatch">>, ExactMatch);
                true ->
                 undefined
             end,
             if Save =/= undefined ->
-                exmpp_xml:attribute(save, Save);
+                exmpp_xml:attribute(<<"save">>, Save);
                true ->
                 undefined
             end,
             if Expire =/= undefined ->
-                exmpp_xml:attribute(expire, Expire);
+                exmpp_xml:attribute(<<"expire">>, Expire);
                true ->
                 undefined
             end,
             if OTR =/= undefined ->
-                exmpp_xml:attribute(otr, OTR);
+                exmpp_xml:attribute(<<"otr">>, OTR);
                true ->
                 undefined
             end]), []).
@@ -306,46 +306,46 @@ global_prefs_to_xml(Prefs, UnSet, AutoState) ->
         [exmpp_xml:element(undefined, default,
             filter_undef([
                 if Prefs#archive_global_prefs.save =/= undefined ->
-                    exmpp_xml:attribute(save, Prefs#archive_global_prefs.save);
+                    exmpp_xml:attribute(<<"save">>, Prefs#archive_global_prefs.save);
                    true ->
                     undefined
                 end,
                 if Prefs#archive_global_prefs.expire =/= infinity ->
-                    exmpp_xml:attribute(expire, Prefs#archive_global_prefs.expire);
+                    exmpp_xml:attribute(<<"expire">>, Prefs#archive_global_prefs.expire);
                    true ->
                     undefined
                 end,
                 if Prefs#archive_global_prefs.otr =/= undefined ->
-                    exmpp_xml:attribute(otr, Prefs#archive_global_prefs.otr);
+                    exmpp_xml:attribute(<<"otr">>, Prefs#archive_global_prefs.otr);
                    true ->
                     undefined
                 end,
-                exmpp_xml:attribute(unset, UnSet)]), []),
+                exmpp_xml:attribute(<<"unset">>, UnSet)]), []),
          exmpp_xml:element(undefined, method,
-            [exmpp_xml:attribute(type, auto),
-             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_auto)],
+            [exmpp_xml:attribute(<<"type">>, auto),
+             exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_auto)],
             []),
          exmpp_xml:element(undefined, method,
-            [exmpp_xml:attribute(type, local),
-             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_local)],
+            [exmpp_xml:attribute(<<"type">>, local),
+             exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_local)],
             []),
          exmpp_xml:element(undefined, method,
-            [exmpp_xml:attribute(type, manual),
-             exmpp_xml:attribute(use, Prefs#archive_global_prefs.method_manual)],
+            [exmpp_xml:attribute(<<"type">>, manual),
+             exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_manual)],
             []),
          if Prefs#archive_global_prefs.auto_save =/= undefined ->
              exmpp_xml:element(undefined, auto,
-                 [exmpp_xml:attribute(save,
+                 [exmpp_xml:attribute(<<"save">>,
                     Prefs#archive_global_prefs.auto_save),
-                  exmpp_xml:attribute(scope, global)],
+                  exmpp_xml:attribute(<<"scope">>, global)],
                  []);
             true ->
                 undefined
          end,
          if AutoState =/= undefined ->
              exmpp_xml:element(undefined, auto,
-                 [exmpp_xml:attribute(save, AutoState),
-                  exmpp_xml:attribute(scope, session)],
+                 [exmpp_xml:attribute(<<"save">>, AutoState),
+                  exmpp_xml:attribute(<<"scope">>, session)],
                  []);
             true ->
              undefined
@@ -410,10 +410,10 @@ modified_to_xml(#archive_collection{} = C) ->
             false -> changed
         end,
     exmpp_xml:element(undefined, Name,
-        [exmpp_xml:attribute(with, jid_to_string(C)),
-         exmpp_xml:attribute(start,
+        [exmpp_xml:attribute(<<"with">>, jid_to_string(C)),
+         exmpp_xml:attribute(<<"start">>,
             datetime_to_utc_string(C#archive_collection.utc)),
-         exmpp_xml:attribute(version, C#archive_collection.version)], []).
+         exmpp_xml:attribute(<<"version">>, C#archive_collection.version)], []).
 
 %%--------------------------------------------------------------------
 %% Conversion utility functions.
@@ -439,4 +439,4 @@ datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second}}) ->
 datetime_from_xml(undefined) -> undefined;
 
 datetime_from_xml(TimeStr) ->
-    calendar:now_to_datetime(jlib:datetime_string_to_timestamp(TimeStr)).
+    calendar:now_to_datetime(mod_archive2_utils:datetime_string_to_timestamp(TimeStr)).

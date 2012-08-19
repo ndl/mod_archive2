@@ -56,8 +56,8 @@ test_global_prefs_change(F) ->
     [
         exmpp_xml:element(undefined, "default",
 	[
-	    exmpp_xml:attribute("otr", "prefer"),
-	    exmpp_xml:attribute("save", "false")
+	    exmpp_xml:attribute(<<"otr">>, "prefer"),
+	    exmpp_xml:attribute(<<"save">>, "false")
 	], [])
     ])), 2),
     ?PREFS_TC2_CHANGED =
@@ -69,18 +69,18 @@ test_prefs_methods_change(F) ->
     [
         exmpp_xml:element(undefined, "method",
 	[
-	    exmpp_xml:attribute("type", "auto"),
-	    exmpp_xml:attribute("use", "concede")
+	    exmpp_xml:attribute(<<"type">>, "auto"),
+	    exmpp_xml:attribute(<<"use">>, "concede")
 	], []),
         exmpp_xml:element(undefined, "method",
 	[
-	    exmpp_xml:attribute("type", "local"),
-	    exmpp_xml:attribute("use", "forbid")
+	    exmpp_xml:attribute(<<"type">>, "local"),
+	    exmpp_xml:attribute(<<"use">>, "forbid")
 	], []),
         exmpp_xml:element(undefined, "method",
 	[
-	    exmpp_xml:attribute("type", "manual"),
-	    exmpp_xml:attribute("use", "prefer")
+	    exmpp_xml:attribute(<<"type">>, "manual"),
+	    exmpp_xml:attribute(<<"use">>, "prefer")
 	], [])
     ])), 2),
     ?PREFS_TC3_CHANGED =
@@ -92,10 +92,10 @@ test_jid_prefs_change(F) ->
     [
         exmpp_xml:element(undefined, "item",
 	[
-	    exmpp_xml:attribute("jid", "romeo@montague.net"),
-	    exmpp_xml:attribute("save", "body"),
-	    exmpp_xml:attribute("expire", "604800"),
-	    exmpp_xml:attribute("otr", "concede")
+	    exmpp_xml:attribute(<<"jid">>, "romeo@montague.net"),
+	    exmpp_xml:attribute(<<"save">>, "body"),
+	    exmpp_xml:attribute(<<"expire">>, "604800"),
+	    exmpp_xml:attribute(<<"otr">>, "concede")
 	], [])
     ])), 2),
     ?PREFS_TC4_CHANGED =
@@ -107,7 +107,7 @@ test_jid_prefs_remove(F) ->
     [
         exmpp_xml:element(undefined, "item",
 	[
-	    exmpp_xml:attribute("jid", "romeo@montague.net")
+	    exmpp_xml:attribute(<<"jid">>, "romeo@montague.net")
 	], [])
     ])), 2),
     ?PREFS_TC5_CHANGED =
@@ -117,30 +117,30 @@ test_auto_prefs_change1(F) ->
     ?PREFS_TC6_CHANGE_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
-	    exmpp_xml:attribute("save", "false"),
-	    exmpp_xml:attribute("scope", "session")
+	    exmpp_xml:attribute(<<"save">>, "false"),
+	    exmpp_xml:attribute(<<"scope">>, "session")
 	], []))),
     ?PREFS_TC6_CHANGED =
         client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
     % Restore it back so that further tests continue to use auto-archiving.
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
-	    exmpp_xml:attribute("save", "true"),
-	    exmpp_xml:attribute("scope", "session")
+	    exmpp_xml:attribute(<<"save">>, "true"),
+	    exmpp_xml:attribute(<<"scope">>, "session")
 	], []))).
 
 test_auto_prefs_change2(F) ->
     [?PREFS_TC7_CHANGE_PUSH, ?PREFS_TC7_CHANGE_RESULT] =
     client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
-	    exmpp_xml:attribute("save", "false"),
-	    exmpp_xml:attribute("scope", "global")
+	    exmpp_xml:attribute(<<"save">>, "false"),
+	    exmpp_xml:attribute(<<"scope">>, "global")
 	], [])), 2),
     ?PREFS_TC7_CHANGED =
         client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
     % Restore it back so that further tests continue to use auto-archiving.
     client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
-	    exmpp_xml:attribute("save", "true"),
-	    exmpp_xml:attribute("scope", "global")
+	    exmpp_xml:attribute(<<"save">>, "true"),
+	    exmpp_xml:attribute(<<"scope">>, "global")
 	], [])), 2).

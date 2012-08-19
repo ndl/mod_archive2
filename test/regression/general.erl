@@ -47,9 +47,9 @@ general_test_() ->
     %?GENERAL_TC1_QUERY_RESULT =
  %   ?debugFmt("1:~p~n", [
  %       client:response(F, exmpp_xml:element(undefined, "iq",
- %           [exmpp_xml:attribute("from", ?CLIENTJID),
-%	         exmpp_xml:attribute("to", ?SERVERHOST),
-%	         exmpp_xml:attribute("type", "get")],
+ %           [exmpp_xml:attribute(<<"from">>, ?CLIENTJID),
+%	         exmpp_xml:attribute(<<"to">>, ?SERVERHOST),
+%	         exmpp_xml:attribute(<<"type">>, "get")],
 %            [exmpp_xml:element(?NS_DISCO_INFO, 'query', [], [])]))]).
     %DiscoSorted = lists:sort(lists:filter(
     %    fun({xmlel, _, _, _, [{xmlattr,_,_,NS}], []}) -> string:str(binary_to_list(NS), "archive") /= 0;
@@ -82,5 +82,5 @@ test_remove_user2(F) ->
         client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(
             ?NS_ARCHIVING,
             "modified",
-            [exmpp_xml:attribute("start", "1469-07-21T01:14:47Z")],
+            [exmpp_xml:attribute(<<"start">>, "1469-07-21T01:14:47Z")],
             []))).

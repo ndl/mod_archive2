@@ -24,13 +24,10 @@
 %%%----------------------------------------------------------------------
 
 -include_lib("eunit/include/eunit.hrl").
--include_lib("exmpp/include/exmpp.hrl").
 -include_lib("stdlib/include/ms_transform.hrl").
 
-% -include("ejabberd.hrl").
-% -include("jlib.hrl").
-
 -include("dbms_storage.hrl").
+-include("mod_archive2_utils.hrl").
 
 -define(NS_ARCHIVING_AUTO, 'urn:xmpp:archive:auto').
 -define(NS_ARCHIVING_AUTO_s, "urn:xmpp:archive:auto").
@@ -94,6 +91,3 @@
 -record(session, {utc, last_access, id, version, resource}).
 
 -record(external_message, {type, thread, subject, nick, jid, body}).
-
--record(rsm_in, {max, direction, id, index}).
--record(rsm_out, {count, index, first, last}).
