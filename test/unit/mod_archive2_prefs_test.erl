@@ -31,6 +31,7 @@
 
 -export([eunit_xml_report/1]).
 
+-define(XMPP_API_MOCK, xmpp_api_mock).
 -define(JID, "client@localhost/res").
 -define(HOST, "localhost").
 
@@ -332,7 +333,8 @@ common_test_default_prefs(_Pid) ->
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_set_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -388,7 +390,8 @@ common_test_set_prefs1() ->
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_get_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -413,7 +416,8 @@ common_test_get_prefs1() ->
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive1() ->
     dbms_storage:transaction(?HOST,
@@ -491,7 +495,8 @@ common_test_update_prefs1() ->
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(false),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_get_prefs2() ->
     dbms_storage:transaction(?HOST,
@@ -516,7 +521,8 @@ common_test_get_prefs2() ->
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive2() ->
     dbms_storage:transaction(?HOST,
@@ -573,7 +579,8 @@ common_test_itemremove_prefs1() ->
                                 [exmpp_xml:attribute(<<"jid">>, "romeo@montague.net"),
                                  exmpp_xml:attribute(<<"exactmatch">>, "true")], [])
                         ]))),
-            create_auto_states_with(true)).
+            create_auto_states_with(true),
+            ?XMPP_API_MOCK).
 
 mysql_test_auto1() ->
     dbms_storage:transaction(?HOST,
@@ -599,7 +606,8 @@ common_test_auto1() ->
                     exmpp_xml:element(?NS_ARCHIVING, auto,
                         [exmpp_xml:attribute(<<"save">>, "true"),
                          exmpp_xml:attribute(<<"scope">>, "global")], []))),
-            AutoStates).
+            AutoStates,
+            ?XMPP_API_MOCK).
 
 mysql_test_auto2() ->
     dbms_storage:transaction(?HOST,
@@ -624,7 +632,8 @@ common_test_auto2() ->
                     exmpp_xml:element(?NS_ARCHIVING, auto,
                         [exmpp_xml:attribute(<<"save">>, "true"),
                          exmpp_xml:attribute(<<"scope">>, "session")], []))),
-            dict:new()).
+            dict:new(),
+            ?XMPP_API_MOCK).
 
 mysql_test_get_prefs3() ->
     dbms_storage:transaction(?HOST,
@@ -648,7 +657,8 @@ common_test_get_prefs3() ->
                     exmpp_xml:element(?NS_ARCHIVING, pref, [], []))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -686,7 +696,8 @@ common_test_set_not_implemented_prefs1() ->
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs2() ->
     dbms_storage:transaction(?HOST,
@@ -711,7 +722,8 @@ common_test_set_not_implemented_prefs2() ->
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, infinity}).
+            {0, infinity},
+            ?XMPP_API_MOCK).
 
 mysql_test_set_not_allowed_expire_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -736,7 +748,8 @@ common_test_set_not_allowed_expire_prefs1() ->
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
-            {0, 0}).
+            {0, 0},
+            ?XMPP_API_MOCK).
 
 test_prefs_cache_expire(_) ->
     AutoStates = create_auto_states(true),

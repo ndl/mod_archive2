@@ -410,17 +410,18 @@ handle_call2({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
                         mod_archive2_prefs:pref(From, IQ,
                             State#state.default_global_prefs,
                             State#state.auto_states,
-                            {EnforceMinExpire, EnforceMaxExpire}),
+                            {EnforceMinExpire, EnforceMaxExpire},
+                            State#state.xmpp_api),
                         State);
                 'itemremove' ->
                     auto_states_reply(IQ,
                         mod_archive2_prefs:itemremove(From, IQ,
-                            State#state.auto_states),
+                            State#state.auto_states, State#state.xmpp_api),
                         State);
 			    'auto' ->
                     auto_states_reply(IQ,
                         mod_archive2_prefs:auto(From, IQ,
-                            State#state.auto_states),
+                            State#state.auto_states, State#state.xmpp_api),
                         State);
 			    'list' ->
                     mod_archive2_management:list(From, IQ);

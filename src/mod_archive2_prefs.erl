@@ -31,7 +31,7 @@
 -module(mod_archive2_prefs).
 -author('xmpp@endl.ch').
 
--export([pref/5, auto/3, itemremove/3, default_global_prefs/2,
+-export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
          should_auto_archive/5,
          expire_prefs_cache/1,
          get_effective_jid_prefs/2, get_global_prefs/2]).
@@ -47,12 +47,12 @@
 
 %% Processes 'pref' requests from clients
 pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
-     EnforceExpire) ->
+     EnforceExpire, XmppApi) ->
     case Type of
 	    set ->
             case pref_set(From, SubEl, EnforceExpire) of
                 {atomic, ok} ->
-                    broadcast_iq(From, IQ),
+                    XmppApi:broadcast_iq(From, IQ),
                     {atomic, {auto_states, clear_with_auto_states(
                         From, AutoStates)}};
                 Result ->
@@ -63,7 +63,7 @@ pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
     end.
 
 %% Processes 'auto' requests from clients
-auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
+auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates, XmppApi) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     AutoSave = list_to_atom(
         exmpp_xml:get_attribute_as_list(AutoEl, <<"save">>, "false")),
@@ -79,7 +79,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
                             us = exmpp_jid:prep_bare_to_list(From),
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
-                    broadcast_iq(From, IQ),
+                    XmppApi:broadcast_iq(From, IQ),
                     {auto_states, clear_with_auto_states(From, AutoStates)}
                 end,
             dbms_storage:transaction(
@@ -94,7 +94,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates) ->
     end.
 
 %% Processes 'itemremove' requests from clients
-itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates) ->
+itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates, XmppApi) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     F = fun() ->
             lists:foreach(
@@ -107,7 +107,7 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates) ->
         end,
     case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, ok} ->
-            broadcast_iq(From, IQ),
+            XmppApi:broadcast_iq(From, IQ),
             {atomic, {auto_states, clear_with_auto_states(
                From, AutoStates)}};
         Result ->
@@ -291,20 +291,6 @@ is_save_method_supported(Save) ->
         _ ->
             false
     end.
-
-%% Broadcasts preferences change to all active sessions.
-broadcast_iq(From, IQ) ->
-    lists:foreach(
-        fun(Resource) ->
-		    ejabberd_router:route(
-                exmpp_jid:make(exmpp_jid:domain(From)),
-                exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
-                    Resource),
-                exmpp_iq:iq_to_xmlel(IQ#iq{id = <<"push">>}))
-	    end,
-        ejabberd_sm:get_user_resources(
-            exmpp_jid:prep_node(From),
-            exmpp_jid:prep_domain(From))).
 
 %% Returns the archive_global_prefs record filled with default values
 default_global_prefs(AutoSave, Expire) ->

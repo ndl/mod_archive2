@@ -1,5 +1,5 @@
 %%%----------------------------------------------------------------------
-%%% File    : xmpp_api_ejabberd.erl
+%%% File    : xmpp_api_mock.erl
 %%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : Support XEP-136 for messages archiving
 %%% Created : 18 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
@@ -23,33 +23,18 @@
 %%%
 %%%----------------------------------------------------------------------
 
--module(xmpp_api_ejabberd).
+-module(xmpp_api_mock).
 -author('xmpp@endl.ch').
 
--include("ejabberd.hrl").
 -include_lib("exmpp/include/exmpp.hrl").
 
 -export([get_valid_hosts/0, info_msg/2, error_msg/2, broadcast_iq/2]).
 
-get_valid_hosts() ->
-    ?MYHOSTS.
+get_valid_hosts() -> [].
 
-info_msg(Format, Opts) ->
-    ?INFO_MSG(Format, Opts).
+info_msg(_Format, _Opts) -> ok.
 
-error_msg(Format, Opts) ->
-    ?ERROR_MSG(Format, Opts).
+error_msg(_Format, _Opts) -> ok.
 
 %% Broadcasts IQ to all active sessions.
-broadcast_iq(From, IQ) ->
-    lists:foreach(
-        fun(Resource) ->
-		    ejabberd_router:route(
-                exmpp_jid:make(exmpp_jid:domain(From)),
-                exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
-                    Resource),
-                exmpp_iq:iq_to_xmlel(IQ#iq{id = <<"push">>}))
-	    end,
-        ejabberd_sm:get_user_resources(
-            exmpp_jid:prep_node(From),
-            exmpp_jid:prep_domain(From))).
+broadcast_iq(_From, _IQ) -> ok.
