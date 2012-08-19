@@ -101,7 +101,7 @@ test_retrieve_collection(F) ->
     ], []))).
 
 test_retrieve_non_existing_collection(F) ->
-    ?MANAGEMENT_TC4_RETRIEVE_RESULT =
+    %?MANAGEMENT_TC4_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "retrieve",
     [
         exmpp_xml:attribute(<<"with">>, "NOTEXISTING@capulet.com/chamber"),

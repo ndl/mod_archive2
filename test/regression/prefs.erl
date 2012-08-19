@@ -38,10 +38,10 @@ prefs_test_() ->
         client:session_teardown,
         [
             ?test_gen1(test_default_prefs),
-	        ?test_gen1(test_global_prefs_change),
+            ?test_gen1(test_global_prefs_change),
             ?test_gen1(test_prefs_methods_change),
-	        ?test_gen1(test_jid_prefs_change),
-	        ?test_gen1(test_jid_prefs_remove),
+            ?test_gen1(test_jid_prefs_change),
+            ?test_gen1(test_jid_prefs_remove),
             ?test_gen1(test_auto_prefs_change1),
             ?test_gen1(test_auto_prefs_change2)
         ]).

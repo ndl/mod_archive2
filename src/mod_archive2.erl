@@ -157,6 +157,8 @@ stop(Host) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([Host, Opts]) ->
+    % Make sure EXMPP is initialized.
+    exmpp:start(),
     HostB = list_to_binary(Host),
     % Get options necessary for initialization
     IQDisc =
@@ -185,9 +187,9 @@ init([Host, Opts]) ->
     XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),
     case XmppServer of
         ejabberd2 ->
-            gen_iq_handler:add_iq_handler(ejabberd_sm, Host, ?NS_ARCHIVING, ?MODULE,
+            gen_iq_handler:add_iq_handler(ejabberd_sm, Host, atom_to_list(?NS_ARCHIVING), ?MODULE,
                                           iq_archive, IQDisc),
-            gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_ARCHIVING, ?MODULE,
+            gen_iq_handler:add_iq_handler(ejabberd_local, Host, atom_to_list(?NS_ARCHIVING), ?MODULE,
                                           iq_archive, IQDisc),
             ejabberd_hooks:add(
                 remove_user,
@@ -205,11 +207,11 @@ init([Host, Opts]) ->
             ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, receive_packet,
                                ?HOOK_SEQ),
             % Register our provided features
-            mod_disco:register_feature(Host, ?NS_ARCHIVING),
-            mod_disco:register_feature(Host, ?NS_ARCHIVING_AUTO),
-            mod_disco:register_feature(Host, ?NS_ARCHIVING_MANAGE),
-            mod_disco:register_feature(Host, ?NS_ARCHIVING_MANUAL),
-            mod_disco:register_feature(Host, ?NS_ARCHIVING_PREF);
+            mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING)),
+            mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_AUTO)),
+            mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_MANAGE)),
+            mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_MANUAL)),
+            mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_PREF));
         ejabberd3 ->
             gen_iq_handler:add_iq_handler(ejabberd_sm, HostB, ?NS_ARCHIVING, ?MODULE,
                                           iq_archive, IQDisc),
@@ -564,6 +566,17 @@ handle_error(Error, IQ, XmppApi) ->
         exmpp_iq:error(IQ, 'bad-request')
     end.
 
+% ejabberd 2.x -> exmpp JID & IQ conversion
+% If this function is called - we know we're under
+% ejabberd 2.x, so using its specific structures /
+% jlib calls is fine.
+iq_archive({jid, _, _, _, _, _, _} = From, To, IQ) ->
+    xmpp_api_ejabberd:iq_from_exmpp(
+        iq_archive(
+            xmpp_api_ejabberd:jid_to_exmpp(From),
+            xmpp_api_ejabberd:jid_to_exmpp(To),
+            xmpp_api_ejabberd:iq_to_exmpp(IQ)));
+
 iq_archive(From, To, IQ) ->
     LServer = exmpp_jid:prep_domain_as_list(From),
     Proc = mod_archive2_utils:get_module_proc(LServer, ?PROCNAME),
@@ -577,6 +590,14 @@ receive_packet(From, To, Packet) ->
 
 receive_packet(_JID, From, To, Packet) ->
     add_packet(from, To, From, Packet).
+
+% ejabberd 2.x support
+add_packet(Direction, OurJID, With, #xmlelement{} = Packet) ->
+    add_packet(
+        Direction,
+        xmpp_api_ejabberd:jid_to_exmpp(OurJID),
+        xmpp_api_ejabberd:jid_to_exmpp(With),
+        exmpp_xml:xmlelement_to_xmlel(Packet));
 
 add_packet(Direction, OurJID, With, Packet) ->
     Host = exmpp_jid:prep_domain_as_list(OurJID),
