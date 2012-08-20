@@ -28,7 +28,7 @@
 
 -include_lib("exmpp/include/exmpp.hrl").
 
--export([get_valid_hosts/0, info_msg/2, error_msg/2, broadcast_iq/2]).
+-export([get_valid_hosts/0, info_msg/2, error_msg/2, broadcast_iq/2, is_in_roster/3]).
 
 get_valid_hosts() -> [].
 
@@ -38,3 +38,5 @@ error_msg(_Format, _Opts) -> ok.
 
 %% Broadcasts IQ to all active sessions.
 broadcast_iq(_From, _IQ) -> ok.
+
+is_in_roster(_, _, _) -> false.

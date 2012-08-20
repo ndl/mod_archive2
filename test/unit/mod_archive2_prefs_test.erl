@@ -177,6 +177,23 @@
          [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
     [],[],[],[],[],[],[],[]}}}}).
 
+-define(SHOULD_AUTO_ARCHIVE_NOT_IN_ROSTER,
+{false,
+    {dict,1,16,16,8,80,48,
+     {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+     {{[],[],[],[],[],[],[],
+       [["client@localhost"|
+         {dict,1,16,16,8,80,48,
+          {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+          {{[],
+            [["res"|
+              {auto_state,true,
+               {dict,0,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+                {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}}]],
+            [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
+       [],[],[],[],[],[],[],[]}}}}).
+
 -define(SHOULD_AUTO_ARCHIVE2,
     {false,
      {dict,1,16,16,8,80,48,
@@ -245,6 +262,7 @@ mod_archive2_prefs_mysql_test_() ->
             ?test_gen0(mysql_test_set_prefs1),
             ?test_gen0(mysql_test_get_prefs1),
             ?test_gen0(mysql_test_should_auto_archive1),
+            ?test_gen0(mysql_test_should_auto_archive_not_in_roster),
             ?test_gen0(mysql_test_update_prefs1),
             ?test_gen0(mysql_test_get_prefs2),
             ?test_gen0(mysql_test_should_auto_archive2),
@@ -271,6 +289,7 @@ mod_archive2_prefs_mnesia_test_() ->
             ?test_gen0(common_test_set_prefs1),
             ?test_gen0(common_test_get_prefs1),
             ?test_gen0(common_test_should_auto_archive1),
+            ?test_gen0(common_test_should_auto_archive_not_in_roster),
             ?test_gen0(common_test_update_prefs1),
             ?test_gen0(common_test_get_prefs2),
             ?test_gen0(common_test_should_auto_archive2),
@@ -446,6 +465,28 @@ common_test_should_auto_archive1() ->
             exmpp_jid:parse("romeo@montague.net"),
             create_auto_states(true),
             mod_archive2_prefs:default_global_prefs(true, 3600),
+            true,
+            xmpp_api_mock,
+            false).
+
+mysql_test_should_auto_archive_not_in_roster() ->
+    dbms_storage:transaction(?HOST,
+        fun() ->
+            ejabberd_odbc:start([
+                {},
+                {}])
+        end),
+    common_test_should_auto_archive_not_in_roster().
+
+common_test_should_auto_archive_not_in_roster() ->
+    ?SHOULD_AUTO_ARCHIVE_NOT_IN_ROSTER =
+        mod_archive2_prefs:should_auto_archive(
+            exmpp_jid:parse(?JID),
+            exmpp_jid:parse("romeo@montague.net"),
+            create_auto_states(true),
+            mod_archive2_prefs:default_global_prefs(true, 3600),
+            true,
+            xmpp_api_mock,
             true).
 
 mysql_test_update_prefs1() ->
@@ -551,7 +592,9 @@ common_test_should_auto_archive2() ->
             exmpp_jid:parse("romeo@montague.net"),
             create_auto_states(true),
             mod_archive2_prefs:default_global_prefs(true, 3600),
-            true).
+            true,
+            xmpp_api_mock,
+            false).
 
 mysql_test_itemremove_prefs1() ->
     dbms_storage:transaction(?HOST,

@@ -33,6 +33,7 @@
          info_msg/2,
          error_msg/2,
          broadcast_iq/2,
+         is_in_roster/3,
          jid_to_exmpp/1,
          jid_from_exmpp/1,
          iq_to_exmpp/1,
@@ -61,6 +62,13 @@ broadcast_iq(From, IQ) ->
         ejabberd_sm:get_user_resources(
             exmpp_jid:prep_node_as_list(From),
             exmpp_jid:prep_domain_as_list(From))).
+
+% FIXME: ASSUMES ejabberd 2.x !!!
+is_in_roster(User, Server, JID) ->
+    case mod_roster:get_jid_info(undefined, User, Server, jid_from_exmpp(JID)) of
+        {S, _} when S =:= both orelse S =:= to -> true;
+        _ -> false
+    end.
 
 % ejabberd 2.x -> exmpp JID conversion
 % If this function is called - we know we're under

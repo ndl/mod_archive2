@@ -32,7 +32,7 @@
 -author('xmpp@endl.ch').
 
 -export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
-         should_auto_archive/5,
+         should_auto_archive/7,
          expire_prefs_cache/1,
          get_effective_jid_prefs/2, get_global_prefs/2]).
 
@@ -117,7 +117,7 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates, XmppApi) ->
 %% Returns true if collections for given From JID with given With JID
 %% should be auto-archived.
 should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
-    ShouldCachePrefs) ->
+    ShouldCachePrefs, XmppApi, OnlyFromRoster) ->
     case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
@@ -132,50 +132,62 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
                                 _ ->
                                     should_auto_archive2(From, With, AutoStates,
                                         AutoSave, DefaultGlobalPrefs,
-                                        ShouldCachePrefs)
+                                        ShouldCachePrefs, XmppApi, OnlyFromRoster)
                             end
                     end;
                 _ ->
                     should_auto_archive2(From, With, AutoStates, undefined,
-                        DefaultGlobalPrefs, ShouldCachePrefs)
+                        DefaultGlobalPrefs, ShouldCachePrefs, XmppApi, OnlyFromRoster)
             end;
         _ ->
             should_auto_archive2(From, With, AutoStates, undefined,
-                DefaultGlobalPrefs, ShouldCachePrefs)
+                DefaultGlobalPrefs, ShouldCachePrefs, XmppApi, OnlyFromRoster)
     end.
 
 should_auto_archive2(From, With, AutoStates, SessionAutoSave,
-    DefaultGlobalPrefs, ShouldCachePrefs) ->
-    F =
-        fun() ->
-            GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
-            if SessionAutoSave =:= true orelse
-                GlobalPrefs#archive_global_prefs.auto_save =:= true ->
-                case get_effective_jid_prefs(From, With) of
-                    undefined ->
-                        true;
-                    JidPrefs ->
-                        case JidPrefs#archive_jid_prefs.save of
-                            false -> false;
-                            _ -> true
-                        end
-                end;
-               true ->
-                false
-            end
+    DefaultGlobalPrefs, ShouldCachePrefs, XmppApi, OnlyFromRoster) ->
+    ShouldArchive =
+        case OnlyFromRoster of
+            true -> XmppApi:is_in_roster(
+                        exmpp_jid:prep_node_as_list(From),
+                        exmpp_jid:prep_domain_as_list(From),
+                        With);
+            _ -> true
         end,
-    case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
-        {atomic, Value} when is_boolean(Value) ->
-            case ShouldCachePrefs of
-                true ->
-                    {Value,
-                     update_with_auto_states(From, With, Value, AutoStates)};
-                false ->
-                    {Value, AutoStates}
-            end
-%        Result ->
-%            ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
-%            {false, AutoStates}
+    case ShouldArchive of
+        true ->
+            F =
+                fun() ->
+                    GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
+                    if SessionAutoSave =:= true orelse
+                        GlobalPrefs#archive_global_prefs.auto_save =:= true ->
+                        case get_effective_jid_prefs(From, With) of
+                            undefined ->
+                                true;
+                            JidPrefs ->
+                                case JidPrefs#archive_jid_prefs.save of
+                                    false -> false;
+                                    _ -> true
+                                end
+                        end;
+                       true ->
+                        false
+                    end
+                end,
+            case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
+                {atomic, Value} when is_boolean(Value) ->
+                    case ShouldCachePrefs of
+                        true ->
+                            {Value,
+                             update_with_auto_states(From, With, Value, AutoStates)};
+                        false ->
+                            {Value, AutoStates}
+                    end
+%                Result ->
+%                    ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
+%                    {false, AutoStates}
+            end;
+        _ -> {false, AutoStates}
     end.
 
 expire_prefs_cache(AutoStates) ->

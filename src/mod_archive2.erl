@@ -88,6 +88,7 @@
                 dbinfo,
                 auto_states,
                 should_cache_prefs,
+                only_in_roster,
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer,
@@ -102,6 +103,7 @@
 -define(DEFAULT_WIPEOUT_INTERVAL, 86400). % 1 day
 -define(DEFAULT_PREFS_CACHE_INTERVAL, 1800). % 30 minutes
 -define(DEFAULT_AUTO_SAVE, false).
+-define(DEFAULT_ONLY_IN_ROSTER, false).
 -define(DEFAULT_EXPIRE, infinity).
 -define(DEFAULT_REPLICATION_EXPIRE, 31536000). % 1 year
 -define(DEFAULT_READ_ONLY, false).
@@ -172,6 +174,8 @@ init([Host, Opts]) ->
             ?DEFAULT_PREFS_CACHE_INTERVAL),
     AutoSave =
         proplists:get_value(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
+    OnlyInRoster =
+        proplists:get_value(only_in_roster, Opts, ?DEFAULT_ONLY_IN_ROSTER),
     Expire =
         proplists:get_value(default_expire, Opts, ?DEFAULT_EXPIRE),
     GlobalPrefs = mod_archive2_prefs:default_global_prefs(AutoSave, Expire),
@@ -270,6 +274,7 @@ init([Host, Opts]) ->
                 default_global_prefs = GlobalPrefs,
                 auto_states = dict:new(),
                 should_cache_prefs = PrefsCacheExpirationTimer =/= 0,
+                only_in_roster = OnlyInRoster,
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer,
@@ -481,7 +486,7 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
     AutoStates = State#state.auto_states,
     Prefs = State#state.default_global_prefs,
     case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs,
-        State#state.should_cache_prefs) of
+        State#state.should_cache_prefs, State#state.xmpp_api, State#state.only_in_roster) of
         {true, NewAutoStates} ->
             Sessions =
                 State#state.sessions,
