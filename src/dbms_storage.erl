@@ -49,6 +49,11 @@
 -define(BACKEND_KEY, dbms_storage_backend).
 -define(MODULE_MNESIA, dbms_storage_mnesia).
 -define(MODULE_ODBC, dbms_storage_odbc).
+% Give SQL server up to one minute to do our query -
+% this much time might be required for collection expirations
+% queries, as these are quite complex, plus that's default
+% value in ejabberd ODBC layer anyway.
+-define(DBMS_TIMEOUT, 60000).
 
 %%--------------------------------------------------------------------
 %% gen_server callbacks
@@ -165,7 +170,7 @@ sql_query(Query) ->
 
 %% Runs transaction.
 transaction(Host, F) ->
-    gen_server:call(mod_archive2_utils:get_module_proc(Host, ?MODULE), {transaction, F}).
+    gen_server:call(mod_archive2_utils:get_module_proc(Host, ?MODULE), {transaction, F}, ?DBMS_TIMEOUT).
 
 %%--------------------------------------------------------------------
 %% Helper functions

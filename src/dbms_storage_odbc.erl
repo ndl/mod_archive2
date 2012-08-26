@@ -694,7 +694,14 @@ encode(#xmlel{} = XML, xml, TableInfo) ->
 %% We have to perform DB-specific escaping,as f.e. SQLite does not understand
 %% '\' as escaping character (which is exactly in accordance with the standard,
 %% by the way), while most other DBs do.
-encode(Str, string, TableInfo) when TableInfo#table.rdbms =:= sqlite ->
+%% What's even more "fun" is that PostgreSQL changed their mind right in flight
+%% and started to behave accordingly to the standard since 9.1 version, so we
+%% now treat pgsql as standard-conformant as well, although this will break for
+%% versions below 9.1 (use 'set standard_conforming_strings = on' to fix that
+%% for earlier versions).
+encode(Str, string, TableInfo) when
+    TableInfo#table.rdbms =:= sqlite orelse
+    TableInfo#table.rdbms =:= pgsql ->
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 
 encode(Str, string, _) ->

@@ -1,2 +1,4 @@
 ebin
 test/config.hrl
+tools/exporter.hrl
+tools/importer.hrl

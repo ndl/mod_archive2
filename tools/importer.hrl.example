@@ -1,0 +1,34 @@
+%%%----------------------------------------------------------------------
+%%% File    : exporter.hrl
+%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Purpose : Exports history from at least somewhat XEP-136 compliant server
+%%% Created : 20 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
+%%%
+%%% mod_archive2, Copyright (C) 2009,2012 Alexander Tsvyashchenko
+%%%
+%%% This program is free software; you can redistribute it and/or
+%%% modify it under the terms of the GNU General Public License as
+%%% published by the Free Software Foundation; either version 2 of the
+%%% License, or (at your option) any later version.
+%%%
+%%% This program is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%%% General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU General Public License
+%%% along with this program; if not, write to the Free Software
+%%% Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+%%% 02111-1307 USA
+%%%
+%%%----------------------------------------------------------------------
+
+-define(USER_NAME, "user").
+-define(USER_PASSWORD, "password").
+-define(SERVER_HOST, "example.com").
+-define(SERVER_PORT, 5222).
+-define(SERVER_TIMEOUT, 100000).
+-define(SERVER_NS_ARCHIVING, ?NS_ARCHIVING).
+% -define(SERVER_NS_ARCHIVING, 'http://www.xmpp.org/extensions/xep-0136.html#ns').
+-define(MAX_MESSAGES, 1000).
+-define(READ_BLOCK_SIZE, 8192).

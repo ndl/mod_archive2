@@ -502,11 +502,17 @@ combine_ranges(Range, InRSM) ->
     case InRSM#rsm_in.direction of
         undefined -> Range;
         before ->
-            {DateTime, ID} = decode_rsm_position(InRSM#rsm_in.id),
-            Range#range{
-                end_time =
-                    lists:min(filter_undef([Range#range.end_time, DateTime])),
-                end_id = ID};
+            % 'before' might be used just as direction indicator - don't try
+            % to parse it then.
+            if length(InRSM#rsm_in.id) > 0 ->
+                {DateTime, ID} = decode_rsm_position(InRSM#rsm_in.id),
+                Range#range{
+                    end_time =
+                        lists:min(filter_undef([Range#range.end_time, DateTime])),
+                    end_id = ID};
+               true ->
+                Range
+            end;
         aft ->
             {DateTime, ID} = decode_rsm_position(InRSM#rsm_in.id),
             Range#range{

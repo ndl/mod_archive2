@@ -150,10 +150,15 @@ expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
         case RDBMS of
             mysql ->
                 ["update ", JoinStmt, " ", SetStmt, " ", WhereStmt];
-            pgsql ->
-                ["update archive_collection ", SetStmt, " from ",
-                 JoinStmt, " ", WhereStmt, " and archive_collection.id = ac.id"];
-            sqlite ->
+            % In theory that might have given better performance as it doesn't use
+            % sub-queries, but on practice at least for PGSQL 9.1 planner doesn't seem
+            % to recognize self-join properly and executes at ~quadratic complexity,
+            % which is way too slow for any reasonable data sets, hence the need to do
+            % it through sub-queries, the same way as for sqlite.
+            % pgsql ->
+            %     ["update archive_collection ", SetStmt, " from ",
+            %      JoinStmt, " ", WhereStmt, " and archive_collection.id = ac.id"];
+            R when R =:= pgsql orelse R =:= sqlite ->
                 ["update archive_collection set deleted = 1, change_utc = ",
                  Now, ", version = version + 1 where id in (select id from ",
                  JoinStmt, " ", WhereStmt, ")"]

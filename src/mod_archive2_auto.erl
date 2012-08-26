@@ -68,7 +68,7 @@ expire_sessions(Sessions, TimeOut) ->
 
 add_message({Direction, From, With, Packet}, TimeOut, Sessions) ->
     case mod_archive2_xml:external_message_from_xml(Packet) of
-        #external_message{} = EM ->
+        #external_message{body = Body} = EM when Body =/= undefined ->
             F =
                 fun() ->
                     {NewSessions, Session} =

@@ -51,14 +51,22 @@ create_session() ->
 start() ->
     application:start(exmpp),
     {Session, _JID} = create_session(),
-    Roster =
+    OrigRoster =
         lists:foldl(
             fun(Item, Items) ->
-              dict:store(exmpp_xml:get_attribute_as_binary(Item, <<"jid">>, undefined), 1, Items)
+                dict:store(exmpp_xml:get_attribute_as_binary(Item, <<"jid">>, undefined), 1, Items)
             end,
             dict:new(),
             exmpp_xml:get_elements(exmpp_xml:get_element(get_roster(Session), 'query'), 'item')),
+    Roster =
+        lists:foldl(
+            fun(JID, D) ->
+                dict:erase(list_to_binary(JID), D)
+            end,
+            OrigRoster,
+            ?JIDS_TO_SKIP),
     Colls = get_collections(Session, [], undefined),
+    ?DEBUG_FMT("Initial colls: ~p~n", [length(Colls)]),
     ValidColls =
         lists:filter(
             fun(C) ->
@@ -114,22 +122,32 @@ get_collections(Session, Collections, LastRsm) ->
                         [],
                         [RsmFull])),
     ?DEBUG_FMT("Sending: ~p~n", [exmpp_xml:document_to_list(Req)]),
+    ID = exmpp_xml:get_attribute(Req, <<"id">>, undefined),
     exmpp_session:send_packet(Session, Req),
-    get_collections2(Session, Collections).
+    get_collections2(Session, Collections, ID).
 
-get_collections2(Session, Collections) ->
-    case response() of
-        #received_packet{packet_type = 'iq', type_attr=_, raw_packet = IQ} ->
+get_collections2(Session, Collections, ID) ->
+    case response_iq(ID) of
+        #received_packet{packet_type = 'iq', type_attr="error", raw_packet = IQ} ->
+            io:format("ERROR: ~p~n", [IQ]),
+            erlang:error(IQ);
+        #received_packet{packet_type = 'iq', type_attr="result", raw_packet = IQ} ->
+            ?DEBUG_FMT("Receiving: ~p~n", [IQ]),
             List = exmpp_xml:get_element(IQ, 'list'),
             NewColls = exmpp_xml:get_elements(List, 'chat'),
-            LastRsm = exmpp_xml:get_cdata(exmpp_xml:get_element(exmpp_xml:get_element(List, 'set'), 'last')),
-            if NewColls =/= [] andalso length(Collections) < 10 ->
-                get_collections(Session, Collections ++ NewColls, LastRsm);
+            if NewColls =/= [] ->
+                % If there are less collections than our max threshold - first / last elements
+                % will not be there and there's no need for further paging.
+                HasLastRsm = exmpp_xml:has_element(exmpp_xml:get_element(List, 'set'), 'last'),
+                if HasLastRsm ->
+                    LastRsm = exmpp_xml:get_cdata(exmpp_xml:get_element(exmpp_xml:get_element(List, 'set'), 'last')),
+                    get_collections(Session, Collections ++ NewColls, LastRsm);
+                   true ->
+                    Collections ++ NewColls
+                end;
                true ->
                 Collections
-            end;
-        _ ->
-            get_collections2(Session, Collections)
+            end
     end.
 
 dump_messages(Session, Collection, LastRsm) ->
@@ -160,28 +178,24 @@ dump_messages(Session, Collection, LastRsm) ->
                          exmpp_xml:attribute(<<"start">>, exmpp_xml:get_attribute(Collection, <<"start">>, undefined))],
                         [RsmFull])),
     ?DEBUG_FMT("Sending: ~p~n", [exmpp_xml:document_to_list(Req)]),
+    ID = exmpp_xml:get_attribute(Req, <<"id">>, undefined),
     exmpp_session:send_packet(Session, Req),
-    dump_messages2(Session, Collection, LastRsm).
+    dump_messages2(Session, Collection, LastRsm, ID).
 
-dump_messages2(Session, Collection, PrevLastRsm) ->
-    case response() of
-        #received_packet{packet_type = 'iq', type_attr=_, raw_packet = IQ} ->
+dump_messages2(Session, Collection, PrevLastRsm, ID) ->
+    case response_iq(ID) of
+        #received_packet{packet_type = 'iq', type_attr="error", raw_packet = IQ} ->
+            io:format("ERROR: ~p~n", [IQ]),
+            erlang:error(IQ);
+        #received_packet{packet_type = 'iq', type_attr="result", raw_packet = IQ} ->
+            ?DEBUG_FMT("Received: ~p~n", [IQ]),
             Chat = exmpp_xml:get_element(IQ, 'chat'),
             NewMsgs = exmpp_xml:get_child_elements(Chat),
-            LastRsm = exmpp_xml:get_cdata(exmpp_xml:get_element(exmpp_xml:get_element(Chat, 'set'), 'last')),
             if NewMsgs =/= [] ->
                 if PrevLastRsm =:= undefined ->
-                    BareChat =
-                        exmpp_xml:remove_elements(
-                            exmpp_xml:remove_elements(
-                                exmpp_xml:remove_elements(
-                                    exmpp_xml:remove_elements(Chat, "set"),
-                                    "from"),
-                                "to"),
-                            "note"),
-                    {xmlel, _, _, Name, Attrs, Children} = BareChat,
-                    NoNsChat = {xmlel, undefined, [], Name, Attrs, Children},
-                    io:format("~s~n", [exmpp_xml:document_to_list(NoNsChat)]);
+                    {xmlel, _, _, Name, Attrs, _} = Chat,
+                    BareChat = {xmlel, undefined, [], Name, Attrs, []},
+                    io:format("~s~n", [exmpp_xml:node_to_iolist(BareChat, ['jabber:client'], [])]);
                    true -> ok
                 end,
                 ?DEBUG_FMT("Msgs: ~p~n", [NewMsgs]),
@@ -191,18 +205,22 @@ dump_messages2(Session, Collection, PrevLastRsm) ->
                             'set' ->
                                 ok;
                             _ ->
-                                {xmlel, _, _, MsgName, MsgAttrs, MsgChildren} = Msg,
-                                NoNsMsg = {xmlel, undefined, [], MsgName, MsgAttrs, MsgChildren},
-                                io:format("~s~n", [exmpp_xml:document_to_list(NoNsMsg)])
+                                io:format("~s~n", [exmpp_xml:node_to_iolist(Msg, ['jabber:client'], [])])
                         end
                     end,
                     NewMsgs),
-                dump_messages(Session, Collection, LastRsm);
+                % If there are less messages than our max threshold - first / last elements
+                % will not be there and there's no need for further paging.
+                HasLastRsm = exmpp_xml:has_element(exmpp_xml:get_element(Chat, 'set'), 'last'),
+                if HasLastRsm ->
+                    LastRsm = exmpp_xml:get_cdata(exmpp_xml:get_element(exmpp_xml:get_element(Chat, 'set'), 'last')),
+                    dump_messages(Session, Collection, LastRsm);
+                   true ->
+                    ok
+                end;
                true ->
                 ok
-            end;
-        _ ->
-            dump_messages2(Session, Collection, PrevLastRsm)
+            end
     end.
 
 response() ->
@@ -210,4 +228,15 @@ response() ->
         Response -> Response
     after ?SERVER_TIMEOUT ->
         throw("No response from server!")
+    end.
+
+response_iq(ID) ->
+    R = response(),
+    case R of
+        #received_packet{packet_type = 'iq', raw_packet = IQ} ->
+            NewID = exmpp_xml:get_attribute(IQ, <<"id">>, undefined),
+            if NewID =:= ID -> R;
+               true -> response_iq(ID)
+            end;
+        _ -> response_iq(ID)
     end.
