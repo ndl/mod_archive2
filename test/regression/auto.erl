@@ -62,6 +62,8 @@ tests_teardown({{Session, _JID}, {Session2, _JID2}}) ->
 %% 4) client2 replies from the full JID with the same "thread" attribute:
 %%    messages goes to the same (2nd) collection, collection full JID is
 %%    adjusted.
+%% 5) client sends "composing" message to client2 without 'body' element,
+%%    the message is ignored.
 %%
 %% Note that we use sleeps between message sending: this is done to make sure
 %% start times for different collections differ (as we check for that during
@@ -164,6 +166,23 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                     []))),
     ?assert(With3 =:= With7),
     ?assert(Start5 =:= Start7),
+    ?AUTO_TC1_RETRIEVE_RESULT8 =
+        client:response(F1,
+            exmpp_iq:get(undefined,
+                exmpp_xml:element(?NS_ARCHIVING,
+                    "retrieve",
+                    [exmpp_xml:attribute(<<"with">>, With7),
+	                 exmpp_xml:attribute(<<"start">>, Start7)],
+                    []))),
+    Msg5 =
+        exmpp_stanza:set_recipient(
+            exmpp_xml:append_child(
+                exmpp_message:chat(),
+                exmpp_xml:element('http://jabber.org/protocol/chatstates', 'composing')),
+            ?CLIENTJID),
+    exmpp_session:send_packet(Session, Msg5),
+    client:skip(1),
+    timer:sleep(?MESSAGE_INTERVAL),
     ?AUTO_TC1_RETRIEVE_RESULT8 =
         client:response(F1,
             exmpp_iq:get(undefined,
