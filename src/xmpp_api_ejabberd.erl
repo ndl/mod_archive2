@@ -66,7 +66,7 @@ broadcast_iq(From, IQ) ->
 % FIXME: ASSUMES ejabberd 2.x !!!
 is_in_roster(User, Server, JID) ->
     case mod_roster:get_jid_info(undefined, User, Server, jid_from_exmpp(JID)) of
-        {S, _} when S =:= both orelse S =:= to -> true;
+        {S, _} when S =/= none -> true;
         _ -> false
     end.
 
@@ -103,7 +103,7 @@ iq_to_xml({iq, ID, Type, _XmlNS, _Lang, SubEl}) ->
           R -> [R]
         end,
     if
-        ID /= "" ->
+        ID =/= "" ->
             {xmlelement, "iq",
              [{"id", ID}, {"type", iq_type_to_string(Type)}], SubElAsList};
         true ->

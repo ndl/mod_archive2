@@ -73,6 +73,7 @@ mod_archive2_manual_mysql_test_() ->
         [
             ?test_gen0(mysql_test_upload),
             ?test_gen0(mysql_test_retrieve_all),
+            ?test_gen0(mysql_test_retrieve_all_utc),
             ?test_gen0(mysql_test_update),
             ?test_gen0(mysql_test_retrieve_max),
             ?test_gen0(mysql_test_retrieve_empty)
@@ -90,6 +91,7 @@ mod_archive2_manual_mnesia_test_() ->
         [
             ?test_gen0(common_test_upload),
             ?test_gen0(common_test_retrieve_all),
+            ?test_gen0(common_test_retrieve_all_utc),
             ?test_gen0(common_test_update),
             ?test_gen0(common_test_retrieve_max),
             ?test_gen0(common_test_retrieve_empty)
@@ -143,7 +145,7 @@ common_test_upload() ->
                         [],
                         [?ARCHIVE_COLLECTION_COMPLETE])))).
 
-mysql_test_retrieve_all() ->
+mysql_test_retrieve_all_setup() ->
     dbms_storage:transaction(?HOST,
         fun() ->
             ejabberd_odbc:start([
@@ -174,19 +176,37 @@ mysql_test_retrieve_all() ->
                  "((utc = '1469-07-21 02:56:15') and (id < 1)))",
                  {selected, [], [{0}]}},
                 {}])
-        end),
+        end).
+
+common_test_retrieve_all_iq() ->
+    exmpp_iq:xmlel_to_iq(
+       exmpp_iq:get(?NS_JABBER_CLIENT,
+           exmpp_xml:element(?NS_ARCHIVING, retrieve,
+               [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
+                exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
+               []))).
+
+mysql_test_retrieve_all() ->
+    mysql_test_retrieve_all_setup(),
     common_test_retrieve_all().
 
 common_test_retrieve_all() ->
     ?MANUAL_TC2_RETRIEVE_RESULT =
         mod_archive2_management:retrieve(
             exmpp_jid:parse(?JID),
-            exmpp_iq:xmlel_to_iq(
-                exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, retrieve,
-                        [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
-                        [])))).
+            common_test_retrieve_all_iq(),
+            false).
+
+mysql_test_retrieve_all_utc() ->
+    mysql_test_retrieve_all_setup(),
+    common_test_retrieve_all_utc().
+
+common_test_retrieve_all_utc() ->
+    ?MANUAL_TC5_RETRIEVE_RESULT =
+        mod_archive2_management:retrieve(
+            exmpp_jid:parse(?JID),
+            common_test_retrieve_all_iq(),
+            true).
 
 mysql_test_update() ->
     dbms_storage:transaction(?HOST,
@@ -279,7 +299,8 @@ common_test_retrieve_max() ->
                          set,
 	                     [],
                          [exmpp_xml:element(undefined, index, [], [exmpp_xml:cdata(1)]),
-                          exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])])))).
+                          exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])]))),
+            false).
 
 mysql_test_retrieve_empty() ->
     dbms_storage:transaction(?HOST,
@@ -304,4 +325,5 @@ common_test_retrieve_empty() ->
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
                         [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/NOT_EXISTING"),
                          exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
-                        [])))).
+                        []))),
+            false).

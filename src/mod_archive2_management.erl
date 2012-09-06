@@ -32,7 +32,7 @@
 -author('xmpp@endl.ch').
 
 %% Our hooks
--export([list/2, modified/2, remove/4, retrieve/2, delete_messages/1]).
+-export([list/2, modified/2, remove/4, retrieve/3, delete_messages/1]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -320,7 +320,7 @@ get_collections_ids([{MSHead, Conditions, _}]) ->
 %% Retrieves collection and its messages
 %%--------------------------------------------------------------------
 
-retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
+retrieve(From, #iq{type = Type, payload = SubEl} = IQ, ForceUtc) ->
     mod_archive2_utils:verify_iq_type(Type, get),
     F = fun() ->
             InC = mod_archive2_xml:collection_from_xml(From, SubEl),
@@ -342,9 +342,10 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ) ->
                             {[], undefined} ->
                                 [];
                             {Items, OutRSM} ->
-                                    [mod_archive2_xml:message_to_xml(M,
-                                        C#archive_collection.utc) ||
-                                     M <- Items] ++ OutRSM
+                                    [mod_archive2_xml:message_to_xml(
+                                        M,
+                                        C#archive_collection.utc,
+                                        ForceUtc) || M <- Items] ++ OutRSM
                         end,
                     #xmlel{attrs = Attrs, children = Children} =
                         mod_archive2_xml:collection_to_xml(chat, C),

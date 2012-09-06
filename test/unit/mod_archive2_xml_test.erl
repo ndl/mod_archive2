@@ -118,6 +118,14 @@
          [{xmlel,undefined,[],body,[],
                [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}).
 
+-define(ARCHIVE_MESSAGE2_UTC_XML,
+        {xmlel,undefined,[],to,
+         [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T02:56:26.000000Z">>},
+          {xmlattr,undefined,<<"name">>,<<"romeo">>},
+          {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
+         [{xmlel,undefined,[],body,[],
+               [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}).
+
 -define(ARCHIVE_MESSAGE3,
         #archive_message{
             direction = note,
@@ -261,6 +269,7 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_message1_to_xml),
         ?test_gen1(test_message1_from_xml),
         ?test_gen1(test_message2_to_xml),
+        ?test_gen1(test_message2_to_xml_utc),
         ?test_gen1(test_message2_from_xml),
         ?test_gen1(test_message3_to_xml),
         ?test_gen1(test_message3_from_xml),
@@ -342,7 +351,7 @@ test_collection_xml_each(_) ->
 
 test_message1_to_xml(_) ->
     ?ARCHIVE_MESSAGE1_XML =
-        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE1, ?START).
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE1, ?START, false).
 
 test_message1_from_xml(_) ->
     ?ARCHIVE_MESSAGE1 =
@@ -350,7 +359,11 @@ test_message1_from_xml(_) ->
 
 test_message2_to_xml(_) ->
     ?ARCHIVE_MESSAGE2_XML =
-        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE2, ?START).
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE2, ?START, false).
+
+test_message2_to_xml_utc(_) ->
+    ?ARCHIVE_MESSAGE2_UTC_XML =
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE2, ?START, true).
 
 test_message2_from_xml(_) ->
     ?ARCHIVE_MESSAGE2 =
@@ -358,7 +371,7 @@ test_message2_from_xml(_) ->
 
 test_message3_to_xml(_) ->
     ?ARCHIVE_MESSAGE3_XML =
-        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE3, ?START).
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE3, ?START, false).
 
 test_message3_from_xml(_) ->
     ?ARCHIVE_MESSAGE3 =

@@ -109,6 +109,7 @@
 -define(DEFAULT_READ_ONLY, false).
 -define(DEFAULT_MIN_EXPIRE, 0).
 -define(DEFAULT_MAX_EXPIRE, infinity).
+-define(DEFAULT_FORCE_UTC, false).
 
 %%====================================================================
 %% API
@@ -369,43 +370,38 @@ terminate(_Reason, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-% ejabberd 3.x version:
-handle_call({From, _To, #iq{type = _Type, payload = _SubEl} = IQ}, CallFrom, State) ->
+handle_call({From, _To, #iq{type = Type, payload = _SubEl} = IQ}, CallFrom, State) ->
     XmppApi = State#state.xmpp_api,
     LServer = exmpp_jid:prep_domain_as_list(From),
     case lists:member(LServer, XmppApi:get_valid_hosts()) of
         false ->
             {reply, exmpp_iq:error(IQ, 'not-allowed'), State};
         true ->
-            handle_call2({From, _To, IQ}, CallFrom, State)
+            XmppApi = State#state.xmpp_api,
+            case proplists:get_value(
+                read_only, State#state.options, ?DEFAULT_READ_ONLY) of
+                false ->
+                    handle_call2({From, _To, IQ}, CallFrom, State);
+                true ->
+                    if Type =:= set ->
+                        {reply, exmpp_iq:error(IQ, 'not-allowed'), State};
+                       true ->
+                        handle_call2({From, _To, IQ}, CallFrom, State)
+                    end
+            end
     end;
-
-% ejabberd 2.x version:
-% handle_call({From, To, #iq{type = Type, sub_el = SubEl} = IQ}, CallFrom, State) ->
-%     handle_call({From, To, #iq{type = Type, payload = exmpp_xml:get_child_elements(SubEl)}}, CallFrom, State).
 
 % Send back options to use to calculate proper supervisor
 % to remove ourselves from.
 handle_call(stop, _From, State) ->
     {stop, normal, State#state.options, State}.
 
-handle_call2({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
+handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
     #xmlel{name = Name} = SubEl,
     XmppApi = State#state.xmpp_api,
     F =
         fun() ->
-            case proplists:get_value(
-                read_only, State#state.options, ?DEFAULT_READ_ONLY) of
-                false ->
-                    ok;
-                true ->
-                    if Type =:= set ->
-                        throw({error, 'not-allowed'});
-                       true ->
-                        ok
-                    end
-            end,
-	        case Name of
+	    case Name of
                 'pref' ->
                     EnforceMinExpire =
                         proplists:get_value(enforce_min_expire,
@@ -435,7 +431,12 @@ handle_call2({From, _To, #iq{type = Type, payload = SubEl} = IQ}, _, State) ->
 			    'modified' ->
                     mod_archive2_management:modified(From, IQ);
 			    'retrieve' ->
-                    mod_archive2_management:retrieve(From, IQ);
+                                ForceUtc =
+                                    proplists:get_value(
+                                        force_utc,
+                                        State#state.options,
+                                        ?DEFAULT_FORCE_UTC),
+                    mod_archive2_management:retrieve(From, IQ, ForceUtc);
 			    'save' ->
                     mod_archive2_manual:save(From, IQ);
 			    'remove' ->

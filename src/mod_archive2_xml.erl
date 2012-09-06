@@ -33,7 +33,7 @@
 
 %% Our hooks
 -export([collection_from_xml/2, collection_to_xml/2,
-         message_from_xml/2, message_to_xml/2,
+         message_from_xml/2, message_to_xml/3,
          external_message_from_xml/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
@@ -164,13 +164,13 @@ get_collection_id(C) ->
 %% Messages conversion to/from XML.
 %%--------------------------------------------------------------------
 
-message_to_xml(#archive_message{} = M, Start) ->
+message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
     Secs =
         calendar:datetime_to_gregorian_seconds(M#archive_message.utc) -
         calendar:datetime_to_gregorian_seconds(Start),
     exmpp_xml:element(undefined, M#archive_message.direction,
         filter_undef([
-            if M#archive_message.direction == note orelse Secs < 0 ->
+            if M#archive_message.direction =:= note orelse Secs < 0 orelse ForceUtc =:= true ->
                 exmpp_xml:attribute(<<"utc">>,
                      datetime_to_utc_string(M#archive_message.utc));
                true ->
