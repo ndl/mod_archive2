@@ -727,7 +727,7 @@ mysql_test_set_not_implemented_prefs1() ->
     common_test_set_not_implemented_prefs1().
 
 common_test_set_not_implemented_prefs1() ->
-    {aborted, {throw, {error, 'not-implemented'}}} =
+    {aborted, {throw, {error, 'feature-not-implemented'}}} =
         mod_archive2_prefs:pref(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
@@ -752,7 +752,7 @@ mysql_test_set_not_implemented_prefs2() ->
     common_test_set_not_implemented_prefs2().
 
 common_test_set_not_implemented_prefs2() ->
-    {aborted, {throw, {error, 'not-implemented'}}} =
+    {aborted, {throw, {error, 'feature-not-implemented'}}} =
         mod_archive2_prefs:pref(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(

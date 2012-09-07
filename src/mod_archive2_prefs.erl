@@ -260,7 +260,7 @@ pref_set(From, PrefsXML, EnforceExpire) ->
                         true ->
                             store_global_prefs(GlobalPrefs);
                         false ->
-                            throw({error, 'not-implemented'})
+                            throw({error, 'feature-not-implemented'})
                     end;
                 _ ->
                     ok
@@ -276,7 +276,7 @@ pref_set(From, PrefsXML, EnforceExpire) ->
                         true ->
                             store_jid_prefs(JidPrefs);
                         false ->
-                            throw({error, 'not-implemented'})
+                            throw({error, 'feature-not-implemented'})
                     end
                 end,
                 exmpp_xml:get_elements(PrefsXML, item))
