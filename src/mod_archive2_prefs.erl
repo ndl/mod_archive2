@@ -67,6 +67,11 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates, XmppApi) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     AutoSave = list_to_atom(
         exmpp_xml:get_attribute_as_list(AutoEl, <<"save">>, "false")),
+    case AutoSave of
+        true -> ok;
+        false -> ok;
+        _ -> throw({error, 'bad-request'})
+    end,
     Scope =
         list_to_atom(
             exmpp_xml:get_attribute_as_list(AutoEl, <<"scope">>, "session")),
@@ -159,15 +164,15 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
             F =
                 fun() ->
                     GlobalPrefs = get_global_prefs(From, DefaultGlobalPrefs),
-                    if SessionAutoSave =:= true orelse
-                        GlobalPrefs#archive_global_prefs.auto_save =:= true ->
+                    if SessionAutoSave =/= false orelse
+                        GlobalPrefs#archive_global_prefs.auto_save =/= false ->
                         case get_effective_jid_prefs(From, With) of
                             undefined ->
-                                true;
+                                GlobalPrefs#archive_global_prefs.save;
                             JidPrefs ->
                                 case JidPrefs#archive_jid_prefs.save of
                                     false -> false;
-                                    _ -> true
+                                    JidSave -> JidSave
                                 end
                         end;
                        true ->
@@ -175,17 +180,23 @@ should_auto_archive2(From, With, AutoStates, SessionAutoSave,
                     end
                 end,
             case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
-                {atomic, Value} when is_boolean(Value) ->
-                    case ShouldCachePrefs of
-                        true ->
-                            {Value,
-                             update_with_auto_states(From, With, Value, AutoStates)};
-                        false ->
-                            {Value, AutoStates}
-                    end
-%                Result ->
-%                    ERROR_MSG("should_auto_archive failed; ~p~n", [Result]),
-%                    {false, AutoStates}
+                {atomic, Value} ->
+                    IsMethodOk = is_save_method_supported(Value),
+                    if IsMethodOk andalso Value =/= undefined ->
+                        case ShouldCachePrefs of
+                            true ->
+                                {Value,
+                                 update_with_auto_states(From, With, Value, AutoStates)};
+                            false ->
+                                {Value, AutoStates}
+                        end;
+                       true ->
+                        XmppApi:error_msg("Unexpected 'save' method in should_auto_archive: ~p~n", [Value]),
+                        throw({error, 'internal-server-error'})
+                    end;
+                Result ->
+                    XmppApi:error_msg("should_auto_archive failed; ~p~n", [Result]),
+                    throw({error, 'internal-server-error'})
             end;
         _ -> {false, AutoStates}
     end.
@@ -296,6 +307,8 @@ is_save_method_supported(Save) ->
     case Save of
         body ->
             true;
+        message ->
+            true;
         false ->
             true;
         undefined ->
@@ -307,27 +320,22 @@ is_save_method_supported(Save) ->
 %% Returns the archive_global_prefs record filled with default values
 default_global_prefs(AutoSave, Expire) ->
     #archive_global_prefs{
-        save =
-            if AutoSave ->
-                body;
-               true ->
-                false
-            end,
+        save = AutoSave,
         expire = Expire,
         method_auto =
-            if AutoSave ->
+            if AutoSave =/= false ->
                 prefer;
                true ->
                 concede
             end,
         method_local = concede,
         method_manual =
-            if AutoSave ->
+            if AutoSave =/= false ->
                 concede;
                true ->
                 prefer
             end,
-        auto_save = AutoSave,
+        auto_save = AutoSave =/= false,
         otr = forbid}.
 
 %% Returns global prefs for given client.

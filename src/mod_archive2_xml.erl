@@ -34,7 +34,7 @@
 %% Our hooks
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/3,
-         external_message_from_xml/1,
+         external_message_from_xml/2,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          modified_to_xml/1,
@@ -168,7 +168,9 @@ message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
     Secs =
         calendar:datetime_to_gregorian_seconds(M#archive_message.utc) -
         calendar:datetime_to_gregorian_seconds(Start),
-    exmpp_xml:element(undefined, M#archive_message.direction,
+    exmpp_xml:element(
+        undefined,
+        M#archive_message.direction,
         filter_undef([
             if M#archive_message.direction =:= note orelse Secs < 0 orelse ForceUtc =:= true ->
                 exmpp_xml:attribute(<<"utc">>,
@@ -184,14 +186,18 @@ message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
                 undefined -> undefined;
                 JID -> exmpp_xml:attribute(<<"jid">>, JID)
             end]),
-        [if M#archive_message.direction == note ->
-             exmpp_xml:cdata(M#archive_message.body);
-            true ->
-             exmpp_xml:element(undefined, body, [],
-                               [exmpp_xml:cdata(M#archive_message.body)])
-		 end]).
+        case exmpp_xml:normalize_cdata_in_list(M#archive_message.body) of
+            [#xmlcdata{} = Text] ->
+                if M#archive_message.direction =/= note ->
+                    [exmpp_xml:element(undefined, body, [], [Text])];
+                   true ->
+                    M#archive_message.body
+                end;
+            _ ->
+                M#archive_message.body
+        end).
 
-message_from_xml(#xmlel{name = Name} = XM, Start) ->
+message_from_xml(#xmlel{name = Name, children = Children} = XM, Start) ->
     #archive_message{
         direction = Name,
         utc =
@@ -205,11 +211,17 @@ message_from_xml(#xmlel{name = Name} = XM, Start) ->
                         list_to_integer(Secs))
             end,
         body =
-            case Name of
-                note ->
-                    exmpp_xml:get_cdata_as_list(XM);
+            case Children of
+                % Common case of single <body> element:
+                % extract & store underlying cdata.
+                [#xmlel{name = body, children = Text}] ->
+                    Text;
+                % Text embedded directly into <note> element.
+                [#xmlcdata{}] ->
+                    Children;
+                % Everything else is stored without changes.
                 _ ->
-                    exmpp_xml:get_cdata_as_list(exmpp_xml:get_element(XM, body))
+                    Children
             end,
         name = exmpp_xml:get_attribute_as_list(XM, <<"name">>, undefined),
         jid = exmpp_xml:get_attribute_as_list(XM, <<"jid">>, undefined)}.
@@ -217,7 +229,7 @@ message_from_xml(#xmlel{name = Name} = XM, Start) ->
 %%--------------------------------------------------------------------
 %% External messages conversion from XML.
 %%--------------------------------------------------------------------
-external_message_from_xml(#xmlel{name = message} = M) ->
+external_message_from_xml(#xmlel{name = message} = M, FullMsg) ->
     Type = list_to_atom(exmpp_xml:get_attribute_as_list(M, <<"type">>, [])),
     Nick =
         case Type of
@@ -228,6 +240,22 @@ external_message_from_xml(#xmlel{name = message} = M) ->
              _ ->
                 undefined
         end,
+        Children =
+            if FullMsg ->
+                exmpp_xml:get_child_elements(M);
+               true ->
+                exmpp_xml:get_elements(M, body)
+            end,
+        Body =
+            case Children of
+                % Common case of single <body> element:
+                % extract & store underlying cdata.
+                [#xmlel{name = body, children = Text}] ->
+                    Text;
+                % Everything else is stored without changes.
+                _ ->
+                    Children
+            end,
     #external_message{
         type = Type,
         thread = get_cdata(exmpp_xml:get_element(M, thread)),
@@ -235,9 +263,8 @@ external_message_from_xml(#xmlel{name = message} = M) ->
         nick = Nick,
         % Currently I see no way to get it easily :-(
         jid = undefined,
-        body = get_cdata(exmpp_xml:get_element(M, body))
-    };
-external_message_from_xml(_) ->
+        body = Body};
+external_message_from_xml(_, _) ->
     undefined.
 
 get_cdata(undefined) ->

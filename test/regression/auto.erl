@@ -174,12 +174,18 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                     [exmpp_xml:attribute(<<"with">>, With7),
 	                 exmpp_xml:attribute(<<"start">>, Start7)],
                     []))),
+    % Turn on 'message' level saving.
+    client:responses(F1, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref", [],
+    [
+        exmpp_xml:element(undefined, "default",
+        [exmpp_xml:attribute(<<"save">>, "message")], [])
+    ])), 2),
     Msg5 =
         exmpp_stanza:set_recipient(
             exmpp_xml:append_child(
                 exmpp_message:chat(),
                 exmpp_xml:element('http://jabber.org/protocol/chatstates', 'composing')),
-            ?CLIENTJID),
+            ?CLIENTJID2),
     exmpp_session:send_packet(Session, Msg5),
     client:skip(1),
     timer:sleep(?MESSAGE_INTERVAL),
@@ -189,5 +195,27 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute(<<"with">>, With7),
-	                 exmpp_xml:attribute(<<"start">>, Start7)],
+                         exmpp_xml:attribute(<<"start">>, Start7)],
+                    []))),
+    Msg6 =
+        exmpp_stanza:set_recipient(
+            exmpp_xml:append_child(
+                exmpp_message:chat("Test3",
+                    "This is test message reply 3."),
+                {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+                 [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+                   [{xmlel,undefined,[],p,[],
+                     [{xmlcdata,
+                       <<"Neither, fair saint, if either thee dislike.">>}]}]}]}),
+            ?CLIENTJID2),
+    exmpp_session:send_packet(Session, Msg6),
+    client:skip(1),
+    timer:sleep(?MESSAGE_INTERVAL),
+    ?AUTO_TC1_RETRIEVE_RESULT9 =
+        client:response(F1,
+            exmpp_iq:get(undefined,
+                exmpp_xml:element(?NS_ARCHIVING,
+                    "retrieve",
+                    [exmpp_xml:attribute(<<"with">>, With7),
+                         exmpp_xml:attribute(<<"start">>, Start7)],
                     []))).

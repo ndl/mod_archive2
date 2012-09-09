@@ -58,6 +58,17 @@
           {xmlel,undefined,[],to,[{xmlattr,undefined,<<"secs">>,<<"11">>}],
            [{xmlel,undefined,[],body,[],
              [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]},
+          {xmlel,undefined,[],to,
+           [{xmlattr,undefined,<<"secs">>,<<"12">>},
+            {xmlattr,undefined,<<"name">>,<<"romeo">>},
+            {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
+           [{xmlel,undefined,[],body,[],
+             [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
+            {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+             [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+               [{xmlel,undefined,[],p,[],
+                 [{xmlcdata,
+                   <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]},
           {xmlel,undefined,[],note,[{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35Z">>}],
            [{xmlcdata,<<"I think she might fancy me.">>}]}]}).
 
@@ -127,10 +138,16 @@ mysql_test_upload() ->
                  "0, 'Art thou not Romeo, and a Montague?', null, null), "
                  "(1, '1469-07-21 02:56:26', "
                  "1, 'Neither, fair saint, if either thee dislike.', null, null), "
+                 "(1, '1469-07-21 02:56:27', "
+                 "1, '<body>Neither, fair saint, if either thee dislike.</body>"
+                 "<html xmlns=\\\"http://jabber.org/protocol/xhtml-im\\\">"
+                 "<body xmlns=\\\"http://www.w3.org/1999/xhtml\\\">"
+                 "<p xmlns=\\\"\\\">Neither, fair saint, if either thee dislike.</p>"
+                 "</body></html>', 'romeo', 'romeo@montague.net'), "
                  "(1, '1469-07-21 03:04:35', "
                  "2, 'I think she might fancy me.', null, null)",
-                 {updated, 3}},
-                {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
+                 {updated, 4}},
+                {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
                 {}])
         end),
     common_test_upload().
@@ -160,7 +177,7 @@ mysql_test_retrieve_all_setup() ->
                       "2009-10-15 07:53:19", 0, "0", "Subject", "12345", 1,
                       "<x><test/></x>"}]}},
                 {"select count(*) from archive_message where (coll_id = 1)",
-                 {selected, [], [{3}]}},
+                 {selected, [], [{4}]}},
                 {"select * from archive_message where (coll_id = 1) "
                  "order by utc asc",
                  {selected, [],
@@ -168,8 +185,14 @@ mysql_test_retrieve_all_setup() ->
                      "Art thou not Romeo, and a Montague?", undefined,
                      undefined},
                    {2, 1, "1469-07-21 02:56:26", 1,
-                    "Neither, fair saint, if either thee dislike.", null, null},
-                   {3, 1, "1469-07-21 03:04:35", "2",
+                    "Neither, fair saint, if either thee dislike.", null, null},  
+                   {3, 1, "1469-07-21 02:56:27", 1,
+                    "<body>Neither, fair saint, if either thee dislike.</body>"
+                    "<html xmlns=\"http://jabber.org/protocol/xhtml-im\">"
+                    "<body xmlns=\"http://www.w3.org/1999/xhtml\">"
+                    "<p xmlns=\"\">Neither, fair saint, if either thee dislike.</p>"
+                    "</body></html>", "romeo", "romeo@montague.net"},
+                   {4, 1, "1469-07-21 03:04:35", "2",
                     "I think she might fancy me.", null, null}]}},
                 {"select count(*) from archive_message where (coll_id = 1) and "
                  "((utc < '1469-07-21 02:56:15') or "
@@ -270,14 +293,18 @@ mysql_test_retrieve_max() ->
                       "2009-10-15 07:53:19", 1, "0", "Subject2", "12345", 0,
                       undefined}]}},
                 {"select count(*) from archive_message where (coll_id = 1)",
-                 {selected, [], [{3}]}},
+                 {selected, [], [{4}]}},
                 {"select * from archive_message where (coll_id = 1) "
                  "order by utc asc offset 1 limit 2",
                  {selected, [],
                   [{2, 1, "1469-07-21 02:56:26", 1,
                     "Neither, fair saint, if either thee dislike.", null, null},
-                   {3, 1, "1469-07-21 03:04:35", "2",
-                    "I think she might fancy me.", null, null}]}},
+                   {3, 1, "1469-07-21 02:56:27", 1,
+                    "<body>Neither, fair saint, if either thee dislike.</body>"
+                    "<html xmlns=\"http://jabber.org/protocol/xhtml-im\">"
+                    "<body xmlns=\"http://www.w3.org/1999/xhtml\">"
+                    "<p xmlns=\"\">Neither, fair saint, if either thee dislike.</p>"
+                    "</body></html>", "romeo", "romeo@montague.net"}]}},
                 {"select count(*) from archive_message where (coll_id = 1) and "
                  "((utc < '1469-07-21 02:56:26') or "
                  "((utc = '1469-07-21 02:56:26') and (id < 2)))",

@@ -31,7 +31,7 @@
 -module(mod_archive2_auto).
 -author('xmpp@endl.ch').
 
--export([expire_sessions/2, filter_sessions/2, add_message/3]).
+-export([expire_sessions/2, filter_sessions/2, add_message/4]).
 
 -include("mod_archive2.hrl").
 
@@ -66,58 +66,65 @@ expire_sessions(Sessions, TimeOut) ->
 	end,
 	Sessions).
 
-add_message({Direction, From, With, Packet}, TimeOut, Sessions) ->
-    case mod_archive2_xml:external_message_from_xml(Packet) of
-        #external_message{body = Body} = EM when Body =/= undefined ->
-            F =
-                fun() ->
-                    {NewSessions, Session} =
-                        get_session(From, With, EM, TimeOut, Sessions),
-                    case Session#session.version of
-                        0 ->
-                            % Nothing to update, collection was just created.
-                            ok;
-                        _ ->
-                            dbms_storage:update(
-                                #archive_collection{
-                                    id = Session#session.id,
-                                    change_utc = Session#session.last_access,
-                                    version = Session#session.version,
-                                    with_resource = Session#session.resource,
-                                    subject = EM#external_message.subject,
-                                    thread =
-                                        if EM#external_message.thread =/=
-                                            undefined ->
-                                            EM#external_message.thread;
-                                           true ->
-                                            null
-                                        end})
-                    end,
-                    M = #archive_message{
-                        coll_id = Session#session.id,
-                        utc = Session#session.last_access,
-                        direction = Direction,
-                        name =
-                            if EM#external_message.type =:= groupchat ->
-                                if EM#external_message.nick =/= undefined ->
-			                        EM#external_message.nick;
-                                   true ->
-                                    exmpp_jid:prep_resource_as_list(With)
-                                end;
-                               true ->
-                                undefined
-                            end,
-                        body = EM#external_message.body},
-                    dbms_storage:insert([M]),
-                    NewSessions
-                end,
-            case dbms_storage:transaction(
-                exmpp_jid:prep_domain_as_list(From), F) of
-                {atomic, Result} ->
-                    Result;
+add_message({_Direction, _From, _With, Packet} = Args, TimeOut, AutoSave, Sessions) ->
+    case mod_archive2_xml:external_message_from_xml(Packet, AutoSave =:= message) of
+        #external_message{} = EM ->
+            case exmpp_xml:get_element(Packet, body) of
+                undefined ->
+                    Sessions;
                 _ ->
-                    Sessions
+                    add_message2(Args, EM, TimeOut, Sessions)
             end;
+        _ -> Sessions
+    end.
+
+add_message2({Direction, From, With, _Packet}, EM, TimeOut, Sessions) ->
+    F =
+        fun() ->
+            {NewSessions, Session} =
+                get_session(From, With, EM, TimeOut, Sessions),
+            case Session#session.version of
+                0 ->
+                    % Nothing to update, collection was just created.
+                    ok;
+                _ ->
+                    dbms_storage:update(
+                        #archive_collection{
+                            id = Session#session.id,
+                            change_utc = Session#session.last_access,
+                            version = Session#session.version,
+                            with_resource = Session#session.resource,
+                            subject = EM#external_message.subject,
+                            thread =
+                                if EM#external_message.thread =/=
+                                    undefined ->
+                                    EM#external_message.thread;
+                                   true ->
+                                    null
+                                end})
+            end,
+            M = #archive_message{
+                coll_id = Session#session.id,
+                utc = Session#session.last_access,
+                direction = Direction,
+                name =
+                    if EM#external_message.type =:= groupchat ->
+                        if EM#external_message.nick =/= undefined ->
+		                        EM#external_message.nick;
+                           true ->
+                            exmpp_jid:prep_resource_as_list(With)
+                        end;
+                       true ->
+                        undefined
+                    end,
+                body = EM#external_message.body},
+            dbms_storage:insert([M]),
+            NewSessions
+        end,
+    case dbms_storage:transaction(
+        exmpp_jid:prep_domain_as_list(From), F) of
+        {atomic, Result} ->
+            Result;
         _ ->
             Sessions
     end.

@@ -31,8 +31,8 @@
 %%--------------------------------------------------------------------
 %% Options:
 %%
-%% default_auto_save -> true | false - is auto-save turned on by default or not;
-%%     if true, default 'save' attribute will be set to 'body'.
+%% default_auto_save -> body | message | false - is auto-save turned on
+%%     by default and if yes - what to save exactly.
 %%
 %% read_only -> true | false - if true, no client modifications either to
 %%     collections or to archiving settings are allowed.
@@ -488,7 +488,9 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
     Prefs = State#state.default_global_prefs,
     case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs,
         State#state.should_cache_prefs, State#state.xmpp_api, State#state.only_in_roster) of
-        {true, NewAutoStates} ->
+        {false, NewAutoStates} ->
+            {noreply, State#state{auto_states = NewAutoStates}};
+        {AutoSave, NewAutoStates} ->
             Sessions =
                 State#state.sessions,
             TimeOut =
@@ -497,11 +499,9 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
                     State#state.options,
                     ?DEFAULT_SESSION_DURATION),
             NewSessions =
-                mod_archive2_auto:add_message(Args, TimeOut, Sessions),
+                mod_archive2_auto:add_message(Args, TimeOut, AutoSave, Sessions),
             {noreply, State#state{sessions = NewSessions,
-                auto_states = NewAutoStates}};
-        {false, NewAutoStates} ->
-            {noreply, State#state{auto_states = NewAutoStates}}
+                auto_states = NewAutoStates}}
     end;
 
 handle_cast(_Msg, State) ->

@@ -79,7 +79,7 @@
         [{xmlattr,undefined,<<"with">>,
                   <<?CLIENTJID2 "/", _/binary>>},
          {xmlattr,undefined,<<"start">>,_},
-         {xmlattr,undefined,<<"version">>,<<"1">>}],
+         {xmlattr,undefined,<<"version">>,<<"2">>}],
         []},
  {xmlel,undefined,[],changed,
         [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},

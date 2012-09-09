@@ -29,7 +29,7 @@
 -include_lib("exmpp/include/exmpp.hrl").
 -include("dbms_storage.hrl").
 
--export([handle_query/2, encode/3, ms_to_sql/2]).
+-export([handle_query/2, encode/3, decode/3, ms_to_sql/2]).
 
 %% Should be OK for most of modern DBs, I hope ...
 -define(MAX_QUERY_LENGTH, 32768).
@@ -688,6 +688,23 @@ encode(Value, {enum, Enums}, _TableInfo) ->
 encode(#xmlel{} = XML, xml, TableInfo) ->
     encode(exmpp_xml:document_to_list(XML), string, TableInfo);
 
+encode(XmlChildren, xmlchildren, TableInfo) ->
+    NormChildren = exmpp_xml:normalize_cdata_in_list(XmlChildren),
+    Text =
+        %% Optimize common case - single cdata node.
+        case NormChildren of
+            [#xmlcdata{}] ->
+                exmpp_xml:get_cdata_from_list_as_list(NormChildren);
+            _ ->
+                lists:foldl(
+                    fun(XmlEl, OutXml) ->
+                        OutXml ++ exmpp_xml:document_to_list(XmlEl)
+                    end,
+                    "",
+                    NormChildren)
+        end,
+    encode(Text, string, TableInfo);
+
 %% RDBMS-specific escaping.
 
 %% Noone seems to follow standards these days :-(
@@ -742,10 +759,28 @@ decode({{_, _, _}, {_, _, _}} = Value, time, _TableInfo) ->
 decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
 
-decode(Value, xml, _TableInfo) ->
-    case exmpp_xml:parse_document_fragment(Value, [{root_depth, 0}]) of
+decode(Value, xml, TableInfo) ->
+    StrValue = decode(Value, string, TableInfo),
+    case exmpp_xml:parse_document_fragment(StrValue, [{root_depth, 0}]) of
         [#xmlel{} = R] -> R;
         _ -> undefined
+    end;
+
+decode(Value, xmlchildren, TableInfo) ->
+    StrValue = decode(Value, string, TableInfo),
+    case StrValue of
+        "<" ++ _ ->
+            %% WARNING - multiple hacks:
+            %% 1. Using fake root element so that parser accepts multiple XML
+            %%    elements @ the input, there seems to be no way to tell parser it
+            %%    should accept multiple root elements?
+            %% 2. Calling "parse_document_fragment" for each decoding is wasteful -
+            %%    experiments show it's ~3 times slower than reusing existing parser.
+            %%    However, we expect that not many messages require full XML
+            %%    parsing, most messages should be handled via 'common' case.
+            tl(exmpp_xml:parse_document_fragment("<r>" ++ StrValue, [{root_depth, 1}]));
+        _ ->
+            [exmpp_xml:cdata(StrValue)]
     end;
 
 decode(Value, {enum, Enums}, TableInfo) ->

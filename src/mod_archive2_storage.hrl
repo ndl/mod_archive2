@@ -51,5 +51,5 @@
          #table{name = archive_message,
                 fields = record_info(fields, archive_message),
                 types = [autoid, integer, time, {enum, [from, to, note]},
-                         string, string, string],
+                         xmlchildren, string, string],
                 keys = 1}]).

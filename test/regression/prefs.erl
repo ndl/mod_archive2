@@ -143,4 +143,10 @@ test_auto_prefs_change2(F) ->
 	[
 	    exmpp_xml:attribute(<<"save">>, "true"),
 	    exmpp_xml:attribute(<<"scope">>, "global")
-	], [])), 2).
+	], [])), 2),
+    % Restore global 'save' setting back so that subsequent tests work properly.
+    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref", [],
+    [
+        exmpp_xml:element(undefined, "default",
+	[exmpp_xml:attribute(<<"save">>, "body")], [])
+    ])), 2).

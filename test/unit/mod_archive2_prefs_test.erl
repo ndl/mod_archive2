@@ -157,7 +157,7 @@
          [],[],[],[],[],[],[],[]}}}}}).
 
 -define(SHOULD_AUTO_ARCHIVE1,
-{true,
+{body,
  {dict,1,16,16,8,80,48,
   {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
   {{[],[],[],[],[],[],[],
@@ -172,7 +172,7 @@
              {{[],[],[],[],[],[],[],[],
                [[{jid,<<"romeo@montague.net">>,<<"romeo">>,
                   <<"montague.net">>,undefined}|
-                 true]],
+                 body]],
                [],[],[],[],[],[],[]}}}}]],
          [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
     [],[],[],[],[],[],[],[]}}}}).
@@ -761,7 +761,7 @@ common_test_set_not_implemented_prefs2() ->
                         [
                             exmpp_xml:element(undefined, item,
                                 [exmpp_xml:attribute(<<"jid">>, "romeo@montague.net"),
-                                 exmpp_xml:attribute(<<"save">>, message)], [])
+                                 exmpp_xml:attribute(<<"save">>, stream)], [])
                         ]))),
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),

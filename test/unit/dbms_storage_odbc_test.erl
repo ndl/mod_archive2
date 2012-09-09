@@ -43,7 +43,8 @@ mod_archive2_match_to_sql_test_() ->
         ?test_gen0(test_match_to_sql5),
         ?test_gen0(test_match_to_sql6),
         ?test_gen0(test_match_to_sql7),
-        ?test_gen0(test_match_to_sql8)
+        ?test_gen0(test_match_to_sql8),
+        ?test_gen0(test_xmlchildren_decode)
      ].
 
 -define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01 00:00:00')))").
@@ -56,6 +57,18 @@ mod_archive2_match_to_sql_test_() ->
     {?WHERE_CLAUSE1,
         {[id, utc, body],
             [{field, id}, {field, utc}, {field, body}]}}).
+
+-define(XHTML_BODY,
+    [{xmlel,undefined,[],body,[],
+           [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
+    {xmlel,'http://jabber.org/protocol/xhtml-im',
+           [{'http://jabber.org/protocol/xhtml-im',none}],
+           html,[],
+           [{xmlel,'http://www.w3.org/1999/xhtml',
+                   [{'http://www.w3.org/1999/xhtml',none}],
+                   body,[],
+                   [{xmlel,undefined,[],p,[],
+                           [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}]}]).
 
 query_body_full(TableInfo) ->
     Fields = TableInfo#table.fields,
@@ -213,3 +226,9 @@ test_match_to_sql8() ->
            {value,undefined},
            {value,undefined},
            {value,undefined}]}}).
+
+test_xmlchildren_decode() ->
+    application:start(exmpp),
+    TableInfo = get_table_info(archive_collection),
+    ?XHTML_BODY =
+        dbms_storage_odbc:decode("<body>Neither, fair saint, if either thee dislike.</body><html xmlns=\"http://jabber.org/protocol/xhtml-im\"><body xmlns=\"http://www.w3.org/1999/xhtml\"><p xmlns=\"\">Neither, fair saint, if either thee dislike.</p></body></html>", xmlchildren, TableInfo).

@@ -94,7 +94,7 @@
         #archive_message{
             direction = from,
             utc = {{1469, 07, 21}, {02, 56, 15}},
-            body = "Art thou not Romeo, and a Montague?"}).
+            body = [{xmlcdata, <<"Art thou not Romeo, and a Montague?">>}]}).
 
 -define(ARCHIVE_MESSAGE1_XML,
         {xmlel,undefined,[],from,
@@ -108,7 +108,7 @@
             utc = {{1469, 07, 21}, {02, 56, 26}},
             name = "romeo",
             jid = "romeo@montague.net",
-            body = "Neither, fair saint, if either thee dislike."}).
+            body = [{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]}).
 
 -define(ARCHIVE_MESSAGE2_XML,
         {xmlel,undefined,[],to,
@@ -130,12 +130,36 @@
         #archive_message{
             direction = note,
             utc = {{1469, 07, 21}, {03, 04, 35}},
-            body = "I think she might fancy me."}).
+            body = [{xmlcdata, <<"I think she might fancy me.">>}]}).
 
 -define(ARCHIVE_MESSAGE3_XML,
         {xmlel,undefined,[],note,
          [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35.000000Z">>}],
          [{xmlcdata,<<"I think she might fancy me.">>}]}).
+
+-define(ARCHIVE_MESSAGE4,
+        #archive_message{
+            direction = to,
+            utc = {{1469, 07, 21}, {02, 56, 26}},
+            name = "romeo",
+            jid = "romeo@montague.net",
+            body = [{xmlel,undefined,[],body,[],[{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]},
+                    {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+                        [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+                            [{xmlel,undefined,[],p,[],[{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
+
+-define(ARCHIVE_MESSAGE4_XML,
+    {xmlel,undefined,[],to,
+       [{xmlattr,undefined,<<"secs">>,<<"11">>},
+        {xmlattr,undefined,<<"name">>,<<"romeo">>},
+        {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
+       [{xmlel,undefined,[],body,[],
+            [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
+        {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+            [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+                 [{xmlel,undefined,[],p,[],
+                      [{xmlcdata,
+                           <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
 
 -define(START, {{1469, 07, 21}, {02, 56, 15}}).
 
@@ -172,6 +196,36 @@
                       <<"list">>,
                       [{xmlattr,undefined,<<"with">>,<<"client2@ndl-server">>}],
                       []}]}).
+
+-define(EXTERNAL_MESSAGE4_XML,
+    {xmlel,'jabber:client',
+        [{'jabber:client',none}],
+        message,
+        [{xmlattr,undefined,<<"type">>,<<"groupchat">>},
+         {xmlattr,undefined,<<"from">>,<<"darkcave@chat.shakespeare.lit/thirdwitch">>},
+         {xmlattr,undefined,<<"to">>,<<"crone1@shakespeare.lit/desktop">>},
+         {xmlattr,undefined,<<"id">>,<<"session-182531630">>}],
+        [{xmlel,'jabber:client',[],body,[],
+             [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
+         {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+             [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+                  [{xmlel,undefined,[],p,[],
+                       [{xmlcdata,
+                            <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
+
+-define(EXTERNAL_MESSAGE4_BODY,
+    {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
+        [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}).
+
+-define(EXTERNAL_MESSAGE4_ALL,
+    {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
+        [{xmlel,'jabber:client',[],body,[],
+             [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
+         {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
+             [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
+                  [{xmlel,undefined,[],p,[],
+                       [{xmlcdata,
+                            <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
 
 -define(GLOBAL_PREFS1_XML,
     "<pref xmlns='urn:xmpp:archive'>"
@@ -273,9 +327,13 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_message2_from_xml),
         ?test_gen1(test_message3_to_xml),
         ?test_gen1(test_message3_from_xml),
+        ?test_gen1(test_message4_to_xml),
+        ?test_gen1(test_message4_from_xml),
         ?test_gen1(test_external_message1_from_xml),
         ?test_gen1(test_external_message2_from_xml),
         ?test_gen1(test_external_message3_from_xml),
+        ?test_gen1(test_external_message4_from_xml_body),
+        ?test_gen1(test_external_message4_from_xml_all),
         ?test_gen1(test_global_prefs1_from_xml),
         ?test_gen1(test_global_prefs1_to_xml),
         ?test_gen1(test_global_prefs2_to_xml),
@@ -377,18 +435,34 @@ test_message3_from_xml(_) ->
     ?ARCHIVE_MESSAGE3 =
         mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START).
 
+test_message4_to_xml(_) ->
+    ?ARCHIVE_MESSAGE4_XML =
+        mod_archive2_xml:message_to_xml(?ARCHIVE_MESSAGE4, ?START, false).
+
+test_message4_from_xml(_) ->
+    ?ARCHIVE_MESSAGE4 =
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE4_XML, ?START).
+
 test_external_message1_from_xml(_) ->
     {external_message,chat,undefined,"Test",undefined,undefined,
-     "This is test message."} =
-    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE1_XML).
+     [{xmlcdata, <<"This is test message.">>}]} =
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE1_XML, false).
 
 test_external_message2_from_xml(_) ->
     {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
-     "Harpier cries: 'tis time, 'tis time."} =
-    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML).
+     [{xmlcdata, <<"Harpier cries: 'tis time, 'tis time.">>}]} =
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML, false).
 
 test_external_message3_from_xml(_) ->
-    undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML).
+    undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML, false).
+
+test_external_message4_from_xml_body(_) ->
+    ?EXTERNAL_MESSAGE4_BODY =
+        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, false).
+
+test_external_message4_from_xml_all(_) ->
+    ?EXTERNAL_MESSAGE4_ALL =
+        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, true).
 
 test_global_prefs1_from_xml(_) ->
     [PrefsXML] =

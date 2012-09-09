@@ -105,12 +105,12 @@ dbms_storage_mnesia_test_() ->
 
 -define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59}},
                                   direction = from,
-                                  body = "Hi!",
+                                  body = [{xmlcdata, <<"Hi!">>}],
                                   name = "me"}).
 
 -define(RECORD2, #archive_message{utc = {{1999, 11, 30}, {19, 01, 02}},
                                   direction = from,
-                                  body = "Hi there!",
+                                  body = [{xmlcdata, <<"Hi there!">>}],
                                   name = "smb"}).
 
 -define(RECORD3, #archive_jid_prefs{us = "test@example.com",
@@ -322,7 +322,7 @@ mysql_test_select7() ->
     common_test_select7().
 
 common_test_select7() ->
-    {atomic, {selected, [{"Hi there!"}]}} =
+    {atomic, {selected, [{[{xmlcdata,<<"Hi there!">>}]}]}} =
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
@@ -366,7 +366,8 @@ mysql_test_select9() ->
     common_test_select9().
 
 common_test_select9() ->
-    {atomic, {selected, [{"Hi!", "me"}, {"Hi there!", "smb"}]}} =
+    {atomic, {selected, [{[{xmlcdata,<<"Hi!">>}], "me"},
+                         {[{xmlcdata,<<"Hi there!">>}], "smb"}]}} =
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(
@@ -389,7 +390,8 @@ mysql_test_select10() ->
     common_test_select10().
 
 common_test_select10() ->
-    {atomic, {selected, [{"Hi there!", "smb"}, {"Hi!", "me"}]}} =
+    {atomic, {selected, [{[{xmlcdata,<<"Hi there!">>}], "smb"},
+                         {[{xmlcdata,<<"Hi!">>}], "me"}]}} =
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(
@@ -411,7 +413,7 @@ mysql_test_select11() ->
     common_test_select11().
 
 common_test_select11() ->
-    {atomic, {selected, [{"Hi!", "me"}]}} =
+    {atomic, {selected, [{[{xmlcdata,<<"Hi!">>}], "me"}]}} =
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(
