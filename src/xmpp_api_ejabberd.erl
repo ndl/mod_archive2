@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : xmpp_api_ejabberd.erl
 %%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
-%%% Purpose : Support XEP-136 for messages archiving
+%%% Purpose : ejabberd-specific functionality
 %%% Created : 18 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009,2012 Alexander Tsvyashchenko

@@ -72,7 +72,7 @@ get_elements(Session, Parser, {Chat, Msgs}) ->
         eof ->
             send_chat(Session, Chat, Msgs);
         {ok, Data} ->
-            %io:format("Parsing this data: ~s~n", [Data]),
+            ?DEBUG_FMT("Parsing this data: ~s~n", [Data]),
             case exmpp_xml:parse(Parser, Data) of
                 continue ->
                     get_elements(Session, Parser, {Chat, Msgs});
@@ -115,16 +115,16 @@ send_chat(Session, Chat, Msgs) ->
                         "save",
                         [],
                         [FullChat])),
-    io:format("Sending: ~s~n", [exmpp_xml:document_to_iolist(Req)]),
-    ID = exmpp_xml:get_attribute(Req, <<"id">>, undefined).
-    %exmpp_session:send_packet(Session, Req),
-    %case response_iq(ID) of
-    %    #received_packet{packet_type = 'iq', type_attr="error", raw_packet = IQ} ->
-    %        io:format("ERROR: ~p~n", [IQ]),
-    %        erlang:error(IQ);
-    %    #received_packet{packet_type = 'iq', type_attr="result", raw_packet = _IQ} ->
-    %        ok
-    %end.
+    ?DEBUG_FMT("Sending: ~s~n", [exmpp_xml:document_to_iolist(Req)]),
+    ID = exmpp_xml:get_attribute(Req, <<"id">>, undefined),
+    exmpp_session:send_packet(Session, Req),
+    case response_iq(ID) of
+        #received_packet{packet_type = 'iq', type_attr="error", raw_packet = IQ} ->
+            io:format("ERROR: ~p~n", [IQ]),
+            erlang:error(IQ);
+        #received_packet{packet_type = 'iq', type_attr="result", raw_packet = _IQ} ->
+            ok
+    end.
 
 response() ->
     receive

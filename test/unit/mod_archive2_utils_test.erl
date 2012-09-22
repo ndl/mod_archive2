@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_utils_test.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : mod_archive2 xml conversion functionality unit testing
+%%% Purpose : mod_archive2 utilities unit testing
 %%% Created : 19 Aug 2012 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
 %%%
 %%% mod_archive2, Copyright (C) 2009,2012 Alexander Tsvyashchenko

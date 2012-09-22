@@ -1,7 +1,7 @@
 %%%----------------------------------------------------------------------
-%%% File    : importer.erl
+%%% File    : timing.erl
 %%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
-%%% Purpose : Imports history to at least somewhat XEP-136 compliant server
+%%% Purpose : Performs simple timings for XML parsing
 %%% Created : 20 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009,2012 Alexander Tsvyashchenko
