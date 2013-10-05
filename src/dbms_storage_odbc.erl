@@ -770,15 +770,9 @@ decode(Value, xmlchildren, TableInfo) ->
     StrValue = decode(Value, string, TableInfo),
     case StrValue of
         "<" ++ _ ->
-            %% WARNING - multiple hacks:
-            %% 1. Using fake root element so that parser accepts multiple XML
-            %%    elements @ the input, there seems to be no way to tell parser it
-            %%    should accept multiple root elements?
-            %% 2. Calling "parse_document_fragment" for each decoding is wasteful -
-            %%    experiments show it's ~3 times slower than reusing existing parser.
-            %%    However, we expect that not many messages require full XML
-            %%    parsing, most messages should be handled via 'common' case.
-            tl(exmpp_xml:parse_document_fragment("<r>" ++ StrValue, [{root_depth, 1}]));
+	    parse_xml_fragment(StrValue);
+        <<$<,_/binary>> ->
+	    parse_xml_fragment(StrValue);
         _ ->
             [exmpp_xml:cdata(StrValue)]
     end;
@@ -810,3 +804,14 @@ parse_sql_time(Time) ->
     [HMS | _] =  string:tokens(Time, "."),
     [H, M, S] = string:tokens(HMS, ":"),
     {list_to_integer(H), list_to_integer(M), list_to_integer(S)}.
+
+parse_xml_fragment(StrValue) ->
+    %% WARNING - multiple hacks:
+    %% 1. Using fake root element so that parser accepts multiple XML
+    %%    elements @ the input, there seems to be no way to tell parser it
+    %%    should accept multiple root elements?
+    %% 2. Calling "parse_document_fragment" for each decoding is wasteful -
+    %%    experiments show it's ~3 times slower than reusing existing parser.
+    %%    However, we expect that not many messages require full XML
+    %%    parsing, most messages should be handled via 'common' case.
+    tl(exmpp_xml:parse_document_fragment("<r>" ++ StrValue, [{root_depth, 1}])).
