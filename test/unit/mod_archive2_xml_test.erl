@@ -260,7 +260,7 @@
         []},
  {xmlel,undefined,[],auto,
         [{xmlattr,undefined,<<"save">>,<<"false">>},
-         {xmlattr,undefined,<<"scope">>,<<"session">>}],
+         {xmlattr,undefined,<<"scope">>,<<"stream">>}],
         []}]).
 
 -define(GLOBAL_PREFS3_XML,

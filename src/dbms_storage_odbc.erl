@@ -794,6 +794,8 @@ escape_char_ansi_sql(C)  -> C.
 %% Date/time handling, partially copied from jlib and modified to support
 %% SQL syntax.
 %%
+parse_sql_datetime(TimeBin) when is_binary(TimeBin) ->
+    parse_sql_datetime(binary_to_list(TimeBin));
 parse_sql_datetime(TimeStr) ->
     [Date, Time] = string:tokens(TimeStr, " "),
     {parse_sql_date(Date), parse_sql_time(Time)}.

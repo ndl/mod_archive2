@@ -32,3 +32,4 @@
 -define(SERVER_NS_ARCHIVING, 'http://www.xmpp.org/extensions/xep-0136.html#ns').
 -define(MAX_COLLECTIONS, "1000").
 -define(MAX_MESSAGES, "1000").
+-define(JIDS_TO_SKIP, []).

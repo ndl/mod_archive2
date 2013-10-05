@@ -372,7 +372,7 @@ global_prefs_to_xml(Prefs, UnSet, AutoState) ->
          if AutoState =/= undefined ->
              exmpp_xml:element(undefined, auto,
                  [exmpp_xml:attribute(<<"save">>, AutoState),
-                  exmpp_xml:attribute(<<"scope">>, session)],
+                  exmpp_xml:attribute(<<"scope">>, stream)],
                  []);
             true ->
              undefined

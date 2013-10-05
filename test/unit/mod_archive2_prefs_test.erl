@@ -62,7 +62,7 @@
                            []},
                     {xmlel,undefined,[],auto,
                            [{xmlattr,undefined,<<"save">>,<<"true">>},
-                            {xmlattr,undefined,<<"scope">>,<<"session">>}],
+                            {xmlattr,undefined,<<"scope">>,<<"stream">>}],
                            []}]},
             undefined,undefined,'jabber:client'}}).
 
@@ -100,7 +100,7 @@
                            []},
                     {xmlel,undefined,[],auto,
                            [{xmlattr,undefined,<<"save">>,<<"true">>},
-                            {xmlattr,undefined,<<"scope">>,<<"session">>}],
+                            {xmlattr,undefined,<<"scope">>,<<"stream">>}],
                            []}]},
             undefined,undefined,'jabber:client'}}).
 
@@ -138,7 +138,7 @@
                            []},
                     {xmlel,undefined,[],auto,
                            [{xmlattr,undefined,<<"save">>,<<"true">>},
-                            {xmlattr,undefined,<<"scope">>,<<"session">>}],
+                            {xmlattr,undefined,<<"scope">>,<<"stream">>}],
                            []}]},
             undefined,undefined,'jabber:client'}}).
 
@@ -244,7 +244,7 @@
                            []},
                     {xmlel,undefined,[],auto,
                            [{xmlattr,undefined,<<"save">>,<<"true">>},
-                            {xmlattr,undefined,<<"scope">>,<<"session">>}],
+                            {xmlattr,undefined,<<"scope">>,<<"stream">>}],
                            []}]},
             undefined,undefined,'jabber:client'}}).
 
@@ -674,7 +674,7 @@ common_test_auto2() ->
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, auto,
                         [exmpp_xml:attribute(<<"save">>, "true"),
-                         exmpp_xml:attribute(<<"scope">>, "session")], []))),
+                         exmpp_xml:attribute(<<"scope">>, "stream")], []))),
             dict:new(),
             ?XMPP_API_MOCK).
 

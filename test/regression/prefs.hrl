@@ -378,7 +378,7 @@
                   []},
               {xmlel,undefined,[],auto,
                   [{xmlattr,undefined,<<"save">>,<<"false">>},
-                   {xmlattr,undefined,<<"scope">>,<<"session">>}],
+                   {xmlattr,undefined,<<"scope">>,<<"stream">>}],
                   []}]}]}}).
 
 -define(PREFS_TC7_CHANGE_PUSH,

@@ -39,7 +39,7 @@
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
 
--record(auto_state, {session_auto_save, with}).
+-record(auto_state, {stream_auto_save, with}).
 
 %%--------------------------------------------------------------------
 %% API functions
@@ -74,7 +74,7 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates, XmppApi) ->
     end,
     Scope =
         list_to_atom(
-            exmpp_xml:get_attribute_as_list(AutoEl, <<"scope">>, "session")),
+            exmpp_xml:get_attribute_as_list(AutoEl, <<"scope">>, "stream")),
     case Scope of
         global ->
             F =
@@ -89,10 +89,10 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates, XmppApi) ->
                 end,
             dbms_storage:transaction(
                 exmpp_jid:prep_domain_as_list(From), F);
-        session ->
+        stream ->
             {atomic,
              {auto_states,
-              update_session_auto_states(From, AutoSave,
+              update_stream_auto_states(From, AutoSave,
                     clear_with_auto_states(From, AutoStates))}};
         _ ->
             {aborted, {throw, {error, 'bad-request'}}}
@@ -127,7 +127,7 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
                 {ok, AutoState} ->
-                    case AutoState#auto_state.session_auto_save of
+                    case AutoState#auto_state.stream_auto_save of
                         false ->
                             {false, AutoStates};
                         AutoSave ->
@@ -238,7 +238,7 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
                     case dict:find(exmpp_jid:resource_as_list(From),
                         Resources) of
                         {ok, AutoState} ->
-                            AutoState#auto_state.session_auto_save;
+                            AutoState#auto_state.stream_auto_save;
                         _ ->
                             undefined
                     end;
@@ -258,6 +258,19 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
 %% Processes 'set' prefs requests
 pref_set(From, PrefsXML, EnforceExpire) ->
     F = fun() ->
+            % Check that all children elements are as expected.
+            lists:foreach(
+	        fun(Element) ->
+	            case not exmpp_xml:element_matches(Element, default) andalso
+		         not exmpp_xml:element_matches(Element, method) andalso
+		         not exmpp_xml:element_matches(Element, item) of
+		        true ->
+		           throw({error, 'bad-request'});
+		        _ ->
+		           ok
+		    end
+		end,
+		exmpp_xml:get_child_elements(PrefsXML)),
             case exmpp_xml:has_element(PrefsXML, default) orelse
                 exmpp_xml:has_element(PrefsXML, method) of
                 true ->
@@ -458,13 +471,13 @@ update_with_auto_states(From, With, Value, AutoStates) ->
         #auto_state{with = dict:store(With, Value, dict:new())},
         AutoStates).
 
-update_session_auto_states(From, AutoSave, AutoStates) ->
+update_stream_auto_states(From, AutoSave, AutoStates) ->
     update_auto_states(
         From,
         fun(AutoState) ->
-            AutoState#auto_state{session_auto_save = AutoState}
+            AutoState#auto_state{stream_auto_save = AutoSave}
         end,
-        #auto_state{session_auto_save = AutoSave},
+        #auto_state{stream_auto_save = AutoSave},
         AutoStates).
 
 update_auto_states(From, Updater, Default, AutoStates) ->

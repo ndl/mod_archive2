@@ -118,7 +118,7 @@ test_auto_prefs_change1(F) ->
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
 	    exmpp_xml:attribute(<<"save">>, "false"),
-	    exmpp_xml:attribute(<<"scope">>, "session")
+	    exmpp_xml:attribute(<<"scope">>, "stream")
 	], []))),
     ?PREFS_TC6_CHANGED =
         client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
@@ -126,7 +126,7 @@ test_auto_prefs_change1(F) ->
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
 	[
 	    exmpp_xml:attribute(<<"save">>, "true"),
-	    exmpp_xml:attribute(<<"scope">>, "session")
+	    exmpp_xml:attribute(<<"scope">>, "stream")
 	], []))).
 
 test_auto_prefs_change2(F) ->
