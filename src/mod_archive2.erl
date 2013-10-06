@@ -425,17 +425,29 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
                     EnforceMaxExpire =
                         proplists:get_value(enforce_max_expire,
                             State#state.options, ?DEFAULT_MAX_EXPIRE),
+                    EnforceMaxExpire =
+                        proplists:get_value(enforce_max_expire,
+                            State#state.options, ?DEFAULT_MAX_EXPIRE),
+                    PrefsThreadsExpiration =
+                        proplists:get_value(prefs_threads_expiration,
+                            State#state.options, ?DEFAULT_PREFS_THREADS_EXPIRATION),
                     auto_states_reply(IQ,
                         mod_archive2_prefs:pref(From, IQ,
                             State#state.default_global_prefs,
                             State#state.auto_states,
                             {EnforceMinExpire, EnforceMaxExpire},
+			    PrefsThreadsExpiration,
                             State#state.xmpp_api),
                         State);
                 'itemremove' ->
                     auto_states_reply(IQ,
                         mod_archive2_prefs:itemremove(From, IQ,
                             State#state.auto_states, State#state.xmpp_api),
+                        State);
+                'sessionremove' ->
+                    auto_states_reply(IQ,
+                        mod_archive2_prefs:session_remove(From, IQ,
+                            State#state.auto_states),
                         State);
 			    'auto' ->
                     auto_states_reply(IQ,

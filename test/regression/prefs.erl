@@ -44,7 +44,8 @@ prefs_test_() ->
             ?test_gen1(test_jid_prefs_remove),
             ?test_gen1(test_auto_prefs_change1),
             ?test_gen1(test_auto_prefs_change2),
-	    ?test_gen1(test_auto_refs_session_expire)
+	    ?test_gen1(test_auto_refs_session_expire),
+            ?test_gen1(test_session_prefs_change)
         ]).
 
 test_default_prefs(F) ->
@@ -169,3 +170,26 @@ test_auto_refs_session_expire(_) ->
     ?PREFS_TC8_RESULT =
         client:response(NewF2, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
     exmpp_session:stop(NewSession2).
+
+test_session_prefs_change(F) ->
+    [?PREFS_TC9_CHANGE_PUSH, ?PREFS_TC9_CHANGE_RESULT] =
+    client:responses(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref", [],
+    [
+        exmpp_xml:element(undefined, "session",
+	[
+	    exmpp_xml:attribute(<<"thread">>, "123"),
+	    exmpp_xml:attribute(<<"save">>, "false")
+	], [])
+    ])), 2),
+    ?PREFS_TC9_GET_RESULT =
+        client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
+    ?PREFS_TC9_CHANGE_RESULT2 =
+    client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "sessionremove", [],
+    [
+        exmpp_xml:element(undefined, "session",
+	[
+	    exmpp_xml:attribute(<<"thread">>, "123")
+	], [])
+    ]))),
+    ?PREFS_TC9_GET_RESULT2 =
+        client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))).

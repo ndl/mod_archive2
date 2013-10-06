@@ -34,6 +34,7 @@
 -define(XMPP_API_MOCK, xmpp_api_mock).
 -define(JID, "client@localhost/res").
 -define(HOST, "localhost").
+-define(PREFS_THREADS_EXPIRATION, 1800).
 
 -define(PREFS_TC1_RETRIEVE_RESULT,
     {atomic,{iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
@@ -379,6 +380,7 @@ common_test_default_prefs(_Pid) ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_prefs1() ->
@@ -436,6 +438,7 @@ common_test_set_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_get_prefs1() ->
@@ -462,6 +465,7 @@ common_test_get_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive1() ->
@@ -565,6 +569,7 @@ common_test_update_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(false),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_get_prefs2() ->
@@ -591,6 +596,7 @@ common_test_get_prefs2() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive2() ->
@@ -730,6 +736,7 @@ common_test_get_prefs3() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs1() ->
@@ -769,6 +776,7 @@ common_test_set_not_implemented_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs2() ->
@@ -795,6 +803,7 @@ common_test_set_not_implemented_prefs2() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_allowed_expire_prefs1() ->
@@ -821,6 +830,7 @@ common_test_set_not_allowed_expire_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, 0},
+	    ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 test_prefs_cache_expire(_) ->

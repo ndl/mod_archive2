@@ -553,9 +553,10 @@ test_session_prefs1_from_xml(_) ->
 test_session_prefs1_to_xml(_) ->
     {xmlel,undefined,[],session,
        [{xmlattr,undefined,<<"thread">>,<<"123">>},
-        {xmlattr,undefined,<<"save">>,<<"message">>}],
+        {xmlattr,undefined,<<"save">>,<<"message">>},
+	{xmlattr,undefined,<<"timeout">>,<<"1800">>}],
        []} =
-        mod_archive2_xml:session_prefs_to_xml({<<"123">>, message}).
+        mod_archive2_xml:session_prefs_to_xml({<<"123">>, message}, 1800).
 
 test_modified1_to_xml(_) ->
     ?MODIFIED1_XML =

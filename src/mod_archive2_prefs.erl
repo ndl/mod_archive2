@@ -31,10 +31,11 @@
 -module(mod_archive2_prefs).
 -author('xmpp@endl.ch').
 
--export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
-         should_auto_archive/8, expire_prefs_cache/1,
-         get_effective_jid_prefs/2, get_global_prefs/2,
-	 remove_session/2, reset_thread_expiration/3, expire_threads/2]).
+-export([pref/7, auto/4, itemremove/4, session_remove/3,
+         default_global_prefs/2, should_auto_archive/8,
+	 expire_prefs_cache/1, get_effective_jid_prefs/2,
+	 get_global_prefs/2, remove_session/2,
+	 reset_thread_expiration/3, expire_threads/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -48,19 +49,19 @@
 
 %% Processes 'pref' requests from clients
 pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
-     EnforceExpire, XmppApi) ->
+     EnforceExpire, PrefsThreadsExpiration, XmppApi) ->
     case Type of
-	    set ->
-            case pref_set(From, SubEl, EnforceExpire) of
-                {atomic, ok} ->
+        set ->
+            case pref_set(From, SubEl, EnforceExpire, AutoStates) of
+                {atomic, {auto_states, NewAutoStates}} ->
                     XmppApi:broadcast_iq(From, IQ),
                     {atomic, {auto_states, clear_with_auto_states(
-                        From, AutoStates)}};
+                        From, NewAutoStates)}};
                 Result ->
                     Result
             end;
 	    get ->
-	        pref_get(From, IQ, GlobalPrefs, AutoStates)
+	        pref_get(From, IQ, GlobalPrefs, PrefsThreadsExpiration, AutoStates)
     end.
 
 %% Processes 'auto' requests from clients
@@ -118,6 +119,38 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates, XmppApi) ->
                From, AutoStates)}};
         Result ->
             Result
+    end.
+
+%% Processes 'sessionremove' requests from clients
+session_remove(From, #iq{type = Type, payload = SubEl}, AutoStates) ->
+    mod_archive2_utils:verify_iq_type(Type, set),
+    US = exmpp_jid:bare_to_list(From),
+    Resource = exmpp_jid:resource_as_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            case dict:find(Resource, Resources) of
+                {ok, AutoState} ->
+		    NewThreads =
+   		        lists:foldl(
+		            fun(Item, ThreadsIn) ->
+			        {Thread, _} = mod_archive2_xml:session_prefs_from_xml(Item),
+				dict:erase(Thread, ThreadsIn)
+			    end,
+			    AutoState#auto_state.threads,
+                            exmpp_xml:get_child_elements(SubEl)),
+		    NewAutoStates =
+                        dict:store(US,
+                            dict:store(
+		                Resource,
+				AutoState#auto_state{threads = NewThreads},
+				Resources),
+			    AutoStates),
+		    {atomic, {auto_states, NewAutoStates}};
+		_ ->
+		    {atomic, {auto_states, AutoStates}}
+	    end;
+	_ ->
+	    {atomic, {auto_states, AutoStates}}
     end.
 
 %% Returns true if collections for given From JID with given With JID
@@ -291,10 +324,10 @@ expire_threads(AutoStates, TimeOut) ->
 %%--------------------------------------------------------------------
 
 %% Processes 'get' prefs requests
-pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
+pref_get(From, IQ, DefaultGlobalPrefs, PrefsThreadsExpiration, AutoStates) ->
     F = fun() ->
         SessionPrefsXML =
-	    [mod_archive2_xml:session_prefs_to_xml(Prefs) ||
+	    [mod_archive2_xml:session_prefs_to_xml(Prefs, PrefsThreadsExpiration) ||
 	     Prefs <- get_session_prefs(From, AutoStates)],
         JidPrefsXML =
             [mod_archive2_xml:jid_prefs_to_xml(Prefs) ||
@@ -328,19 +361,20 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
                     PrefsUnSet, AutoSave),
         exmpp_iq:result(IQ,
             exmpp_xml:element(?NS_ARCHIVING, pref, [],
-                SessionPrefsXML ++ JidPrefsXML ++ GlobalPrefsXML))
+                JidPrefsXML ++ GlobalPrefsXML ++ SessionPrefsXML))
         end,
     dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
 %% Processes 'set' prefs requests
-pref_set(From, PrefsXML, EnforceExpire) ->
+pref_set(From, PrefsXML, EnforceExpire, AutoStates) ->
     F = fun() ->
             % Check that all children elements are as expected.
             lists:foreach(
 	        fun(Element) ->
 	            case not exmpp_xml:element_matches(Element, default) andalso
 		         not exmpp_xml:element_matches(Element, method) andalso
-		         not exmpp_xml:element_matches(Element, item) of
+		         not exmpp_xml:element_matches(Element, item) andalso
+		         not exmpp_xml:element_matches(Element, session) of
 		        true ->
 		           throw({error, 'bad-request'});
 		        _ ->
@@ -380,9 +414,47 @@ pref_set(From, PrefsXML, EnforceExpire) ->
                             throw({error, 'feature-not-implemented'})
                     end
                 end,
-                exmpp_xml:get_elements(PrefsXML, item))
+                exmpp_xml:get_elements(PrefsXML, item)),
+	    TS = calendar:now_to_datetime(mod_archive2_time:now()),
+	    NewThreads =
+                lists:foldl(
+                    fun(Item, ThreadsIn) ->
+                        {Thread, AutoSave} =
+                            mod_archive2_xml:session_prefs_from_xml(Item),
+                        case is_save_method_supported(AutoSave) of
+                            true ->
+			        dict:store(
+				    Thread,
+				    #thread_info{
+				        last_access = TS,
+					auto_save = AutoSave},
+				    ThreadsIn);
+                            false ->
+                                throw({error, 'feature-not-implemented'})
+                        end
+                    end,
+		    dict:new(),
+                    exmpp_xml:get_elements(PrefsXML, session)),
+	    update_auto_states(
+	        From,
+		fun(AutoState) ->
+		    AutoState#auto_state{
+		        threads = dict:merge(
+			    fun(_Key, _OldVal, NewVal) ->
+			        NewVal
+			    end,
+			    AutoState#auto_state.threads,
+			    NewThreads)}
+		end,
+		#auto_state{with = dict:new(), threads = NewThreads},
+		AutoStates)
         end,
-    dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
+    case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
+        {atomic, NewAutoStates} ->
+            {atomic, {auto_states, NewAutoStates}};
+        Result ->
+            Result
+    end.
 
 verify_expire_range(Expire, {MinExpire, MaxExpire}) ->
     if Expire >= MinExpire andalso
