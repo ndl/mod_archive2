@@ -293,6 +293,9 @@
 
 -define(JID_PREFS2_XML, "<item jid='benvolio@montague.net'/>").
 
+-define(SESSION_PREFS1_XML,
+        "<session thread='123' save='message'/>").
+
 -define(MODIFIED1_XML,
     {xmlel,undefined,[],changed,
        [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
@@ -342,7 +345,9 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_jid_prefs1_to_xml),
         ?test_gen1(test_jid_prefs2_to_xml),
         ?test_gen1(test_modified1_to_xml),
-        ?test_gen1(test_modified2_to_xml)
+        ?test_gen1(test_modified2_to_xml),
+	?test_gen1(test_session_prefs1_from_xml),
+	?test_gen1(test_session_prefs1_to_xml)
     ]
  }.
 
@@ -538,6 +543,19 @@ test_jid_prefs2_to_xml(_) ->
                 us = "client@localhost",
                 with_server = "montague.net",
                 exactmatch = true}).
+
+test_session_prefs1_from_xml(_) ->
+    [PrefsXML] =
+        exmpp_xml:parse_document_fragment(?SESSION_PREFS1_XML, [{root_depth, 0}]),
+    {<<"123">>, message} =
+        mod_archive2_xml:session_prefs_from_xml(PrefsXML).
+
+test_session_prefs1_to_xml(_) ->
+    {xmlel,undefined,[],session,
+       [{xmlattr,undefined,<<"thread">>,<<"123">>},
+        {xmlattr,undefined,<<"save">>,<<"message">>}],
+       []} =
+        mod_archive2_xml:session_prefs_to_xml({<<"123">>, message}).
 
 test_modified1_to_xml(_) ->
     ?MODIFIED1_XML =

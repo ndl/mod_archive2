@@ -293,19 +293,22 @@ expire_threads(AutoStates, TimeOut) ->
 %% Processes 'get' prefs requests
 pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
     F = fun() ->
-		    JidPrefsXML =
-                [mod_archive2_xml:jid_prefs_to_xml(Prefs) ||
-                    Prefs <- get_jid_prefs(From)],
-            GlobalPrefs =
-                get_global_prefs(From, #archive_global_prefs{}),
-		PrefsUnSet =
-		    if (GlobalPrefs#archive_global_prefs.save =/= undefined) orelse
-		       (GlobalPrefs#archive_global_prefs.expire =/= undefined) orelse
-		       (GlobalPrefs#archive_global_prefs.otr =/= undefined) ->
+        SessionPrefsXML =
+	    [mod_archive2_xml:session_prefs_to_xml(Prefs) ||
+	     Prefs <- get_session_prefs(From, AutoStates)],
+        JidPrefsXML =
+            [mod_archive2_xml:jid_prefs_to_xml(Prefs) ||
+	     Prefs <- get_jid_prefs(From)],
+        GlobalPrefs =
+            get_global_prefs(From, #archive_global_prefs{}),
+        PrefsUnSet =
+	    if (GlobalPrefs#archive_global_prefs.save =/= undefined) orelse
+	       (GlobalPrefs#archive_global_prefs.expire =/= undefined) orelse
+	       (GlobalPrefs#archive_global_prefs.otr =/= undefined) ->
                 false;
-		       true ->
+	       true ->
                 true
-		    end,
+	    end,
         AutoSave =
             case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
                 {ok, Resources} ->
@@ -325,7 +328,7 @@ pref_get(From, IQ, DefaultGlobalPrefs, AutoStates) ->
                     PrefsUnSet, AutoSave),
         exmpp_iq:result(IQ,
             exmpp_xml:element(?NS_ARCHIVING, pref, [],
-                JidPrefsXML ++ GlobalPrefsXML))
+                SessionPrefsXML ++ JidPrefsXML ++ GlobalPrefsXML))
         end,
     dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F).
 
@@ -472,6 +475,20 @@ get_jid_prefs(From) ->
             throw({error, Result})
     end.
 
+get_session_prefs(From, AutoStates) ->
+    case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
+        {ok, Resources} ->
+            case dict:find(exmpp_jid:resource_as_list(From), Resources) of
+                {ok, AutoState} ->
+		    [{Thread, ThreadInfo#thread_info.auto_save} ||
+ 		     {Thread, ThreadInfo} <- dict:to_list(AutoState#auto_state.threads)];
+		_ ->
+		    []
+	    end;
+	_ ->
+	    []
+    end.
+
 %% Returns JID prefs for given client and given JID, ExactMatch: if no
 %% prefs are available with exactly these JID and ExactMatch, returns
 %% 'undefined'.
@@ -551,7 +568,7 @@ update_stream_auto_states(From, AutoSave, AutoStates) ->
         fun(AutoState) ->
             AutoState#auto_state{stream_auto_save = AutoSave}
         end,
-        #auto_state{stream_auto_save = AutoSave},
+        #auto_state{stream_auto_save = AutoSave, with = dict:new(), threads = dict:new()},
         AutoStates).
 
 update_auto_states(From, Updater, Default, AutoStates) ->

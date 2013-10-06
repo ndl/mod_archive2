@@ -38,7 +38,8 @@
 	 thread_from_external_message/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
-         modified_to_xml/1,
+         session_prefs_from_xml/1, session_prefs_to_xml/1,
+	 modified_to_xml/1,
          datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
@@ -273,7 +274,6 @@ get_cdata(undefined) ->
 get_cdata(Element) ->
     exmpp_xml:get_cdata_as_list(Element).
 
-
 thread_from_external_message(Packet) ->
     case exmpp_xml:get_cdata(exmpp_xml:get_element(Packet, thread)) of
         Thread when is_binary(Thread) -> Thread;
@@ -283,6 +283,15 @@ thread_from_external_message(Packet) ->
 %%--------------------------------------------------------------------
 %% Preferences conversion to/from XML.
 %%--------------------------------------------------------------------
+
+session_prefs_to_xml({Thread, AutoSave}) ->
+    exmpp_xml:element(undefined, session,
+        [exmpp_xml:attribute(<<"thread">>, Thread),
+	 exmpp_xml:attribute(<<"save">>, AutoSave)], []).
+
+session_prefs_from_xml(PrefsXML) ->
+    {exmpp_xml:get_attribute_as_binary(PrefsXML, <<"thread">>, undefined),
+     list_to_atom(exmpp_xml:get_attribute_as_list(PrefsXML, <<"save">>, undefined))}.
 
 jid_prefs_to_xml(Prefs) ->
     ExactMatch = Prefs#archive_jid_prefs.exactmatch,
