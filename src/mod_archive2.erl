@@ -501,9 +501,10 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
 %%--------------------------------------------------------------------
 handle_cast({add_message, {_Direction, From, With, Packet} = Args}, State) ->
     Prefs = State#state.default_global_prefs,
-    AutoStates = mod_archive2_prefs:reset_thread_expiration(From, Packet, State#state.auto_states),
+    Thread = mod_archive2_xml:thread_from_external_message(Packet),
+    AutoStates = mod_archive2_prefs:reset_thread_expiration(From, Thread, State#state.auto_states),
     case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs,
-        State#state.should_cache_prefs, State#state.xmpp_api, State#state.only_in_roster) of
+        State#state.should_cache_prefs, State#state.xmpp_api, State#state.only_in_roster, Thread) of
         {false, NewAutoStates} ->
             {noreply, State#state{auto_states = NewAutoStates}};
         {AutoSave, NewAutoStates} ->

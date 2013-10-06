@@ -35,6 +35,7 @@
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/3,
          external_message_from_xml/2,
+	 thread_from_external_message/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          modified_to_xml/1,
@@ -271,6 +272,13 @@ get_cdata(undefined) ->
     undefined;
 get_cdata(Element) ->
     exmpp_xml:get_cdata_as_list(Element).
+
+
+thread_from_external_message(Packet) ->
+    case exmpp_xml:get_cdata(exmpp_xml:get_element(Packet, thread)) of
+        Thread when is_binary(Thread) -> Thread;
+	_ -> undefined
+    end.
 
 %%--------------------------------------------------------------------
 %% Preferences conversion to/from XML.

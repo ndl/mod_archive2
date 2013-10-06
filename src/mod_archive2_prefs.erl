@@ -32,7 +32,7 @@
 -author('xmpp@endl.ch').
 
 -export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
-         should_auto_archive/7, expire_prefs_cache/1,
+         should_auto_archive/8, expire_prefs_cache/1,
          get_effective_jid_prefs/2, get_global_prefs/2,
 	 remove_session/2, reset_thread_expiration/3, expire_threads/2]).
 
@@ -123,31 +123,38 @@ itemremove(From, #iq{type = Type, payload = SubEl} = IQ, AutoStates, XmppApi) ->
 %% Returns true if collections for given From JID with given With JID
 %% should be auto-archived.
 should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
-    ShouldCachePrefs, XmppApi, OnlyFromRoster) ->
+    ShouldCachePrefs, XmppApi, OnlyFromRoster, Thread) ->
+    AutoArchiveCheckPrefsFun =
+        fun(AutoSave) ->
+            should_auto_archive2(From, With, AutoStates, AutoSave,
+	        DefaultGlobalPrefs, ShouldCachePrefs, XmppApi,
+	        OnlyFromRoster)
+        end,
     case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
                 {ok, AutoState} ->
-                    case AutoState#auto_state.stream_auto_save of
-                        false ->
-                            {false, AutoStates};
-                        AutoSave ->
-                            case dict:find(With, AutoState#auto_state.with) of
-                                {ok, Result} ->
-                                    {Result, AutoStates};
-                                _ ->
-                                    should_auto_archive2(From, With, AutoStates,
-                                        AutoSave, DefaultGlobalPrefs,
-                                        ShouldCachePrefs, XmppApi, OnlyFromRoster)
+                    case dict:find(Thread, AutoState#auto_state.threads) of
+		        {ok, ThreadInfo} ->
+		            {ThreadInfo#thread_info.auto_save, AutoStates};
+		        _ ->
+                            case AutoState#auto_state.stream_auto_save of
+                                false ->
+                                    {false, AutoStates};
+                                AutoSave ->
+                                    case dict:find(With, AutoState#auto_state.with) of
+                                        {ok, Result} ->
+                                            {Result, AutoStates};
+                                        _ ->
+		                	    AutoArchiveCheckPrefsFun(AutoSave)
+		                    end
                             end
-                    end;
-                _ ->
-                    should_auto_archive2(From, With, AutoStates, undefined,
-                        DefaultGlobalPrefs, ShouldCachePrefs, XmppApi, OnlyFromRoster)
-            end;
-        _ ->
-            should_auto_archive2(From, With, AutoStates, undefined,
-                DefaultGlobalPrefs, ShouldCachePrefs, XmppApi, OnlyFromRoster)
+		    end;
+		_ ->
+		    AutoArchiveCheckPrefsFun(undefined)
+	    end;
+	_ ->
+	    AutoArchiveCheckPrefsFun(undefined)
     end.
 
 should_auto_archive2(From, With, AutoStates, SessionAutoSave,
@@ -226,31 +233,54 @@ remove_session(From, AutoStates) ->
             AutoStates
     end.
 
-reset_thread_expiration(From, Packet, AutoStates) ->
-    case exmpp_xml:get_cdata(exmpp_xml:get_element(Packet, thread)) of
-        Thread when is_binary(Thread) ->
-	    reset_thread_expiration2(From, Thread, AutoStates);
-	_ -> AutoStates
+reset_thread_expiration(_From, undefined, AutoStates) -> AutoStates;
+
+reset_thread_expiration(From, Thread, AutoStates) ->
+    US = exmpp_jid:bare_to_list(From),
+    ResourceToUpdate = exmpp_jid:resource_as_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            dict:store(
+                US,
+                dict:map(
+                    fun(Resource, AutoState) ->
+		        if Resource =:= ResourceToUpdate ->
+			    case dict:find(Thread, AutoState#auto_state.threads) of
+			        {ok, ThreadInfo} ->
+				    AutoState#auto_state{
+				        threads = dict:store(
+					    Thread,
+					    ThreadInfo#thread_info{
+					        last_access =
+						    calendar:now_to_datetime(
+						        mod_archive2_time:now())},
+					    AutoState#auto_state.threads)};
+				_ ->
+				    AutoState
+			    end;
+			   true -> AutoState
+			end
+                    end,
+                    Resources),
+                AutoStates);
+        _ ->
+            AutoStates
     end.
 
+% We're not expiring prefs cache here as
+% session auto save calculation result is not stored in cache.
 expire_threads(AutoStates, TimeOut) ->
     TS = calendar:now_to_datetime(mod_archive2_time:now()),
     dict:map(
         fun(_US, Resources) ->
 	    dict:map(
 	        fun(_Resource, AutoState) ->
-		    NewThreads = 
+		    AutoState#auto_state{threads =
 		        dict:filter(
 			    fun(_Thread, ThreadInfo) ->
 			        not is_thread_expired(ThreadInfo#thread_info.last_access, TS, TimeOut)
 			    end,
-			    AutoState#auto_state.threads),
-		    OldSize = dict:size(AutoState#auto_state.threads),
-		    NewSize = dict:size(NewThreads),
-		    if OldSize =/= NewSize ->
-		        AutoState#auto_state{threads = NewThreads, with = dict:new()};
-		       true -> AutoState
-		    end
+			    AutoState#auto_state.threads)}
 	        end,
 	        Resources)
 	end,
@@ -554,38 +584,6 @@ clear_with_auto_states(From, AutoStates) ->
                 dict:map(
                     fun(_Resource, AutoState) ->
                         AutoState#auto_state{with = dict:new()}
-                    end,
-                    Resources),
-                AutoStates);
-        _ ->
-            AutoStates
-    end.
-
-reset_thread_expiration2(From, Thread, AutoStates) ->
-    US = exmpp_jid:bare_to_list(From),
-    ResourceToUpdate = exmpp_jid:resource_as_list(From),
-    case dict:find(US, AutoStates) of
-        {ok, Resources} ->
-            dict:store(
-                US,
-                dict:map(
-                    fun(Resource, AutoState) ->
-		        if Resource =:= ResourceToUpdate ->
-			    case dict:find(Thread, AutoState#auto_state.threads) of
-			        {ok, ThreadInfo} ->
-				    AutoState#auto_state{
-				        threads = dict:store(
-					    Thread,
-					    ThreadInfo#thread_info{
-					        last_access =
-						    calendar:now_to_datetime(
-						        mod_archive2_time:now())},
-					    AutoState#auto_state.threads)};
-				_ ->
-				    AutoState
-			    end;
-			   true -> AutoState
-			end
                     end,
                     Resources),
                 AutoStates);
