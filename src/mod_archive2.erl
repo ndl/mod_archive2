@@ -75,7 +75,7 @@
 
 %% Our hooks
 -export([send_packet/3, receive_packet/3, receive_packet/4,
-         iq_archive/3]).
+         iq_archive/3, remove_session/3]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -211,6 +211,8 @@ init([Host, Opts]) ->
                                ?HOOK_SEQ),
             ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, receive_packet,
                                ?HOOK_SEQ),
+	    ejabberd_hooks:add(sm_remove_connection_hook, Host, ?MODULE, remove_session,
+	                       ?HOOK_SEQ),
             % Register our provided features
             mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING)),
             mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_AUTO)),
@@ -504,6 +506,9 @@ handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
                 auto_states = NewAutoStates}}
     end;
 
+handle_cast({remove_session, {JID}}, State) ->
+    {noreply, State#state{auto_states = mod_archive2_prefs:remove_session(JID, State#state.auto_states)}};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -614,6 +619,15 @@ add_packet(Direction, OurJID, With, Packet) ->
         _ ->
             false
     end.
+
+% ejabberd 2.x support.
+remove_session(SID, {jid, _, _, _, _, _, _} = JID, Info) ->
+    remove_session(SID, xmpp_api_ejabberd:jid_to_exmpp(JID), Info);
+
+remove_session(_SID, JID, _Info) ->
+    Host = exmpp_jid:prep_domain_as_list(JID),
+    Proc = mod_archive2_utils:get_module_proc(Host, ?PROCNAME),
+    gen_server:cast(Proc, {remove_session, {JID}}).
 
 get_supervisor(Opts) ->
     XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),

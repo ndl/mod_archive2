@@ -27,7 +27,8 @@
 -author('ejabberd@ndl.kiev.ua').
 
 -export([eunit_xml_report/1, session_setup/0, session_teardown/1,
-         create_session/1,response/2, responses/3, skip/1]).
+         create_session/1, create_session/2, response/2, responses/3,
+	 skip/1]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
@@ -47,8 +48,11 @@ client_test_() -> modules_to_test().
 modules_to_test() -> [prefs, manual, management, auto, replication, general].
 
 create_session(ClientName) ->
+    create_session(ClientName, random).
+
+create_session(ClientName, Resource) ->
     Session = exmpp_session:start(),
-    JID = exmpp_jid:make(ClientName, ?SERVERHOST, random),
+    JID = exmpp_jid:make(ClientName, ?SERVERHOST, Resource),
     exmpp_session:auth_basic_digest(Session, JID, ?PASSWORD),
     exmpp_session:connect_TCP(Session, ?SERVERHOST, ?SERVERPORT),
     try exmpp_session:login(Session)

@@ -32,9 +32,9 @@
 -author('xmpp@endl.ch').
 
 -export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
-         should_auto_archive/7,
-         expire_prefs_cache/1,
-         get_effective_jid_prefs/2, get_global_prefs/2]).
+         should_auto_archive/7, expire_prefs_cache/1,
+         get_effective_jid_prefs/2, get_global_prefs/2,
+	 remove_session/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -510,6 +510,27 @@ clear_with_auto_states(From, AutoStates) ->
                 dict:map(
                     fun(_Resource, AutoState) ->
                         AutoState#auto_state{with = dict:new()}
+                    end,
+                    Resources),
+                AutoStates);
+        _ ->
+            AutoStates
+    end.
+
+remove_session(From, AutoStates) ->
+    US = exmpp_jid:bare_to_list(From),
+    ResourceToRemove = exmpp_jid:resource_as_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            dict:store(
+                US,
+                dict:map(
+                    fun(Resource, AutoState) ->
+		        if Resource =:= ResourceToRemove ->
+                            AutoState#auto_state{stream_auto_save = undefined,
+			                         with = dict:new()};
+			   true -> AutoState
+			end
                     end,
                     Resources),
                 AutoStates);

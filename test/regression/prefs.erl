@@ -43,7 +43,8 @@ prefs_test_() ->
             ?test_gen1(test_jid_prefs_change),
             ?test_gen1(test_jid_prefs_remove),
             ?test_gen1(test_auto_prefs_change1),
-            ?test_gen1(test_auto_prefs_change2)
+            ?test_gen1(test_auto_prefs_change2),
+	    ?test_gen1(test_auto_refs_session_expire)
         ]).
 
 test_default_prefs(F) ->
@@ -150,3 +151,21 @@ test_auto_prefs_change2(F) ->
         exmpp_xml:element(undefined, "default",
 	[exmpp_xml:attribute(<<"save">>, "body")], [])
     ])), 2).
+
+test_auto_refs_session_expire(_) ->
+    % Using separate session to avoid screwing the default one
+    % as we need to close & re-open it. Also using fixed resource to make sure
+    % the stream settings expiration is not masked by different random resource use.
+    {Session2, JID2} = client:create_session(?CLIENTNAME2, "test"),
+    F2 = {Session2, JID2},
+    client:response(F2, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "auto",
+	[
+	    exmpp_xml:attribute(<<"save">>, "false"),
+	    exmpp_xml:attribute(<<"scope">>, "stream")
+	], []))),
+    exmpp_session:stop(Session2),
+    {NewSession2, NewJID2} = client:create_session(?CLIENTNAME2, "test"),
+    NewF2 = {NewSession2, NewJID2},
+    ?PREFS_TC8_RESULT =
+        client:response(NewF2, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref"))),
+    exmpp_session:stop(NewSession2).
