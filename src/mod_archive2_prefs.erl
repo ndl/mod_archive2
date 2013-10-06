@@ -34,12 +34,13 @@
 -export([pref/6, auto/4, itemremove/4, default_global_prefs/2,
          should_auto_archive/7, expire_prefs_cache/1,
          get_effective_jid_prefs/2, get_global_prefs/2,
-	 remove_session/2]).
+	 remove_session/2, reset_thread_expiration/3, expire_threads/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
 
--record(auto_state, {stream_auto_save, with}).
+-record(auto_state, {stream_auto_save, with, threads}).
+-record(thread_info, {last_access, auto_save}).
 
 %%--------------------------------------------------------------------
 %% API functions
@@ -211,6 +212,49 @@ expire_prefs_cache(AutoStates) ->
                 Resources)
         end,
         AutoStates).
+
+remove_session(From, AutoStates) ->
+    US = exmpp_jid:bare_to_list(From),
+    ResourceToRemove = exmpp_jid:resource_as_list(From),
+    case dict:find(US, AutoStates) of
+        {ok, Resources} ->
+            dict:store(
+                US,
+		dict:erase(ResourceToRemove, Resources),
+                AutoStates);
+        _ ->
+            AutoStates
+    end.
+
+reset_thread_expiration(From, Packet, AutoStates) ->
+    case exmpp_xml:get_cdata(exmpp_xml:get_element(Packet, thread)) of
+        Thread when is_binary(Thread) ->
+	    reset_thread_expiration2(From, Thread, AutoStates);
+	_ -> AutoStates
+    end.
+
+expire_threads(AutoStates, TimeOut) ->
+    TS = calendar:now_to_datetime(mod_archive2_time:now()),
+    dict:map(
+        fun(_US, Resources) ->
+	    dict:map(
+	        fun(_Resource, AutoState) ->
+		    NewThreads = 
+		        dict:filter(
+			    fun(_Thread, ThreadInfo) ->
+			        not is_thread_expired(ThreadInfo#thread_info.last_access, TS, TimeOut)
+			    end,
+			    AutoState#auto_state.threads),
+		    OldSize = dict:size(AutoState#auto_state.threads),
+		    NewSize = dict:size(NewThreads),
+		    if OldSize =/= NewSize ->
+		        AutoState#auto_state{threads = NewThreads, with = dict:new()};
+		       true -> AutoState
+		    end
+	        end,
+	        Resources)
+	end,
+	AutoStates).
 
 %%--------------------------------------------------------------------
 %% Helper functions
@@ -468,7 +512,7 @@ update_with_auto_states(From, With, Value, AutoStates) ->
             AutoState#auto_state{with =
                 dict:store(With, Value, AutoState#auto_state.with)}
         end,
-        #auto_state{with = dict:store(With, Value, dict:new())},
+        #auto_state{with = dict:store(With, Value, dict:new()), threads = dict:new()},
         AutoStates).
 
 update_stream_auto_states(From, AutoSave, AutoStates) ->
@@ -517,18 +561,29 @@ clear_with_auto_states(From, AutoStates) ->
             AutoStates
     end.
 
-remove_session(From, AutoStates) ->
+reset_thread_expiration2(From, Thread, AutoStates) ->
     US = exmpp_jid:bare_to_list(From),
-    ResourceToRemove = exmpp_jid:resource_as_list(From),
+    ResourceToUpdate = exmpp_jid:resource_as_list(From),
     case dict:find(US, AutoStates) of
         {ok, Resources} ->
             dict:store(
                 US,
                 dict:map(
                     fun(Resource, AutoState) ->
-		        if Resource =:= ResourceToRemove ->
-                            AutoState#auto_state{stream_auto_save = undefined,
-			                         with = dict:new()};
+		        if Resource =:= ResourceToUpdate ->
+			    case dict:find(Thread, AutoState#auto_state.threads) of
+			        {ok, ThreadInfo} ->
+				    AutoState#auto_state{
+				        threads = dict:store(
+					    Thread,
+					    ThreadInfo#thread_info{
+					        last_access =
+						    calendar:now_to_datetime(
+						        mod_archive2_time:now())},
+					    AutoState#auto_state.threads)};
+				_ ->
+				    AutoState
+			    end;
 			   true -> AutoState
 			end
                     end,
@@ -537,3 +592,9 @@ remove_session(From, AutoStates) ->
         _ ->
             AutoStates
     end.
+
+is_thread_expired(LastAccess, TS, TimeOut) ->
+    TimeDiff =
+        calendar:datetime_to_gregorian_seconds(TS) -
+        calendar:datetime_to_gregorian_seconds(LastAccess),
+    TimeDiff > TimeOut.

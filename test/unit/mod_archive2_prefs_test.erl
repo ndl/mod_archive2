@@ -152,7 +152,7 @@
            {dict,1,16,16,8,80,48,
             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
             {{[],
-              [["res"|{auto_state,true,undefined}]],
+              [["res"|{auto_state,true,undefined,undefined}]],
               [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
          [],[],[],[],[],[],[],[]}}}}}).
 
@@ -173,7 +173,7 @@
                [[{jid,<<"romeo@montague.net">>,<<"romeo">>,
                   <<"montague.net">>,undefined}|
                  body]],
-               [],[],[],[],[],[],[]}}}}]],
+               [],[],[],[],[],[],[]}}},undefined}]],
          [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
     [],[],[],[],[],[],[],[]}}}}).
 
@@ -190,7 +190,7 @@
               {auto_state,true,
                {dict,0,16,16,8,80,48,
                 {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-                {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}}]],
+                {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}},undefined}]],
             [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
        [],[],[],[],[],[],[],[]}}}}).
 
@@ -213,7 +213,7 @@
                       <<"romeo">>,<<"montague.net">>,
                       undefined}|
                      false]],
-                   [],[],[],[],[],[],[]}}}}]],
+                   [],[],[],[],[],[],[]}}},undefined}]],
              [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
         [],[],[],[],[],[],[],[]}}}}).
 
@@ -311,7 +311,9 @@ mod_archive2_prefs_test_() ->
     fun prefs_tests_setup/0,
     fun prefs_tests_teardown/1,
     [
-        ?test_gen1(test_prefs_cache_expire)
+        ?test_gen1(test_prefs_cache_expire),
+	?test_gen1(test_prefs_threads_expire),
+	?test_gen1(test_prefs_threads_expiration_reset)
     ]
 }.
 
@@ -321,14 +323,22 @@ prefs_tests_teardown(_) -> ok.
 create_auto_states(Value) ->
     dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
        dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
-                        {auto_state, Value, dict:new()}}])}]).
+                        {auto_state, Value, dict:new(), undefined}}])}]).
 
 create_auto_states_with(Value) ->
     dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
        dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
                         {auto_state, Value,
                          dict:from_list([{exmpp_jid:parse(
-                             "romeo@montague.net/romeo"), Value}])}}])}]).
+                             "romeo@montague.net/romeo"), Value}]),
+                         undefined}}])}]).
+
+create_auto_states_threads(Value) ->
+    dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
+       dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
+                        {auto_state, true,
+			 dict:new(),
+                         dict:from_list(Value)}}])}]).
 
 mysql_test_default_prefs(Pid) ->
     dbms_storage:transaction(?HOST,
@@ -798,3 +808,35 @@ test_prefs_cache_expire(_) ->
     AutoStates = create_auto_states(true),
     AutoStates =
         mod_archive2_prefs:expire_prefs_cache(create_auto_states_with(true)).
+
+test_prefs_threads_expire(_) ->
+    Time1 = {{2010, 1, 2}, {3, 4, 5}},
+    Time2 = {{2010, 1, 2}, {3, 4, 7}},
+    Time3 = {{2010, 1, 2}, {3, 34, 6}},
+    AutoStates = create_auto_states_threads([
+        {<<"123">>, {thread_info, Time1, body}},
+        {<<"456">>, {thread_info, Time2, message}}]),
+    AutoStates2 = create_auto_states_threads([{<<"456">>, {thread_info, Time2, message}}]),
+    mod_archive2_time:start([Time3]),
+    % Should expire first thread but not the second one.
+    AutoStates2 =
+        mod_archive2_prefs:expire_threads(AutoStates, 1800).
+
+test_prefs_threads_expiration_reset(_) ->
+    Time1 = {{2010, 1, 2}, {3, 4, 5}},
+    Time2 = {{2010, 1, 2}, {3, 4, 7}},
+    Time3 = {{2010, 1, 2}, {3, 34, 6}},
+    AutoStates = create_auto_states_threads([
+        {<<"123">>, {thread_info, Time1, body}},
+        {<<"456">>, {thread_info, Time2, message}}]),
+    AutoStates2 = create_auto_states_threads([
+        {<<"123">>, {thread_info, Time3, body}},
+        {<<"456">>, {thread_info, Time2, message}}]),
+    % Populating only the single sub-child we care about:
+    Packet = 
+        exmpp_xml:element(undefined, "message", [],
+	    [exmpp_xml:element(undefined, "thread", [], [exmpp_xml:cdata("123")])]),
+    mod_archive2_time:start([Time3]),
+    % Should update the expiration timestamp for the first thread.
+    AutoStates2 =
+        mod_archive2_prefs:reset_thread_expiration(exmpp_jid:parse(?JID), Packet, AutoStates).

@@ -92,7 +92,8 @@
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer,
-                prefs_cache_expiration_timer}).
+                prefs_cache_expiration_timer,
+		prefs_threads_expiration_timer}).
 
 -define(PROCNAME, mod_archive2_proc).
 -define(HOOK_SEQ, 50).
@@ -102,6 +103,7 @@
 -define(DEFAULT_SESSION_DURATION, 1800). % 30 minutes
 -define(DEFAULT_WIPEOUT_INTERVAL, 86400). % 1 day
 -define(DEFAULT_PREFS_CACHE_INTERVAL, 1800). % 30 minutes
+-define(DEFAULT_PREFS_THREADS_EXPIRATION, 1800). % 30 minutes
 -define(DEFAULT_AUTO_SAVE, false).
 -define(DEFAULT_ONLY_IN_ROSTER, false).
 -define(DEFAULT_EXPIRE, infinity).
@@ -173,6 +175,9 @@ init([Host, Opts]) ->
     PrefsCacheInterval =
         proplists:get_value(prefs_cache_interval, Opts,
             ?DEFAULT_PREFS_CACHE_INTERVAL),
+    PrefsThreadsExpiration =
+        proplists:get_value(prefs_threads_expiration, Opts,
+	    ?DEFAULT_PREFS_THREADS_EXPIRATION),
     AutoSave =
         proplists:get_value(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
     OnlyInRoster =
@@ -264,6 +269,13 @@ init([Host, Opts]) ->
             _ ->
                 {ok, undefined}
         end,
+    {ok, PrefsThreadsExpirationTimer} =
+        case PrefsThreadsExpiration of
+            N3 when is_integer(N3) andalso N3 > 0 ->
+                timer:send_interval(1000 * N3, expire_prefs_threads);
+            _ ->
+                {ok, undefined}
+        end,
     XmppApi =
         case XmppServer of
             ejabberd2 -> 'xmpp_api_ejabberd';
@@ -281,7 +293,8 @@ init([Host, Opts]) ->
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer,
-                prefs_cache_expiration_timer = PrefsCacheExpirationTimer}}.
+                prefs_cache_expiration_timer = PrefsCacheExpirationTimer,
+		prefs_threads_expiration_timer = PrefsThreadsExpirationTimer}}.
 
 init_mnesia_tables() ->
     mnesia:create_table(archive_collection,
@@ -324,6 +337,7 @@ terminate(_Reason, State) ->
     timer:cancel(State#state.sessions_expiration_timer),
     timer:cancel(State#state.collections_expiration_timer),
     timer:cancel(State#state.prefs_cache_expiration_timer),
+    timer:cancel(State#state.prefs_threads_expiration_timer),
     % Unregister our provided features
     case State#state.xmpp_server of
         ejabberd2 ->
@@ -485,9 +499,9 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({add_message, {_Direction, From, With, _Packet} = Args}, State) ->
-    AutoStates = State#state.auto_states,
+handle_cast({add_message, {_Direction, From, With, Packet} = Args}, State) ->
     Prefs = State#state.default_global_prefs,
+    AutoStates = mod_archive2_prefs:reset_thread_expiration(From, Packet, State#state.auto_states),
     case mod_archive2_prefs:should_auto_archive(From, With, AutoStates, Prefs,
         State#state.should_cache_prefs, State#state.xmpp_api, State#state.only_in_roster) of
         {false, NewAutoStates} ->
@@ -546,6 +560,13 @@ handle_info(expire_collections, State) ->
 handle_info(expire_prefs_cache, State) ->
     {noreply, State#state{auto_states =
         mod_archive2_prefs:expire_prefs_cache(State#state.auto_states)}};
+
+handle_info(expire_prefs_threads, State) ->
+    TimeOut =
+        proplists:get_value(prefs_threads_expiration, State#state.options,
+	    ?DEFAULT_PREFS_THREADS_EXPIRATION),
+    {noreply, State#state{auto_states =
+        mod_archive2_prefs:expire_threads(State#state.auto_states, TimeOut)}};
 
 handle_info(_Info, State) ->
     {noreply, State}.
