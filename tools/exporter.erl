@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------
 %%% File    : exporter.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : Exports history from at least somewhat XEP-136 compliant server
 %%% Created : 20 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%

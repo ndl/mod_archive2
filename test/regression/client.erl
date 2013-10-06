@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : client.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 testing common functionality
-%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(client).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -export([eunit_xml_report/1, session_setup/0, session_teardown/1,
          create_session/1, create_session/2, response/2, responses/3,

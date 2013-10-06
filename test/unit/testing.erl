@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : testing.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 unit testing helper functions
-%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(testing).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -export([mnesia_tests_setup/0, mnesia_tests_teardown/1,
          mysql_tests_setup/0, mysql_tests_teardown/1]).

@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : cover_manager.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 erlang coverage support and Cobertura XML export
-%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(cover_manager).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -behaviour(gen_server).
 

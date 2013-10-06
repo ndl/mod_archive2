@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : manual.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 manual archiving regression testing
-%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 27 Sep 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -23,7 +23,7 @@
 %%%
 %%%----------------------------------------------------------------------
 -module(manual).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("exmpp/include/exmpp.hrl").

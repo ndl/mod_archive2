@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------
 %%% File    : timing.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : Performs simple timings for XML parsing
 %%% Created : 20 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%

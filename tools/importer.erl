@@ -1,6 +1,6 @@
 %%%----------------------------------------------------------------------
 %%% File    : importer.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : Imports history to at least somewhat XEP-136 compliant server
 %%% Created : 20 Aug 2012 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%

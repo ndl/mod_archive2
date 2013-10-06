@@ -1,8 +1,8 @@
 %%%----------------------------------------------------------------------
 %%% File    : mod_archive2_xml_test.erl
-%%% Author  : Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Author  : Alexander Tsvyashchenko <xmpp@endl.ch>
 %%% Purpose : mod_archive2 xml conversion functionality unit testing
-%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <ejabberd@ndl.kiev.ua>
+%%% Created : 03 Oct 2009 by Alexander Tsvyashchenko <xmpp@endl.ch>
 %%%
 %%% mod_archive2, Copyright (C) 2009 Alexander Tsvyashchenko
 %%%
@@ -24,7 +24,7 @@
 %%%----------------------------------------------------------------------
 
 -module(mod_archive2_xml_test).
--author('ejabberd@ndl.kiev.ua').
+-author('xmpp@endl.ch').
 
 -include("mod_archive2.hrl").
 %-include("mod_archive2_xml_test.hrl").
