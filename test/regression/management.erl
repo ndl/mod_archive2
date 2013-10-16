@@ -56,14 +56,14 @@ test_retrieve_list(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z"),
-	exmpp_xml:attribute(<<"end">>, "1479-07-21T04:00:00Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z"),
+        exmpp_xml:attribute(<<"end">>, "1479-07-21T04:00:00Z")
     ], []))),
     ?MANAGEMENT_TC1_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	    exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z")
+            exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z")
     ], []))).
 
 test_retrieve_empty_list(F) ->
@@ -76,20 +76,20 @@ test_retrieve_empty_list(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"start">>, "2000-07-21T02:00:00Z")
+        exmpp_xml:attribute(<<"start">>, "2000-07-21T02:00:00Z")
     ], []))),
     ?MANAGEMENT_TC2_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"end">>, "1468-07-21T02:00:00Z")
+        exmpp_xml:attribute(<<"end">>, "1468-07-21T02:00:00Z")
     ], []))),
     ?MANAGEMENT_TC2_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"start">>, "1467-07-21T02:00:00Z"),
-	exmpp_xml:attribute(<<"end">>, "1468-07-21T02:00:00Z")
+        exmpp_xml:attribute(<<"start">>, "1467-07-21T02:00:00Z"),
+        exmpp_xml:attribute(<<"end">>, "1468-07-21T02:00:00Z")
     ], []))).
 
 test_retrieve_collection(F) ->
@@ -97,7 +97,7 @@ test_retrieve_collection(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "retrieve",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
     ], []))).
 
 test_retrieve_non_existing_collection(F) ->
@@ -105,7 +105,7 @@ test_retrieve_non_existing_collection(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "retrieve",
     [
         exmpp_xml:attribute(<<"with">>, "NOTEXISTING@capulet.com/chamber"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
     ], []))).
 
 test_remove_collections(F) ->
@@ -114,48 +114,48 @@ test_remove_collections(F) ->
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "save", [],
     [
         exmpp_xml:element(undefined, "chat",
-	[
-	    exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-	    exmpp_xml:attribute(<<"start">>, "1470-07-21T02:56:15Z"),
-	    exmpp_xml:attribute(<<"thread">>, "damduoeg09"),
-	    exmpp_xml:attribute(<<"subject">>, "She speaks!")
-	],
-	[
-	    exmpp_xml:element(undefined, "from",
-	    [
-	        exmpp_xml:attribute(<<"secs">>, "0")
-	    ],
-	    [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("Art thou not Romeo, and a Montague?")]) ])
-	])
+        [
+            exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
+            exmpp_xml:attribute(<<"start">>, "1470-07-21T02:56:15Z"),
+            exmpp_xml:attribute(<<"thread">>, "damduoeg09"),
+            exmpp_xml:attribute(<<"subject">>, "She speaks!")
+        ],
+        [
+            exmpp_xml:element(undefined, "from",
+            [
+                exmpp_xml:attribute(<<"secs">>, "0")
+            ],
+            [ exmpp_xml:element(undefined, "body", [], [exmpp_xml:cdata("Art thou not Romeo, and a Montague?")]) ])
+        ])
     ]))),
     ?MANAGEMENT_TC5_REMOVE_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "remove",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
     ], []))),
     ?MANAGEMENT_TC5_RETRIEVE_RESULT =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:00:00Z")
     ], []))),
     ?MANAGEMENT_TC5_RETRIEVE_RESULT2 =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z"),
-	exmpp_xml:attribute(<<"end">>, "1470-07-21T03:16:37Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z"),
+        exmpp_xml:attribute(<<"end">>, "1470-07-21T03:16:37Z")
     ], []))),
     ?MANAGEMENT_TC5_REMOVE_RESULT2 =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "remove",
     [
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z"),
-	exmpp_xml:attribute(<<"end">>, "2038-01-01T00:00:00Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z"),
+        exmpp_xml:attribute(<<"end">>, "2038-01-01T00:00:00Z")
     ], []))),
     ?MANAGEMENT_TC5_RETRIEVE_RESULT3 =
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "list",
     [
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:16:37Z")
     ], []))).
 
 test_remove_all_collections(F) ->
@@ -170,5 +170,5 @@ test_remove_non_existing_collection(F) ->
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "remove",
     [
         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-	exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")
     ],[]))).

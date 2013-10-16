@@ -98,16 +98,16 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
 expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
     UTCField = "ac.utc",
     ExpireByDefaultStmt =
-    	case DefaultExpire of
+            case DefaultExpire of
             infinity ->
-	            "";
+                    "";
             N when is_integer(N) ->
-         	    [" or "
-		         "archive_global_prefs.expire is null and "
+                     [" or "
+                         "archive_global_prefs.expire is null and "
                  "domain_jid_prefs.expire is null and "
                  "full_jid_prefs.expire is null and "
                  "bare_jid_prefs.expire is null and ",
-	             get_expired_condition(RDBMS, integer_to_list(N), UTCField), " < ", Now]
+                     get_expired_condition(RDBMS, integer_to_list(N), UTCField), " < ", Now]
         end,
     JoinStmt =
         ["archive_collection as ac left join archive_jid_prefs as full_jid_prefs "
@@ -163,15 +163,15 @@ expire_collections_odbc(DefaultExpire, ReplicationExpire, Now, RDBMS) ->
                  Now, ", version = version + 1 where id in (select id from ",
                  JoinStmt, " ", WhereStmt, ")"]
         end,
-	dbms_storage:sql_query(Query),
+        dbms_storage:sql_query(Query),
     case ReplicationExpire of
-		infinity ->
+                infinity ->
             ok;
-		N1 when is_integer(N1) ->
-	        dbms_storage:sql_query(
+                N1 when is_integer(N1) ->
+                dbms_storage:sql_query(
                 ["delete from archive_collection "
-				 "where deleted = 1 "
-				 "and ",
+                                 "where deleted = 1 "
+                                 "and ",
                  get_expired_condition(RDBMS, integer_to_list(N1),
                      "archive_collection.change_utc"), " < ", Now]),
             ok

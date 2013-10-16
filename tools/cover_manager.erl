@@ -55,7 +55,7 @@ stop() ->
 
 init(Args) ->
     [PackageName, SrcPath, DataFile, XmlFile | FilesMasks] =
-    	lists:map(fun(Value) when is_atom(Value) ->
+            lists:map(fun(Value) when is_atom(Value) ->
                       atom_to_list(Value);
                      (Value) ->
                          Value
@@ -69,7 +69,7 @@ init(Args) ->
         FilesMasks),
     lists:foreach(
         fun(File) -> cover:compile_beam(File) end,
-	Files),
+        Files),
     cover:import(DataFile),
     {ok, {PackageName, SrcPath, DataFile, XmlFile,
           [list_to_atom(filename:basename(File, ".beam")) || File <- Files]}}.
@@ -91,35 +91,35 @@ terminate(_Reason, {PackageName, SrcPath, DataFile, XmlFile, Modules}) ->
     {SumCovered, SumUncovered} =
     lists:foldl(
         fun(Module, {Covered, Uncovered}) ->
-	    {ok, {_, {NewCovered, NewUncovered}}} = cover:analyse(Module, coverage, module),
-	    {Covered + NewCovered, Uncovered + NewUncovered}
-	end,
-	{0, 0},
-	Modules),
+            {ok, {_, {NewCovered, NewUncovered}}} = cover:analyse(Module, coverage, module),
+            {Covered + NewCovered, Uncovered + NewUncovered}
+        end,
+        {0, 0},
+        Modules),
     Total = SumCovered + SumUncovered,
     LineRate = if Total > 0 -> format_float(SumCovered / Total); true -> "1" end,
     CoverageXML =
     exmpp_xml:element(undefined, "coverage",
     [
         exmpp_xml:attribute("line-rate", LineRate),
-	exmpp_xml:attribute("version", "mod_archive2 cover module v0.1"),
-	exmpp_xml:attribute("timestamp", calendar:datetime_to_gregorian_seconds(calendar:universal_time()))
+        exmpp_xml:attribute("version", "mod_archive2 cover module v0.1"),
+        exmpp_xml:attribute("timestamp", calendar:datetime_to_gregorian_seconds(calendar:universal_time()))
     ],
     [
         exmpp_xml:element(undefined, "sources", [],
-	[
-	    exmpp_xml:element(undefined, "source", [],
-	    [
-	        exmpp_xml:cdata(SrcPath)
-	    ])
-	]),
+        [
+            exmpp_xml:element(undefined, "source", [],
+            [
+                exmpp_xml:cdata(SrcPath)
+            ])
+        ]),
         exmpp_xml:element(undefined, "packages", [],
         [
             exmpp_xml:element(undefined, "package",
-	    [
-	        exmpp_xml:attribute("name", PackageName),
-	        exmpp_xml:attribute("line-rate", LineRate)
-	    ],
+            [
+                exmpp_xml:attribute("name", PackageName),
+                exmpp_xml:attribute("line-rate", LineRate)
+            ],
             [analyse_module(M) || M <- Modules])
         ])
     ]),
@@ -142,8 +142,8 @@ analyse_module(Module) ->
     exmpp_xml:element(undefined, "class",
     [
         exmpp_xml:attribute("name", ModuleName),
-	exmpp_xml:attribute("filename", ModuleName ++ ".erl"),
-	exmpp_xml:attribute("line-rate", if Total > 0 -> format_float(Covered / Total); true -> "1" end)
+        exmpp_xml:attribute("filename", ModuleName ++ ".erl"),
+        exmpp_xml:attribute("line-rate", if Total > 0 -> format_float(Covered / Total); true -> "1" end)
     ],
     [
         exmpp_xml:element(undefined, "methods", [], [analyse_fun(FC) || FC <- FunCovList]),
@@ -155,17 +155,17 @@ analyse_fun({{_Module, Fun, Arity}, {Covered, Uncovered}}) ->
     exmpp_xml:element(undefined, "method",
     [
         exmpp_xml:attribute("name", atom_to_list(Fun) ++ "/" ++ integer_to_list(Arity)),
-	exmpp_xml:attribute("signature", ""),
-	exmpp_xml:attribute("line-rate", if Total > 0 -> format_float(Covered / Total); true -> "1" end),
-	exmpp_xml:attribute("lines-covered", integer_to_list(Covered)),
-	exmpp_xml:attribute("lines-uncovered", integer_to_list(Uncovered))
+        exmpp_xml:attribute("signature", ""),
+        exmpp_xml:attribute("line-rate", if Total > 0 -> format_float(Covered / Total); true -> "1" end),
+        exmpp_xml:attribute("lines-covered", integer_to_list(Covered)),
+        exmpp_xml:attribute("lines-uncovered", integer_to_list(Uncovered))
     ], []).
 
 analyse_line({{_Module, Line}, Calls}) ->
     exmpp_xml:element(undefined, "line",
     [
         exmpp_xml:attribute("number", integer_to_list(Line)),
-	exmpp_xml:attribute("hits", Calls)
+        exmpp_xml:attribute("hits", Calls)
     ], []).
 
 format_float(Value) ->

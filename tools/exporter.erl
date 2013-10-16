@@ -44,8 +44,8 @@ create_session() ->
     exmpp_session:connect_TCP(Session, ?SERVER_HOST, ?SERVER_PORT, [{starttls, enabled}, {compression, enabled}]),
     exmpp_session:login(Session),
     exmpp_session:send_packet(Session,
-		exmpp_presence:set_status(
-		exmpp_presence:available(), "History exporter bot is ready.")),
+                exmpp_presence:set_status(
+                exmpp_presence:available(), "History exporter bot is ready.")),
     {Session, JID}.
 
 start() ->

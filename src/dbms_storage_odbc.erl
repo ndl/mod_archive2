@@ -446,7 +446,7 @@ encode_match_condition({{unary, GuardFun, Op1}, _Type}, TableInfo) ->
     OpName =
     case GuardFun of
         'not' -> "not";
-	    'abs' -> "abs"
+            'abs' -> "abs"
     end,
     generate_unary_op(OpName, Op1, TableInfo);
 
@@ -455,9 +455,9 @@ encode_match_condition({{binary, GuardFun, Op1, Op2}, _Type}, TableInfo) ->
     OpName = 
     case GuardFun of
         'and' -> "&";
-	    'andalso' -> "and";
-	    'or' -> "|";
-	    'orelse' -> "or";
+            'andalso' -> "and";
+            'or' -> "|";
+            'orelse' -> "or";
         '==' -> "=";
         '=:=' -> "=";
         '<' -> "<";
@@ -530,7 +530,7 @@ sql_query(Query) ->
             %?ERROR_MSG("query aborted", []),
             throw(aborted);
         R -> %?MYDEBUG("query result: ~p", [R]),
-	    R
+            R
     end.
 
 convert_change_query_result(Result, Op, DbInfo) ->
@@ -689,19 +689,18 @@ encode(#xmlel{} = XML, xml, TableInfo) ->
     encode(exmpp_xml:document_to_list(XML), string, TableInfo);
 
 encode(XmlChildren, xmlchildren, TableInfo) ->
-    NormChildren = exmpp_xml:normalize_cdata_in_list(XmlChildren),
     Text =
         %% Optimize common case - single cdata node.
-        case NormChildren of
+        case XmlChildren of
             [#xmlcdata{}] ->
-                exmpp_xml:get_cdata_from_list_as_list(NormChildren);
+                exmpp_xml:get_cdata_from_list_as_list(XmlChildren);
             _ ->
                 lists:foldl(
                     fun(XmlEl, OutXml) ->
                         OutXml ++ exmpp_xml:document_to_list(XmlEl)
                     end,
                     "",
-                    NormChildren)
+                    XmlChildren)
         end,
     encode(Text, string, TableInfo);
 
@@ -722,7 +721,7 @@ encode(Str, string, TableInfo) when
     "'" ++ [escape_char_ansi_sql(C) || C <- Str] ++ "'";
 
 encode(Str, string, _) ->
-	lists:flatten("'" ++ ejabberd_odbc:escape(Str) ++ "'").
+        lists:flatten("'" ++ ejabberd_odbc:escape(Str) ++ "'").
 
 decode(null, _Type, _TableInfo) ->
     undefined;
@@ -770,9 +769,9 @@ decode(Value, xmlchildren, TableInfo) ->
     StrValue = decode(Value, string, TableInfo),
     case StrValue of
         "<" ++ _ ->
-	    parse_xml_fragment(StrValue);
+            parse_xml_fragment(StrValue);
         <<$<,_/binary>> ->
-	    parse_xml_fragment(StrValue);
+            parse_xml_fragment(StrValue);
         _ ->
             [exmpp_xml:cdata(StrValue)]
     end;

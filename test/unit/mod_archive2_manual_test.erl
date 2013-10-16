@@ -324,7 +324,7 @@ common_test_retrieve_max() ->
                          exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
                         [exmpp_xml:element("http://jabber.org/protocol/rsm",
                          set,
-	                     [],
+                             [],
                          [exmpp_xml:element(undefined, index, [], [exmpp_xml:cdata(1)]),
                           exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])]))),
             false).

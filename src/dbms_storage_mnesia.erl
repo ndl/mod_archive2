@@ -297,7 +297,7 @@ correct_field_index([{MatchHead, _MatchConditions, MatchBody}], Index) ->
     case MatchBody of
         ['$_'] ->
             Index;
-	    [{MatchBodyRecord}] ->
+            [{MatchBodyRecord}] ->
             dbms_storage_utils:elem_index(MatchVar,
                 tuple_to_list(MatchBodyRecord))
     end.

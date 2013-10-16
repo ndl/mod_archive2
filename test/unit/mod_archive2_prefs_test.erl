@@ -154,10 +154,10 @@
             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
             {{[],
               [["res"|{auto_state,true,
-	      {dict,0,16,16,8,80,48,
+              {dict,0,16,16,8,80,48,
                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
                {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}},
-	      {dict,0,16,16,8,80,48,
+              {dict,0,16,16,8,80,48,
                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
                {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}}]],
               [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
@@ -181,7 +181,7 @@
                   <<"montague.net">>,undefined}|
                  body]],
                [],[],[],[],[],[],[]}}},
-	    {dict,0,16,16,8,80,48,
+            {dict,0,16,16,8,80,48,
              {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
              {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}}]],
          [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
@@ -227,7 +227,7 @@
                       undefined}|
                      false]],
                    [],[],[],[],[],[],[]}}},
-		{dict,0,16,16,8,80,48,
+                {dict,0,16,16,8,80,48,
                  {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
                  {{[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}}]],
              [],[],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
@@ -328,9 +328,9 @@ mod_archive2_prefs_test_() ->
     fun prefs_tests_teardown/1,
     [
         ?test_gen1(test_prefs_cache_expire),
-	?test_gen1(test_prefs_threads_expire),
-	?test_gen1(test_prefs_threads_expiration_reset),
-	?test_gen1(test_prefs_thread_stream_override)
+        ?test_gen1(test_prefs_threads_expire),
+        ?test_gen1(test_prefs_threads_expiration_reset),
+        ?test_gen1(test_prefs_thread_stream_override)
     ]
 }.
 
@@ -354,7 +354,7 @@ create_auto_states_threads(StreamAutoSave, Threads) ->
     dict:from_list([{exmpp_jid:bare_to_list(exmpp_jid:parse(?JID)),
        dict:from_list([{exmpp_jid:resource_as_list(exmpp_jid:parse(?JID)),
                         {auto_state, StreamAutoSave,
-			 dict:new(),
+                         dict:new(),
                          dict:from_list(Threads)}}])}]).
 
 mysql_test_default_prefs(Pid) ->
@@ -380,7 +380,7 @@ common_test_default_prefs(_Pid) ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_prefs1() ->
@@ -438,7 +438,7 @@ common_test_set_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_get_prefs1() ->
@@ -465,7 +465,7 @@ common_test_get_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive1() ->
@@ -498,7 +498,7 @@ common_test_should_auto_archive1() ->
             true,
             xmpp_api_mock,
             false,
-	    undefined).
+            undefined).
 
 mysql_test_should_auto_archive_not_in_roster() ->
     dbms_storage:transaction(?HOST,
@@ -519,7 +519,7 @@ common_test_should_auto_archive_not_in_roster() ->
             true,
             xmpp_api_mock,
             true,
-	    undefined).
+            undefined).
 
 mysql_test_update_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -569,7 +569,7 @@ common_test_update_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states_with(false),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_get_prefs2() ->
@@ -596,7 +596,7 @@ common_test_get_prefs2() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_should_auto_archive2() ->
@@ -629,7 +629,7 @@ common_test_should_auto_archive2() ->
             true,
             xmpp_api_mock,
             false,
-	    undefined).
+            undefined).
 
 mysql_test_itemremove_prefs1() ->
     dbms_storage:transaction(?HOST,
@@ -736,7 +736,7 @@ common_test_get_prefs3() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs1() ->
@@ -776,7 +776,7 @@ common_test_set_not_implemented_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_implemented_prefs2() ->
@@ -803,7 +803,7 @@ common_test_set_not_implemented_prefs2() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, infinity},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 mysql_test_set_not_allowed_expire_prefs1() ->
@@ -830,7 +830,7 @@ common_test_set_not_allowed_expire_prefs1() ->
             mod_archive2_prefs:default_global_prefs(false, 3600),
             create_auto_states(true),
             {0, 0},
-	    ?PREFS_THREADS_EXPIRATION,
+            ?PREFS_THREADS_EXPIRATION,
             ?XMPP_API_MOCK).
 
 test_prefs_cache_expire(_) ->
@@ -844,7 +844,7 @@ test_prefs_threads_expire(_) ->
     Time3 = {{2010, 1, 2}, {3, 34, 6}},
     AutoStates = create_auto_states_threads(
         true,
-	[{<<"123">>, {thread_info, Time1, body}},
+        [{<<"123">>, {thread_info, Time1, body}},
          {<<"456">>, {thread_info, Time2, message}}]),
     AutoStates2 = create_auto_states_threads(true, [{<<"456">>, {thread_info, Time2, message}}]),
     mod_archive2_time:start([Time3]),
@@ -858,11 +858,11 @@ test_prefs_threads_expiration_reset(_) ->
     Time3 = {{2010, 1, 2}, {3, 34, 6}},
     AutoStates = create_auto_states_threads(
         true,
-	[{<<"123">>, {thread_info, Time1, body}},
+        [{<<"123">>, {thread_info, Time1, body}},
          {<<"456">>, {thread_info, Time2, message}}]),
     AutoStates2 = create_auto_states_threads(
         true,
-	[{<<"123">>, {thread_info, Time3, body}},
+        [{<<"123">>, {thread_info, Time3, body}},
          {<<"456">>, {thread_info, Time2, message}}]),
     mod_archive2_time:start([Time3]),
     % Should update the expiration timestamp for the first thread.
@@ -876,11 +876,11 @@ test_prefs_thread_stream_override(_) ->
             exmpp_jid:parse(?JID),
             exmpp_jid:parse("romeo@montague.net"),
             create_auto_states_threads(
-	        false,
-	        [{<<"123">>, {thread_info, Time1, body}},
+                false,
+                [{<<"123">>, {thread_info, Time1, body}},
                  {<<"456">>, {thread_info, Time1, message}}]),
             mod_archive2_prefs:default_global_prefs(true, 3600),
             true,
             xmpp_api_mock,
             false,
-	    <<"456">>).
+            <<"456">>).

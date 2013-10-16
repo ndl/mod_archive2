@@ -161,6 +161,20 @@
                       [{xmlcdata,
                            <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
 
+-define(ARCHIVE_MESSAGE5_XML,
+    "<to    secs   =   '11'  >\n"
+    "    <body>Test</body>\n"
+    "</to>\n").
+
+-define(ARCHIVE_MESSAGE5,
+    {archive_message,
+     undefined,
+     undefined,
+     {{1,2,3},{4,5,17}},
+     to,
+     [{xmlcdata,<<"Test">>}],
+     undefined,undefined}).
+
 -define(START, {{1469, 07, 21}, {02, 56, 15}}).
 
 -define(EXTERNAL_MESSAGE1_XML,
@@ -346,8 +360,9 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_jid_prefs2_to_xml),
         ?test_gen1(test_modified1_to_xml),
         ?test_gen1(test_modified2_to_xml),
-	?test_gen1(test_session_prefs1_from_xml),
-	?test_gen1(test_session_prefs1_to_xml)
+        ?test_gen1(test_session_prefs1_from_xml),
+        ?test_gen1(test_session_prefs1_to_xml),
+        ?test_gen1(test_archive_message5_from_xml)
     ]
  }.
 
@@ -554,7 +569,7 @@ test_session_prefs1_to_xml(_) ->
     {xmlel,undefined,[],session,
        [{xmlattr,undefined,<<"thread">>,<<"123">>},
         {xmlattr,undefined,<<"save">>,<<"message">>},
-	{xmlattr,undefined,<<"timeout">>,<<"1800">>}],
+        {xmlattr,undefined,<<"timeout">>,<<"1800">>}],
        []} =
         mod_archive2_xml:session_prefs_to_xml({<<"123">>, message}, 1800).
 
@@ -583,6 +598,11 @@ test_modified2_to_xml(_) ->
                 change_utc = {{2000, 12, 31}, {23, 59, 59}},
                 version = 1,
                 deleted = true}).
+
+test_archive_message5_from_xml(_) ->
+    [MsgXML] =
+        exmpp_xml:parse_document_fragment(?ARCHIVE_MESSAGE5_XML, [{root_depth, 0}]),
+    ?ARCHIVE_MESSAGE5 = mod_archive2_xml:message_from_xml(MsgXML, {{1, 2, 3}, {4, 5, 6}}).
 
 mysql_test_links(Pid) ->
     dbms_storage:transaction(?HOST,

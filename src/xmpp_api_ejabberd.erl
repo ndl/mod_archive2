@@ -58,7 +58,7 @@ broadcast_iq(From, IQ) ->
                 jid_from_exmpp(exmpp_jid:make(exmpp_jid:node(From), exmpp_jid:domain(From),
                     Resource)),
                 exmpp_xml:xmlel_to_xmlelement(exmpp_iq:iq_to_xmlel(IQ#iq{id = <<"push">>})))
-	    end,
+            end,
         ejabberd_sm:get_user_resources(
             exmpp_jid:prep_node_as_list(From),
             exmpp_jid:prep_domain_as_list(From))).

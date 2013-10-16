@@ -33,8 +33,8 @@
          verify_iq_type/2,
          get_module_proc/2,
          rsm_encode/1,
-	 rsm_encode/2,
-	 rsm_decode/1,
+         rsm_encode/2,
+         rsm_decode/1,
          datetime_string_to_timestamp/1]).
 
 list_to_bool("false") -> false;
@@ -58,15 +58,15 @@ get_module_proc(Host, Base) ->
 
 %% RSM handling, from ejabberd 3.x code:
 rsm_decode(#iq{payload=SubEl})->
-	rsm_decode(SubEl);
+        rsm_decode(SubEl);
 
 rsm_decode(#xmlel{}=SubEl)->
-	case exmpp_xml:get_element(SubEl, 'set') of
-		undefined ->
-			none;
-		#xmlel{name = 'set', children = SubEls}->
-			lists:foldl(fun rsm_parse_element/2, #rsm_in{}, SubEls)
-	end.
+        case exmpp_xml:get_element(SubEl, 'set') of
+                undefined ->
+                        none;
+                #xmlel{name = 'set', children = SubEls}->
+                        lists:foldl(fun rsm_parse_element/2, #rsm_in{}, SubEls)
+        end.
 
 rsm_parse_element(#xmlel{name = 'max'}=Elem, RsmIn)->
     CountStr = exmpp_xml:get_cdata_as_list(Elem),
@@ -91,7 +91,7 @@ rsm_parse_element(_, RsmIn)->
 
 rsm_encode(#iq{payload=SubEl}=IQ_Rec,RsmOut)->
     Set = #xmlel{ns = ?NS_RSM, name = 'set', children =
-	   lists:reverse(rsm_encode_out(RsmOut))},
+           lists:reverse(rsm_encode_out(RsmOut))},
     New = exmpp_xml:prepend_child(SubEl, Set),
     IQ_Rec#iq{payload=New}.
 

@@ -224,7 +224,7 @@ get_list_range(Max, Index) ->
                     [],
                     [exmpp_xml:element("http://jabber.org/protocol/rsm",
                         set,
-	                    [],
+                            [],
                         filter_undef([
                             if Max =/= undefined ->
                                 exmpp_xml:element(undefined, max, [],
@@ -316,7 +316,7 @@ common_test_list_after() ->
                         [],
                         [exmpp_xml:element("http://jabber.org/protocol/rsm",
                             set,
-	                        [],
+                                [],
                             [exmpp_xml:element(undefined, 'after', [],
                                                [exmpp_xml:cdata(Last)]),
                              exmpp_xml:element(undefined, max, [],
@@ -374,7 +374,7 @@ common_test_list_before() ->
                         [],
                         [exmpp_xml:element("http://jabber.org/protocol/rsm",
                             set,
-	                        [],
+                                [],
                             [exmpp_xml:element(undefined, 'before', [],
                                                [exmpp_xml:cdata(First)]),
                              exmpp_xml:element(undefined, max, [],

@@ -93,7 +93,7 @@
                 sessions_expiration_timer,
                 collections_expiration_timer,
                 prefs_cache_expiration_timer,
-		prefs_threads_expiration_timer}).
+                prefs_threads_expiration_timer}).
 
 -define(PROCNAME, mod_archive2_proc).
 -define(HOOK_SEQ, 50).
@@ -177,7 +177,7 @@ init([Host, Opts]) ->
             ?DEFAULT_PREFS_CACHE_INTERVAL),
     PrefsThreadsExpiration =
         proplists:get_value(prefs_threads_expiration, Opts,
-	    ?DEFAULT_PREFS_THREADS_EXPIRATION),
+            ?DEFAULT_PREFS_THREADS_EXPIRATION),
     AutoSave =
         proplists:get_value(default_auto_save, Opts, ?DEFAULT_AUTO_SAVE),
     OnlyInRoster =
@@ -216,8 +216,8 @@ init([Host, Opts]) ->
                                ?HOOK_SEQ),
             ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, receive_packet,
                                ?HOOK_SEQ),
-	    ejabberd_hooks:add(sm_remove_connection_hook, Host, ?MODULE, remove_session,
-	                       ?HOOK_SEQ),
+            ejabberd_hooks:add(sm_remove_connection_hook, Host, ?MODULE, remove_session,
+                               ?HOOK_SEQ),
             % Register our provided features
             mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING)),
             mod_disco:register_feature(Host, atom_to_list(?NS_ARCHIVING_AUTO)),
@@ -294,12 +294,12 @@ init([Host, Opts]) ->
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer,
                 prefs_cache_expiration_timer = PrefsCacheExpirationTimer,
-		prefs_threads_expiration_timer = PrefsThreadsExpirationTimer}}.
+                prefs_threads_expiration_timer = PrefsThreadsExpirationTimer}}.
 
 init_mnesia_tables() ->
     mnesia:create_table(archive_collection,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, archive_collection)}]),
+                        [{disc_copies, [node()]},
+                         {attributes, record_info(fields, archive_collection)}]),
     mnesia:add_table_index(archive_collection, prev_id),
     mnesia:add_table_index(archive_collection, next_id),
     mnesia:add_table_index(archive_collection, us),
@@ -309,19 +309,19 @@ init_mnesia_tables() ->
     mnesia:add_table_index(archive_collection, utc),
     mnesia:add_table_index(archive_collection, change_utc),
     mnesia:create_table(archive_message,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, archive_message)}]),
+                        [{disc_copies, [node()]},
+                         {attributes, record_info(fields, archive_message)}]),
     mnesia:add_table_index(archive_message, coll_id),
     mnesia:add_table_index(archive_message, utc),
     mnesia:create_table(archive_jid_prefs,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, archive_jid_prefs)}]),
+                        [{disc_copies, [node()]},
+                         {attributes, record_info(fields, archive_jid_prefs)}]),
     mnesia:add_table_index(archive_jid_prefs, with_user),
     mnesia:add_table_index(archive_jid_prefs, with_server),
     mnesia:add_table_index(archive_jid_prefs, with_resource),
     mnesia:create_table(archive_global_prefs,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, archive_global_prefs)}]).
+                        [{disc_copies, [node()]},
+                         {attributes, record_info(fields, archive_global_prefs)}]).
 
 %%--------------------------------------------------------------------
 %% Function: terminate(Reason, State) -> void()
@@ -417,7 +417,7 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
     XmppApi = State#state.xmpp_api,
     F =
         fun() ->
-	    case Name of
+            case Name of
                 'pref' ->
                     EnforceMinExpire =
                         proplists:get_value(enforce_min_expire,
@@ -436,7 +436,7 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
                             State#state.default_global_prefs,
                             State#state.auto_states,
                             {EnforceMinExpire, EnforceMaxExpire},
-			    PrefsThreadsExpiration,
+                            PrefsThreadsExpiration,
                             State#state.xmpp_api),
                         State);
                 'itemremove' ->
@@ -449,25 +449,25 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
                         mod_archive2_prefs:session_remove(From, IQ,
                             State#state.auto_states),
                         State);
-			    'auto' ->
+                            'auto' ->
                     auto_states_reply(IQ,
                         mod_archive2_prefs:auto(From, IQ,
                             State#state.auto_states, State#state.xmpp_api),
                         State);
-			    'list' ->
+                            'list' ->
                     mod_archive2_management:list(From, IQ);
-			    'modified' ->
+                            'modified' ->
                     mod_archive2_management:modified(From, IQ);
-			    'retrieve' ->
+                            'retrieve' ->
                                 ForceUtc =
                                     proplists:get_value(
                                         force_utc,
                                         State#state.options,
                                         ?DEFAULT_FORCE_UTC),
                     mod_archive2_management:retrieve(From, IQ, ForceUtc);
-			    'save' ->
+                            'save' ->
                     mod_archive2_manual:save(From, IQ);
-			    'remove' ->
+                            'remove' ->
                     RDBMS =
                         proplists:get_value(
                             rdbms, State#state.options, ?DEFAULT_RDBMS),
@@ -479,8 +479,8 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
                         Result ->
                             Result
                     end;
-			    _ -> exmpp_iq:error(IQ, 'bad-request')
-		    end
+                            _ -> exmpp_iq:error(IQ, 'bad-request')
+                    end
         end,
     case catch F() of
         {reply, _, _} = Reply ->
@@ -577,7 +577,7 @@ handle_info(expire_prefs_cache, State) ->
 handle_info(expire_prefs_threads, State) ->
     TimeOut =
         proplists:get_value(prefs_threads_expiration, State#state.options,
-	    ?DEFAULT_PREFS_THREADS_EXPIRATION),
+            ?DEFAULT_PREFS_THREADS_EXPIRATION),
     {noreply, State#state{auto_states =
         mod_archive2_prefs:expire_threads(State#state.auto_states, TimeOut)}};
 

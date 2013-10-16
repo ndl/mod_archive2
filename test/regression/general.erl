@@ -48,12 +48,12 @@ general_test_() ->
  %   ?debugFmt("1:~p~n", [
  %       client:response(F, exmpp_xml:element(undefined, "iq",
  %           [exmpp_xml:attribute(<<"from">>, ?CLIENTJID),
-%	         exmpp_xml:attribute(<<"to">>, ?SERVERHOST),
-%	         exmpp_xml:attribute(<<"type">>, "get")],
+%                 exmpp_xml:attribute(<<"to">>, ?SERVERHOST),
+%                 exmpp_xml:attribute(<<"type">>, "get")],
 %            [exmpp_xml:element(?NS_DISCO_INFO, 'query', [], [])]))]).
     %DiscoSorted = lists:sort(lists:filter(
     %    fun({xmlel, _, _, _, [{xmlattr,_,_,NS}], []}) -> string:str(binary_to_list(NS), "archive") =/= 0;
-	%(_) -> false end, DiscoElements)),
+        %(_) -> false end, DiscoElements)),
     %?GENERAL_TC1_DISCO_ELEMENTS =
     %?debugFmt("2: ~p~n", [
     %    DiscoSorted]).

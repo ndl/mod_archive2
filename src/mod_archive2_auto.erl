@@ -44,17 +44,17 @@
 filter_sessions(Filter, Sessions) ->
     F =
         fun(WithKey, Threads) ->
-		    dict:filter(
+                    dict:filter(
                 fun(_Thread, Session) ->
-				    Filter(WithKey, Session)
-			    end,
+                                    Filter(WithKey, Session)
+                            end,
                 Threads)
-	    end,
+            end,
     FilteredSessions = dict:map(F, Sessions),
     % Remove all dictionaries with empty 2nd-level dict
     dict:filter(
         fun(_WithKey, Threads) ->
-   	        dict:size(Threads) > 0
+                   dict:size(Threads) > 0
         end,
         FilteredSessions).
 
@@ -62,9 +62,9 @@ expire_sessions(Sessions, TimeOut) ->
     TS = calendar:now_to_datetime(mod_archive2_time:now()),
     filter_sessions(
         fun(_WithKey, Session) ->
-	    not is_session_expired(Session, TS, TimeOut)
-	end,
-	Sessions).
+            not is_session_expired(Session, TS, TimeOut)
+        end,
+        Sessions).
 
 add_message({_Direction, _From, _With, Packet} = Args, TimeOut, AutoSave, Sessions) ->
     case mod_archive2_xml:external_message_from_xml(Packet, AutoSave =:= message) of
@@ -110,7 +110,7 @@ add_message2({Direction, From, With, _Packet}, EM, TimeOut, Sessions) ->
                 name =
                     if EM#external_message.type =:= groupchat ->
                         if EM#external_message.nick =/= undefined ->
-		                        EM#external_message.nick;
+                                        EM#external_message.nick;
                            true ->
                             exmpp_jid:prep_resource_as_list(With)
                         end;
@@ -186,61 +186,61 @@ get_session(From, With, EM, TimeOut, InSessions) ->
             new_session(WithKey, TS, Resource, Thread, Sessions);
         {ok, Threads} ->
             if Thread =/= undefined ->
-		        case dict:find(Thread, Threads) of
-			        error ->
-			            new_session(WithKey, TS, Resource, Thread, Sessions);
-			        {ok, Session} ->
-			            updated_session(WithKey, TS, Thread,
+                        case dict:find(Thread, Threads) of
+                                error ->
+                                    new_session(WithKey, TS, Resource, Thread, Sessions);
+                                {ok, Session} ->
+                                    updated_session(WithKey, TS, Thread,
                             Session#session{resource = Resource}, Sessions)
-		        end;
-	           true ->
-		        if Resource =/= undefined ->
-			        case dict:find({no_thread, Resource}, Threads) of
-				        {ok, Session} ->
-				            updated_session(WithKey, TS, Thread,
+                        end;
+                   true ->
+                        if Resource =/= undefined ->
+                                case dict:find({no_thread, Resource}, Threads) of
+                                        {ok, Session} ->
+                                            updated_session(WithKey, TS, Thread,
                                 Session, Sessions);
-				        error ->
-				            case dict:find({no_thread, undefined}, Threads) of
-					            error ->
-					                new_session(WithKey, TS, Resource, Thread,
+                                        error ->
+                                            case dict:find({no_thread, undefined}, Threads) of
+                                                    error ->
+                                                        new_session(WithKey, TS, Resource, Thread,
                                         Sessions);
-					            {ok, Session} ->
+                                                    {ok, Session} ->
                                     NewThreads = dict:erase(
                                         {no_thread, undefined}, Threads),
                                     NewSessions = dict:store(WithKey,
                                         NewThreads, Sessions),
-					                updated_session(WithKey, TS,
+                                                        updated_session(WithKey, TS,
                                         Thread,
                                         Session#session{resource = Resource},
                                         NewSessions)
-				            end
-			        end;
-		           true ->
-			        F =
+                                            end
+                                end;
+                           true ->
+                                F =
                         fun(_,
                             #session{last_access = Last,
                                 resource = SessionResource} = Value,
                             #session{last_access = MaxLast} = PrevValue) ->
-					        if ((Type =/= groupchat) andalso
+                                                if ((Type =/= groupchat) andalso
                                 (Last > MaxLast)) orelse
                                ((Type =:= groupchat) andalso
                                 (SessionResource =:= undefined)) ->
                                Value;
-					          true ->
+                                                  true ->
                                PrevValue
-					        end
-				        end,
-			        case dict:fold(F, #session{
+                                                end
+                                        end,
+                                case dict:fold(F, #session{
                         last_access = ?ZERO_DATETIME,
                         resource = undefined}, Threads) of
-				        #session{last_access = ?ZERO_DATETIME} ->
-				            new_session(WithKey, TS, Resource, Thread, Sessions);
-				        #session{resource = NewResource} = Session ->
-				            updated_session(WithKey, TS, Thread,
+                                        #session{last_access = ?ZERO_DATETIME} ->
+                                            new_session(WithKey, TS, Resource, Thread, Sessions);
+                                        #session{resource = NewResource} = Session ->
+                                            updated_session(WithKey, TS, Thread,
                                 Session#session{resource = NewResource},
                                 Sessions)
-			        end
-		        end
+                                end
+                        end
             end
     end.
 
@@ -286,10 +286,10 @@ updated_sessions(WithKey, Thread, Session, Sessions) ->
            end,
     ThreadKey =
         case Thread of
-	    undefined ->
-	        {no_thread, Session#session.resource};
-	    _ ->
-	        Thread
+            undefined ->
+                {no_thread, Session#session.resource};
+            _ ->
+                Thread
         end,
     NewThreads = dict:store(ThreadKey, Session, Threads),
     dict:store(WithKey, NewThreads, Sessions).
@@ -297,15 +297,15 @@ updated_sessions(WithKey, Thread, Session, Sessions) ->
 expire_sessions_subset(WithKey, TS, TimeOut, Sessions) ->
     case dict:find(WithKey, Sessions) of
         error ->
-	    Sessions;
+            Sessions;
         {ok, Threads} ->
-	    NewThreads =
-	        dict:filter(
-		        fun(_WithKey, Session) ->
-		            not is_session_expired(Session, TS, TimeOut)
-	            end,
-		        Threads),
-	    dict:store(WithKey, NewThreads, Sessions)
+            NewThreads =
+                dict:filter(
+                        fun(_WithKey, Session) ->
+                            not is_session_expired(Session, TS, TimeOut)
+                    end,
+                        Threads),
+            dict:store(WithKey, NewThreads, Sessions)
     end.
 
 is_session_expired(Session, TS, TimeOut) ->

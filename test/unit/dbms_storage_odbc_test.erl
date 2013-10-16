@@ -88,44 +88,44 @@ test_match_to_sql1() ->
                                direction = '_', body = '$3', name = '_',
                                jid = '_'},
              [{'orelse',{'==','$1',1},
-	                {'andalso',{'==','$1', 2},{'==',utc, ?QUERY_DATE_ENCODED}}}],
-	     [{{'$1', '$2', '$3'}}]}], TableInfo)
-	=:= ?QUERY_RES1).
+                        {'andalso',{'==','$1', 2},{'==',utc, ?QUERY_DATE_ENCODED}}}],
+             [{{'$1', '$2', '$3'}}]}], TableInfo)
+        =:= ?QUERY_RES1).
 
 %% fun2ms MS-generated test.
 test_match_to_sql2() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
         dbms_storage_odbc:ms_to_sql(
-	    ets:fun2ms(
-	        fun(#archive_message{id = ID, utc = UTC, body = Body}) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
-		    {ID, UTC, Body}
-		end), TableInfo)
-	=:= ?QUERY_RES1).
+            ets:fun2ms(
+                fun(#archive_message{id = ID, utc = UTC, body = Body}) when
+                    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
+                    {ID, UTC, Body}
+                end), TableInfo)
+        =:= ?QUERY_RES1).
 
 %% full record test.
 test_match_to_sql3() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
         dbms_storage_odbc:ms_to_sql(
-	    ets:fun2ms(
-	        fun(#archive_message{id = ID, utc = UTC} = R) when
-		    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
-		    R
-		end), TableInfo)
-	=:= {?WHERE_CLAUSE1, query_body_full(TableInfo)}).
+            ets:fun2ms(
+                fun(#archive_message{id = ID, utc = UTC} = R) when
+                    ID =:= 1 orelse (ID =:= 2 andalso UTC =:= ?QUERY_DATE) ->
+                    R
+                end), TableInfo)
+        =:= {?WHERE_CLAUSE1, query_body_full(TableInfo)}).
 
 %% Head matching test.
 test_match_to_sql4() ->
     TableInfo = get_table_info(archive_message),
     ?assert(
         dbms_storage_odbc:ms_to_sql(
-	    ets:fun2ms(
-	        fun(#archive_message{id = 1, utc = ?QUERY_DATE} = R) ->
-		    R
-		end), TableInfo)
-	=:= {"(id = 1) and (utc = '2000-01-01 00:00:00')", query_body_full(TableInfo)}).
+            ets:fun2ms(
+                fun(#archive_message{id = 1, utc = ?QUERY_DATE} = R) ->
+                    R
+                end), TableInfo)
+        =:= {"(id = 1) and (utc = '2000-01-01 00:00:00')", query_body_full(TableInfo)}).
 
 %% Partial body plus head matching test.
 test_match_to_sql5() ->

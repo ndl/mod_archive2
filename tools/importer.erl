@@ -49,8 +49,8 @@ create_session() ->
             exmpp_session:login(Session)
     end,
     exmpp_session:send_packet(Session,
-		exmpp_presence:set_status(
-		exmpp_presence:available(), "History importer bot is ready.")),
+                exmpp_presence:set_status(
+                exmpp_presence:available(), "History importer bot is ready.")),
     {Session, JID}.
 
 start() ->

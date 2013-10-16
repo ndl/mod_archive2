@@ -545,7 +545,7 @@
                       [{xmlattr,undefined,<<"save">>,<<"true">>},
                        {xmlattr,undefined,<<"scope">>,<<"global">>}],
                       []},
-		 {xmlel,undefined,[],session,
+                 {xmlel,undefined,[],session,
                       [{xmlattr,undefined,<<"thread">>,<<"123">>},
                        {xmlattr,undefined,<<"save">>,<<"false">>},
                        {xmlattr,undefined,<<"timeout">>,<<"1800">>}],

@@ -36,7 +36,7 @@
       [{xmlel,'http://jabber.org/protocol/disco#info',
         [{'http://jabber.org/protocol/disco#info',none}],
         'query',[],
-	DiscoElements}]}}).
+        DiscoElements}]}}).
 
 -define(GENERAL_TC1_DISCO_ELEMENTS,
         [
@@ -65,7 +65,7 @@
           [{xmlattr,undefined,<<"var">>,
             <<"http://www.xmpp.org/extensions/xep-0136.html#ns-pref">>}],
           []}
-	]).
+        ]).
 
 -define(GENERAL_TC2_RETRIEVE_RESULT,
 {received_packet,iq,"result",

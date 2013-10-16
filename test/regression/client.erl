@@ -28,7 +28,7 @@
 
 -export([eunit_xml_report/1, session_setup/0, session_teardown/1,
          create_session/1, create_session/2, response/2, responses/3,
-	 skip/1]).
+         skip/1]).
 
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
@@ -39,9 +39,9 @@
 eunit_xml_report(OutDir) ->
     lists:foreach(
         fun(Module) ->
-	    ?EUNIT_XML_REPORT(Module, OutDir)
-	end,
-	modules_to_test()).
+            ?EUNIT_XML_REPORT(Module, OutDir)
+        end,
+        modules_to_test()).
 
 client_test_() -> modules_to_test().
 
@@ -57,13 +57,13 @@ create_session(ClientName, Resource) ->
     exmpp_session:connect_TCP(Session, ?SERVERHOST, ?SERVERPORT),
     try exmpp_session:login(Session)
     catch
-	throw:{auth_error, 'not-authorized'} ->
-	    exmpp_session:register_account(Session, ?PASSWORD),
-	    exmpp_session:login(Session)
+        throw:{auth_error, 'not-authorized'} ->
+            exmpp_session:register_account(Session, ?PASSWORD),
+            exmpp_session:login(Session)
     end,
     exmpp_session:send_packet(Session,
-		exmpp_presence:set_status(
-		exmpp_presence:available(), "Test Client Is Ready")),
+                exmpp_presence:set_status(
+                exmpp_presence:available(), "Test Client Is Ready")),
     % Skip presense.
     Resp = skip(1),
     % That was not presense but welcome message? Attempt to skip presense

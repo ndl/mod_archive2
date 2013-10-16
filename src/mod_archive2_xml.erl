@@ -35,11 +35,11 @@
 -export([collection_from_xml/2, collection_to_xml/2,
          message_from_xml/2, message_to_xml/3,
          external_message_from_xml/2,
-	 thread_from_external_message/1,
+         thread_from_external_message/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          session_prefs_from_xml/1, session_prefs_to_xml/2,
-	 modified_to_xml/1,
+         modified_to_xml/1,
          datetime_from_xml/1]).
 
 -include("mod_archive2.hrl").
@@ -212,19 +212,7 @@ message_from_xml(#xmlel{name = Name, children = Children} = XM, Start) ->
                         calendar:datetime_to_gregorian_seconds(Start) +
                         list_to_integer(Secs))
             end,
-        body =
-            case Children of
-                % Common case of single <body> element:
-                % extract & store underlying cdata.
-                [#xmlel{name = body, children = Text}] ->
-                    Text;
-                % Text embedded directly into <note> element.
-                [#xmlcdata{}] ->
-                    Children;
-                % Everything else is stored without changes.
-                _ ->
-                    Children
-            end,
+        body = get_body_from_children(Children),
         name = exmpp_xml:get_attribute_as_list(XM, <<"name">>, undefined),
         jid = exmpp_xml:get_attribute_as_list(XM, <<"jid">>, undefined)}.
 
@@ -248,16 +236,7 @@ external_message_from_xml(#xmlel{name = message} = M, FullMsg) ->
                true ->
                 exmpp_xml:get_elements(M, body)
             end,
-        Body =
-            case Children of
-                % Common case of single <body> element:
-                % extract & store underlying cdata.
-                [#xmlel{name = body, children = Text}] ->
-                    Text;
-                % Everything else is stored without changes.
-                _ ->
-                    Children
-            end,
+        Body = get_body_from_children(Children),
     #external_message{
         type = Type,
         thread = get_cdata(exmpp_xml:get_element(M, thread)),
@@ -277,7 +256,7 @@ get_cdata(Element) ->
 thread_from_external_message(Packet) ->
     case exmpp_xml:get_cdata(exmpp_xml:get_element(Packet, thread)) of
         Thread when is_binary(Thread) -> Thread;
-	_ -> undefined
+        _ -> undefined
     end.
 
 %%--------------------------------------------------------------------
@@ -287,8 +266,8 @@ thread_from_external_message(Packet) ->
 session_prefs_to_xml({Thread, AutoSave}, TimeOut) ->
     exmpp_xml:element(undefined, session,
         [exmpp_xml:attribute(<<"thread">>, Thread),
-	 exmpp_xml:attribute(<<"save">>, AutoSave),
-	 exmpp_xml:attribute(<<"timeout">>, TimeOut)], []).
+         exmpp_xml:attribute(<<"save">>, AutoSave),
+         exmpp_xml:attribute(<<"timeout">>, TimeOut)], []).
 
 session_prefs_from_xml(PrefsXML) ->
     {exmpp_xml:get_attribute_as_binary(PrefsXML, <<"thread">>, undefined),
@@ -400,16 +379,16 @@ global_prefs_from_xml(From, PrefsXML) ->
     lists:foldl(
         fun(PartialPrefs, Prefs) ->
             list_to_tuple(
-	            lists:zipwith(
-		            fun(Item1, Item2) ->
-			            if Item1 =/= undefined ->
+                    lists:zipwith(
+                            fun(Item1, Item2) ->
+                                    if Item1 =/= undefined ->
                             Item1;
-			               true ->
+                                       true ->
                             Item2
-			            end
-		            end,
-		            tuple_to_list(PartialPrefs),
-		            tuple_to_list(Prefs)))
+                                    end
+                            end,
+                            tuple_to_list(PartialPrefs),
+                            tuple_to_list(Prefs)))
         end,
         #archive_global_prefs{us = exmpp_jid:prep_bare_to_list(From)},
         [global_prefs_from_xml2(Element) ||
@@ -485,3 +464,22 @@ datetime_from_xml(undefined) -> undefined;
 
 datetime_from_xml(TimeStr) ->
     calendar:now_to_datetime(mod_archive2_utils:datetime_string_to_timestamp(TimeStr)).
+
+get_body_from_children(Children) ->
+    NormChildren = exmpp_xml:normalize_cdata_in_list(Children),
+    case NormChildren of
+        % Directly embedded text, i.e. for <note> element.
+        [#xmlcdata{}] ->
+            NormChildren;
+        _ ->
+            NoCdataChildren = exmpp_xml:remove_cdata_from_list(NormChildren),
+            case NoCdataChildren of
+                % Common case of single <body> element:
+                % extract & store underlying cdata.
+                [#xmlel{name = body, children = Text}] ->
+                    exmpp_xml:normalize_cdata_in_list(Text);
+                _ ->
+                % Everything else is stored "as is".
+                    NoCdataChildren
+            end
+    end.

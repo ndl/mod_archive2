@@ -93,7 +93,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute(<<"with">>, With),
-	                 exmpp_xml:attribute(<<"start">>, Start)],
+                         exmpp_xml:attribute(<<"start">>, Start)],
                     []))),
     Msg2 =
         exmpp_stanza:set_recipient(
@@ -118,7 +118,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute(<<"with">>, With3),
-	                 exmpp_xml:attribute(<<"start">>, Start3)],
+                         exmpp_xml:attribute(<<"start">>, Start3)],
                     []))),
     Msg3 =
         exmpp_message:set_thread(
@@ -145,7 +145,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute(<<"with">>, With5),
-	                 exmpp_xml:attribute(<<"start">>, Start5)],
+                         exmpp_xml:attribute(<<"start">>, Start5)],
                     []))),
     Msg4 =
         exmpp_message:set_thread(
@@ -172,7 +172,7 @@ test_auto({{Session, _JID} = F1, {Session2, _JID2}}) ->
                 exmpp_xml:element(?NS_ARCHIVING,
                     "retrieve",
                     [exmpp_xml:attribute(<<"with">>, With7),
-	                 exmpp_xml:attribute(<<"start">>, Start7)],
+                         exmpp_xml:attribute(<<"start">>, Start7)],
                     []))),
     % Turn on 'message' level saving.
     client:responses(F1, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "pref", [],

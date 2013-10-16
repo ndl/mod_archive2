@@ -33,9 +33,9 @@
 
 -export([pref/7, auto/4, itemremove/4, session_remove/3,
          default_global_prefs/2, should_auto_archive/8,
-	 expire_prefs_cache/1, get_effective_jid_prefs/2,
-	 get_global_prefs/2, remove_session/2,
-	 reset_thread_expiration/3, expire_threads/2]).
+         expire_prefs_cache/1, get_effective_jid_prefs/2,
+         get_global_prefs/2, remove_session/2,
+         reset_thread_expiration/3, expire_threads/2]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -60,8 +60,8 @@ pref(From, #iq{type = Type, payload = SubEl} = IQ, GlobalPrefs, AutoStates,
                 Result ->
                     Result
             end;
-	    get ->
-	        pref_get(From, IQ, GlobalPrefs, PrefsThreadsExpiration, AutoStates)
+            get ->
+                pref_get(From, IQ, GlobalPrefs, PrefsThreadsExpiration, AutoStates)
     end.
 
 %% Processes 'auto' requests from clients
@@ -130,27 +130,27 @@ session_remove(From, #iq{type = Type, payload = SubEl}, AutoStates) ->
         {ok, Resources} ->
             case dict:find(Resource, Resources) of
                 {ok, AutoState} ->
-		    NewThreads =
-   		        lists:foldl(
-		            fun(Item, ThreadsIn) ->
-			        {Thread, _} = mod_archive2_xml:session_prefs_from_xml(Item),
-				dict:erase(Thread, ThreadsIn)
-			    end,
-			    AutoState#auto_state.threads,
+                    NewThreads =
+                           lists:foldl(
+                            fun(Item, ThreadsIn) ->
+                                {Thread, _} = mod_archive2_xml:session_prefs_from_xml(Item),
+                                dict:erase(Thread, ThreadsIn)
+                            end,
+                            AutoState#auto_state.threads,
                             exmpp_xml:get_child_elements(SubEl)),
-		    NewAutoStates =
+                    NewAutoStates =
                         dict:store(US,
                             dict:store(
-		                Resource,
-				AutoState#auto_state{threads = NewThreads},
-				Resources),
-			    AutoStates),
-		    {atomic, {auto_states, NewAutoStates}};
-		_ ->
-		    {atomic, {auto_states, AutoStates}}
-	    end;
-	_ ->
-	    {atomic, {auto_states, AutoStates}}
+                                Resource,
+                                AutoState#auto_state{threads = NewThreads},
+                                Resources),
+                            AutoStates),
+                    {atomic, {auto_states, NewAutoStates}};
+                _ ->
+                    {atomic, {auto_states, AutoStates}}
+            end;
+        _ ->
+            {atomic, {auto_states, AutoStates}}
     end.
 
 %% Returns true if collections for given From JID with given With JID
@@ -160,17 +160,17 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
     AutoArchiveCheckPrefsFun =
         fun(AutoSave) ->
             should_auto_archive2(From, With, AutoStates, AutoSave,
-	        DefaultGlobalPrefs, ShouldCachePrefs, XmppApi,
-	        OnlyFromRoster)
+                DefaultGlobalPrefs, ShouldCachePrefs, XmppApi,
+                OnlyFromRoster)
         end,
     case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
                 {ok, AutoState} ->
                     case dict:find(Thread, AutoState#auto_state.threads) of
-		        {ok, ThreadInfo} ->
-		            {ThreadInfo#thread_info.auto_save, AutoStates};
-		        _ ->
+                        {ok, ThreadInfo} ->
+                            {ThreadInfo#thread_info.auto_save, AutoStates};
+                        _ ->
                             case AutoState#auto_state.stream_auto_save of
                                 false ->
                                     {false, AutoStates};
@@ -179,15 +179,15 @@ should_auto_archive(From, With, AutoStates, DefaultGlobalPrefs,
                                         {ok, Result} ->
                                             {Result, AutoStates};
                                         _ ->
-		                	    AutoArchiveCheckPrefsFun(AutoSave)
-		                    end
+                                            AutoArchiveCheckPrefsFun(AutoSave)
+                                    end
                             end
-		    end;
-		_ ->
-		    AutoArchiveCheckPrefsFun(undefined)
-	    end;
-	_ ->
-	    AutoArchiveCheckPrefsFun(undefined)
+                    end;
+                _ ->
+                    AutoArchiveCheckPrefsFun(undefined)
+            end;
+        _ ->
+            AutoArchiveCheckPrefsFun(undefined)
     end.
 
 should_auto_archive2(From, With, AutoStates, SessionAutoSave,
@@ -260,7 +260,7 @@ remove_session(From, AutoStates) ->
         {ok, Resources} ->
             dict:store(
                 US,
-		dict:erase(ResourceToRemove, Resources),
+                dict:erase(ResourceToRemove, Resources),
                 AutoStates);
         _ ->
             AutoStates
@@ -277,22 +277,22 @@ reset_thread_expiration(From, Thread, AutoStates) ->
                 US,
                 dict:map(
                     fun(Resource, AutoState) ->
-		        if Resource =:= ResourceToUpdate ->
-			    case dict:find(Thread, AutoState#auto_state.threads) of
-			        {ok, ThreadInfo} ->
-				    AutoState#auto_state{
-				        threads = dict:store(
-					    Thread,
-					    ThreadInfo#thread_info{
-					        last_access =
-						    calendar:now_to_datetime(
-						        mod_archive2_time:now())},
-					    AutoState#auto_state.threads)};
-				_ ->
-				    AutoState
-			    end;
-			   true -> AutoState
-			end
+                        if Resource =:= ResourceToUpdate ->
+                            case dict:find(Thread, AutoState#auto_state.threads) of
+                                {ok, ThreadInfo} ->
+                                    AutoState#auto_state{
+                                        threads = dict:store(
+                                            Thread,
+                                            ThreadInfo#thread_info{
+                                                last_access =
+                                                    calendar:now_to_datetime(
+                                                        mod_archive2_time:now())},
+                                            AutoState#auto_state.threads)};
+                                _ ->
+                                    AutoState
+                            end;
+                           true -> AutoState
+                        end
                     end,
                     Resources),
                 AutoStates);
@@ -306,18 +306,18 @@ expire_threads(AutoStates, TimeOut) ->
     TS = calendar:now_to_datetime(mod_archive2_time:now()),
     dict:map(
         fun(_US, Resources) ->
-	    dict:map(
-	        fun(_Resource, AutoState) ->
-		    AutoState#auto_state{threads =
-		        dict:filter(
-			    fun(_Thread, ThreadInfo) ->
-			        not is_thread_expired(ThreadInfo#thread_info.last_access, TS, TimeOut)
-			    end,
-			    AutoState#auto_state.threads)}
-	        end,
-	        Resources)
-	end,
-	AutoStates).
+            dict:map(
+                fun(_Resource, AutoState) ->
+                    AutoState#auto_state{threads =
+                        dict:filter(
+                            fun(_Thread, ThreadInfo) ->
+                                not is_thread_expired(ThreadInfo#thread_info.last_access, TS, TimeOut)
+                            end,
+                            AutoState#auto_state.threads)}
+                end,
+                Resources)
+        end,
+        AutoStates).
 
 %%--------------------------------------------------------------------
 %% Helper functions
@@ -327,21 +327,21 @@ expire_threads(AutoStates, TimeOut) ->
 pref_get(From, IQ, DefaultGlobalPrefs, PrefsThreadsExpiration, AutoStates) ->
     F = fun() ->
         SessionPrefsXML =
-	    [mod_archive2_xml:session_prefs_to_xml(Prefs, PrefsThreadsExpiration) ||
-	     Prefs <- get_session_prefs(From, AutoStates)],
+            [mod_archive2_xml:session_prefs_to_xml(Prefs, PrefsThreadsExpiration) ||
+             Prefs <- get_session_prefs(From, AutoStates)],
         JidPrefsXML =
             [mod_archive2_xml:jid_prefs_to_xml(Prefs) ||
-	     Prefs <- get_jid_prefs(From)],
+             Prefs <- get_jid_prefs(From)],
         GlobalPrefs =
             get_global_prefs(From, #archive_global_prefs{}),
         PrefsUnSet =
-	    if (GlobalPrefs#archive_global_prefs.save =/= undefined) orelse
-	       (GlobalPrefs#archive_global_prefs.expire =/= undefined) orelse
-	       (GlobalPrefs#archive_global_prefs.otr =/= undefined) ->
+            if (GlobalPrefs#archive_global_prefs.save =/= undefined) orelse
+               (GlobalPrefs#archive_global_prefs.expire =/= undefined) orelse
+               (GlobalPrefs#archive_global_prefs.otr =/= undefined) ->
                 false;
-	       true ->
+               true ->
                 true
-	    end,
+            end,
         AutoSave =
             case dict:find(exmpp_jid:bare_to_list(From), AutoStates) of
                 {ok, Resources} ->
@@ -355,7 +355,7 @@ pref_get(From, IQ, DefaultGlobalPrefs, PrefsThreadsExpiration, AutoStates) ->
                 _ ->
                     undefined
             end,
-		GlobalPrefsXML =
+                GlobalPrefsXML =
             mod_archive2_xml:global_prefs_to_xml(
                 merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs),
                     PrefsUnSet, AutoSave),
@@ -370,18 +370,18 @@ pref_set(From, PrefsXML, EnforceExpire, AutoStates) ->
     F = fun() ->
             % Check that all children elements are as expected.
             lists:foreach(
-	        fun(Element) ->
-	            case not exmpp_xml:element_matches(Element, default) andalso
-		         not exmpp_xml:element_matches(Element, method) andalso
-		         not exmpp_xml:element_matches(Element, item) andalso
-		         not exmpp_xml:element_matches(Element, session) of
-		        true ->
-		           throw({error, 'bad-request'});
-		        _ ->
-		           ok
-		    end
-		end,
-		exmpp_xml:get_child_elements(PrefsXML)),
+                fun(Element) ->
+                    case not exmpp_xml:element_matches(Element, default) andalso
+                         not exmpp_xml:element_matches(Element, method) andalso
+                         not exmpp_xml:element_matches(Element, item) andalso
+                         not exmpp_xml:element_matches(Element, session) of
+                        true ->
+                           throw({error, 'bad-request'});
+                        _ ->
+                           ok
+                    end
+                end,
+                exmpp_xml:get_child_elements(PrefsXML)),
             case exmpp_xml:has_element(PrefsXML, default) orelse
                 exmpp_xml:has_element(PrefsXML, method) of
                 true ->
@@ -415,39 +415,39 @@ pref_set(From, PrefsXML, EnforceExpire, AutoStates) ->
                     end
                 end,
                 exmpp_xml:get_elements(PrefsXML, item)),
-	    TS = calendar:now_to_datetime(mod_archive2_time:now()),
-	    NewThreads =
+            TS = calendar:now_to_datetime(mod_archive2_time:now()),
+            NewThreads =
                 lists:foldl(
                     fun(Item, ThreadsIn) ->
                         {Thread, AutoSave} =
                             mod_archive2_xml:session_prefs_from_xml(Item),
                         case is_save_method_supported(AutoSave) of
                             true ->
-			        dict:store(
-				    Thread,
-				    #thread_info{
-				        last_access = TS,
-					auto_save = AutoSave},
-				    ThreadsIn);
+                                dict:store(
+                                    Thread,
+                                    #thread_info{
+                                        last_access = TS,
+                                        auto_save = AutoSave},
+                                    ThreadsIn);
                             false ->
                                 throw({error, 'feature-not-implemented'})
                         end
                     end,
-		    dict:new(),
+                    dict:new(),
                     exmpp_xml:get_elements(PrefsXML, session)),
-	    update_auto_states(
-	        From,
-		fun(AutoState) ->
-		    AutoState#auto_state{
-		        threads = dict:merge(
-			    fun(_Key, _OldVal, NewVal) ->
-			        NewVal
-			    end,
-			    AutoState#auto_state.threads,
-			    NewThreads)}
-		end,
-		#auto_state{with = dict:new(), threads = NewThreads},
-		AutoStates)
+            update_auto_states(
+                From,
+                fun(AutoState) ->
+                    AutoState#auto_state{
+                        threads = dict:merge(
+                            fun(_Key, _OldVal, NewVal) ->
+                                NewVal
+                            end,
+                            AutoState#auto_state.threads,
+                            NewThreads)}
+                end,
+                #auto_state{with = dict:new(), threads = NewThreads},
+                AutoStates)
         end,
     case dbms_storage:transaction(exmpp_jid:prep_domain_as_list(From), F) of
         {atomic, NewAutoStates} ->
@@ -518,15 +518,15 @@ get_global_prefs(From, DefaultGlobalPrefs) ->
 merge_global_prefs(GlobalPrefs, DefaultGlobalPrefs) ->
     list_to_tuple(
         lists:zipwith(
-	        fun(Item1, Item2) ->
-		        if Item1 =/= undefined ->
+                fun(Item1, Item2) ->
+                        if Item1 =/= undefined ->
                     Item1;
-		           true ->
+                           true ->
                     Item2
-		        end
-	        end,
-	        tuple_to_list(GlobalPrefs),
-	        tuple_to_list(DefaultGlobalPrefs))).
+                        end
+                end,
+                tuple_to_list(GlobalPrefs),
+                tuple_to_list(DefaultGlobalPrefs))).
 
 %% Stores global prefs.
 store_global_prefs(Prefs) ->
@@ -552,13 +552,13 @@ get_session_prefs(From, AutoStates) ->
         {ok, Resources} ->
             case dict:find(exmpp_jid:resource_as_list(From), Resources) of
                 {ok, AutoState} ->
-		    [{Thread, ThreadInfo#thread_info.auto_save} ||
- 		     {Thread, ThreadInfo} <- dict:to_list(AutoState#auto_state.threads)];
-		_ ->
-		    []
-	    end;
-	_ ->
-	    []
+                    [{Thread, ThreadInfo#thread_info.auto_save} ||
+                      {Thread, ThreadInfo} <- dict:to_list(AutoState#auto_state.threads)];
+                _ ->
+                    []
+            end;
+        _ ->
+            []
     end.
 
 %% Returns JID prefs for given client and given JID, ExactMatch: if no
