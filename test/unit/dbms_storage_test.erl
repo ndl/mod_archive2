@@ -103,12 +103,12 @@ dbms_storage_mnesia_test_() ->
     ]
 }.
 
--define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59}},
+-define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59, 0}},
                                   direction = from,
                                   body = [{xmlcdata, <<"Hi!">>}],
                                   name = "me"}).
 
--define(RECORD2, #archive_message{utc = {{1999, 11, 30}, {19, 01, 02}},
+-define(RECORD2, #archive_message{utc = {{1999, 11, 30}, {19, 01, 02, 0}},
                                   direction = from,
                                   body = [{xmlcdata, <<"Hi there!">>}],
                                   name = "smb"}).

@@ -35,7 +35,10 @@
          rsm_encode/1,
          rsm_encode/2,
          rsm_decode/1,
-         datetime_string_to_timestamp/1]).
+         datetime_string_to_timestamp/1,
+         now_to_datetime/1,
+         datetime_to_microseconds/1,
+         microseconds_to_datetime/1]).
 
 list_to_bool("false") -> false;
 list_to_bool("true") -> true;
@@ -201,6 +204,18 @@ parse_time1(Time) ->
     [H, M, S] = string:tokens(HMS, ":"),
     {[H1, M1, S1], true} = check_list([{H, 24}, {M, 60}, {S, 60}]),
     {{H1, M1, S1}, MS}.
+
+now_to_datetime({_, _, MicroSecs} = Now) ->
+    {D, {H, M, S}} = calendar:now_to_datetime(Now),
+    {D, {H, M, S, MicroSecs}}.
+
+datetime_to_microseconds({D, {H, M, S, MicroSecs}}) ->
+    Secs = calendar:datetime_to_gregorian_seconds({D, {H, M, S}}),
+    1000000 * Secs + MicroSecs.
+
+microseconds_to_datetime(MicroSecs) ->
+    {D, {H, M, S}} = calendar:gregorian_seconds_to_datetime(MicroSecs div 1000000),
+    {D, {H, M, S, MicroSecs rem 1000000}}.
 
 check_list(List) ->
     lists:mapfoldl(

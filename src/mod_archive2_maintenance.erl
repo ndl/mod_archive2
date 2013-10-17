@@ -76,7 +76,7 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, mnesia) ->
             expire_collections_mnesia(
                 DefaultExpire,
                 ReplicationExpire,
-                calendar:now_to_datetime(mod_archive2_time:now()),
+                mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
                 mnesia:select(archive_collection, MS, ?SELECT_NOBJECTS, write))
         end);
 
@@ -84,7 +84,7 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
     dbms_storage:transaction(Host,
         fun() ->
             Now = dbms_storage_odbc:encode(
-                calendar:now_to_datetime(mod_archive2_time:now()),
+                mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
                 time,
                 dbms_storage_utils:get_table_info(archive_collection,
                     ?MOD_ARCHIVE2_SCHEMA)),
@@ -219,8 +219,8 @@ expire_collections_mnesia(DefaultExpire, ReplicationExpire, Now, {Records, Cont}
                             ok;
                         _ ->
                             Diff =
-                                datetime_to_now(C#archive_collection.utc, Now),
-                            if Diff > Expire ->
+                                datetime_microseconds_diff(C#archive_collection.utc, Now),
+                            if Diff > 1000000 * Expire ->
                                 mnesia:write(
                                     C#archive_collection{
                                         deleted = true,
@@ -239,9 +239,9 @@ expire_collections_mnesia(DefaultExpire, ReplicationExpire, Now, {Records, Cont}
                     end;
                 true ->
                     Diff =
-                        datetime_to_now(C#archive_collection.change_utc, Now),
+                        datetime_microseconds_diff(C#archive_collection.change_utc, Now),
                     if is_integer(ReplicationExpire) andalso
-                        Diff > ReplicationExpire ->
+                        Diff > 1000000 * ReplicationExpire ->
                          mnesia:delete({archive_collection, C#archive_collection.id});
                        true ->
                         ok
@@ -254,6 +254,6 @@ expire_collections_mnesia(DefaultExpire, ReplicationExpire, Now, {Records, Cont}
 
 expire_collections_mnesia(_, _, _, '$end_of_table') -> ok.
 
-datetime_to_now(DateTime, Now) ->
-    calendar:datetime_to_gregorian_seconds(Now) -
-    calendar:datetime_to_gregorian_seconds(DateTime).
+datetime_microseconds_diff(DateTime, Now) ->
+    mod_archive2_utils:datetime_to_microseconds(Now) -
+    mod_archive2_utils:datetime_to_microseconds(DateTime).

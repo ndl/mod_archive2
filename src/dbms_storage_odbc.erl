@@ -677,10 +677,10 @@ encode(N, integer, _) ->
 encode(N, float, _) ->
     float_to_list(N);
 
-encode({{Year, Month, Day}, {Hour, Minute, Second}}, time, _) ->
+encode({{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}, time, _) ->
     lists:flatten(
-        io_lib:format("'~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w'",
-                      [Year, Month, Day, Hour, Minute, Second]));
+        io_lib:format("'~4..0w-~2..0w-~2..0w ~2..0w:~2..0w:~2..0w.~6..0w'",
+                      [Year, Month, Day, Hour, Minute, Second, MicroSecond]));
 
 encode(Value, {enum, Enums}, _TableInfo) ->
     integer_to_list(dbms_storage_utils:elem_index(Value, Enums) - 1);
@@ -751,9 +751,15 @@ decode(Value, bool, TableInfo) ->
     end;
 
 % Some SQL drivers (currently erlang pgsql only?) do us a favor and parse time
-% structure on their own.
-decode({{_, _, _}, {_, _, _}} = Value, time, _TableInfo) ->
-    Value;
+% structure on their own. This results in a problem, though, because
+% Erlang datetime representation doesn't have milliseconds / microseconds.
+%
+% pgsql seems to solve this by introducing floating-point seconds
+% (unless integer_datetimes is set to on?), therefore we assume seconds
+% to be floating-point and extract microseconds from there, hoping for enough
+% floating-point precision.
+decode({{_, _, _} = D, {H, M, S}}, time, _TableInfo) ->
+    {D, {H, M, S, trunc((S - trunc(S)) * 1000000)}};
 
 decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
@@ -800,9 +806,15 @@ parse_sql_date(Date) ->
 
 %% hh:mm:ss[.sss]
 parse_sql_time(Time) ->
-    [HMS | _] =  string:tokens(Time, "."),
+    {MicroSecs, HMS} =
+        case string:str(Time, ".") of
+            N when N > 0 ->
+                [HMS2, MicroSecs2] = string:tokens(Time, "."),
+                {trunc(list_to_float("0." ++ MicroSecs2) * 1000000), HMS2};
+            _ -> {0, Time}
+        end,
     [H, M, S] = string:tokens(HMS, ":"),
-    {list_to_integer(H), list_to_integer(M), list_to_integer(S)}.
+    {list_to_integer(H), list_to_integer(M), list_to_integer(S), MicroSecs}.
 
 parse_xml_fragment(StrValue) ->
     %% WARNING - multiple hacks:

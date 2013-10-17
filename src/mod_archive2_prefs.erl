@@ -285,7 +285,7 @@ reset_thread_expiration(From, Thread, AutoStates) ->
                                             Thread,
                                             ThreadInfo#thread_info{
                                                 last_access =
-                                                    calendar:now_to_datetime(
+                                                    mod_archive2_utils:now_to_datetime(
                                                         mod_archive2_time:now())},
                                             AutoState#auto_state.threads)};
                                 _ ->
@@ -303,7 +303,7 @@ reset_thread_expiration(From, Thread, AutoStates) ->
 % We're not expiring prefs cache here as
 % session auto save calculation result is not stored in cache.
 expire_threads(AutoStates, TimeOut) ->
-    TS = calendar:now_to_datetime(mod_archive2_time:now()),
+    TS = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
     dict:map(
         fun(_US, Resources) ->
             dict:map(
@@ -415,7 +415,7 @@ pref_set(From, PrefsXML, EnforceExpire, AutoStates) ->
                     end
                 end,
                 exmpp_xml:get_elements(PrefsXML, item)),
-            TS = calendar:now_to_datetime(mod_archive2_time:now()),
+            TS = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
             NewThreads =
                 lists:foldl(
                     fun(Item, ThreadsIn) ->
@@ -682,6 +682,6 @@ clear_with_auto_states(From, AutoStates) ->
 
 is_thread_expired(LastAccess, TS, TimeOut) ->
     TimeDiff =
-        calendar:datetime_to_gregorian_seconds(TS) -
-        calendar:datetime_to_gregorian_seconds(LastAccess),
-    TimeDiff > TimeOut.
+        mod_archive2_utils:datetime_to_microseconds(TS) -
+        mod_archive2_utils:datetime_to_microseconds(LastAccess),
+    TimeDiff > 1000000 * TimeOut.

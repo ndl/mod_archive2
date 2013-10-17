@@ -545,11 +545,11 @@ get_range_opts(InRSM, Field) ->
 
 decode_rsm_position(Pos) ->
     [DateTimeStr, IDStr] = string:tokens(Pos, "@"),
-    {calendar:gregorian_seconds_to_datetime(list_to_integer(DateTimeStr)),
+    {mod_archive2_utils:microseconds_to_datetime(list_to_integer(DateTimeStr)),
      decode_id(IDStr)}.
 
 encode_rsm_position({DateTime, ID}) ->
-    integer_to_list(calendar:datetime_to_gregorian_seconds(DateTime)) ++
+    integer_to_list(mod_archive2_utils:datetime_to_microseconds(DateTime)) ++
     "@" ++
     encode_id(ID).
 

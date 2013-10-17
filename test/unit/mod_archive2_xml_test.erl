@@ -42,7 +42,7 @@
             with_user = "juliet",
             with_server = "capulet.com",
             with_resource = "chamber",
-            utc = {{1469, 07, 21}, {02, 56, 15}},
+            utc = {{1469, 07, 21}, {02, 56, 15, 0}},
             version = 1,
             deleted = false,
             subject = "Subject",
@@ -93,7 +93,7 @@
 -define(ARCHIVE_MESSAGE1,
         #archive_message{
             direction = from,
-            utc = {{1469, 07, 21}, {02, 56, 15}},
+            utc = {{1469, 07, 21}, {02, 56, 15, 0}},
             body = [{xmlcdata, <<"Art thou not Romeo, and a Montague?">>}]}).
 
 -define(ARCHIVE_MESSAGE1_XML,
@@ -105,7 +105,7 @@
 -define(ARCHIVE_MESSAGE2,
         #archive_message{
             direction = to,
-            utc = {{1469, 07, 21}, {02, 56, 26}},
+            utc = {{1469, 07, 21}, {02, 56, 26, 0}},
             name = "romeo",
             jid = "romeo@montague.net",
             body = [{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]}).
@@ -129,7 +129,7 @@
 -define(ARCHIVE_MESSAGE3,
         #archive_message{
             direction = note,
-            utc = {{1469, 07, 21}, {03, 04, 35}},
+            utc = {{1469, 07, 21}, {03, 04, 35, 0}},
             body = [{xmlcdata, <<"I think she might fancy me.">>}]}).
 
 -define(ARCHIVE_MESSAGE3_XML,
@@ -140,7 +140,7 @@
 -define(ARCHIVE_MESSAGE4,
         #archive_message{
             direction = to,
-            utc = {{1469, 07, 21}, {02, 56, 26}},
+            utc = {{1469, 07, 21}, {02, 56, 26, 0}},
             name = "romeo",
             jid = "romeo@montague.net",
             body = [{xmlel,undefined,[],body,[],[{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]},
@@ -170,12 +170,12 @@
     {archive_message,
      undefined,
      undefined,
-     {{1,2,3},{4,5,17}},
+     {{1,2,3},{4,5,17, 0}},
      to,
      [{xmlcdata,<<"Test">>}],
      undefined,undefined}).
 
--define(START, {{1469, 07, 21}, {02, 56, 15}}).
+-define(START, {{1469, 07, 21}, {02, 56, 15, 0}}).
 
 -define(EXTERNAL_MESSAGE1_XML,
     {xmlel,'jabber:client',
@@ -403,7 +403,7 @@ test_collection_from_xml(_) ->
 
 test_collection_from_xml_empty_links(_) ->
     {archive_collection,undefined,null,null,"client@localhost","juliet",
-     "capulet.com","chamber", {{1469,7,21},{2,56,15}},
+     "capulet.com","chamber", {{1469,7,21},{2,56,15, 0}},
      _,1,false,"Subject","12345",true,null} =
     mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
@@ -581,8 +581,8 @@ test_modified1_to_xml(_) ->
                 with_user = "juliet",
                 with_server = "capulet.com",
                 with_resource = "chamber",
-                utc = {{1469, 07, 21}, {02, 56, 15}},
-                change_utc = {{2000, 12, 31}, {23, 59, 59}},
+                utc = {{1469, 07, 21}, {02, 56, 15, 0}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59, 0}},
                 version = 1,
                 deleted = false}).
 
@@ -594,15 +594,15 @@ test_modified2_to_xml(_) ->
                 with_user = "juliet",
                 with_server = "capulet.com",
                 with_resource = "chamber",
-                utc = {{1469, 07, 21}, {02, 56, 15}},
-                change_utc = {{2000, 12, 31}, {23, 59, 59}},
+                utc = {{1469, 07, 21}, {02, 56, 15, 0}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59, 0}},
                 version = 1,
                 deleted = true}).
 
 test_archive_message5_from_xml(_) ->
     [MsgXML] =
         exmpp_xml:parse_document_fragment(?ARCHIVE_MESSAGE5_XML, [{root_depth, 0}]),
-    ?ARCHIVE_MESSAGE5 = mod_archive2_xml:message_from_xml(MsgXML, {{1, 2, 3}, {4, 5, 6}}).
+    ?ARCHIVE_MESSAGE5 = mod_archive2_xml:message_from_xml(MsgXML, {{1, 2, 3}, {4, 5, 6, 0}}).
 
 mysql_test_links(Pid) ->
     dbms_storage:transaction(?HOST,

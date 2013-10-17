@@ -136,7 +136,7 @@ collection_from_xml(From, XC) ->
                 with_resource = exmpp_jid:prep_resource_as_list(With),
                 utc = datetime_from_xml(
                     exmpp_xml:get_attribute_as_list(XC, <<"start">>, undefined)),
-                change_utc = calendar:now_to_datetime(mod_archive2_time:now()),
+                change_utc = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
                 version =
                     case exmpp_xml:get_attribute_as_list(XC, <<"version">>, undefined) of
                         undefined -> undefined;
@@ -167,18 +167,18 @@ get_collection_id(C) ->
 %%--------------------------------------------------------------------
 
 message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
-    Secs =
-        calendar:datetime_to_gregorian_seconds(M#archive_message.utc) -
-        calendar:datetime_to_gregorian_seconds(Start),
+    MicroSecs =
+        mod_archive2_utils:datetime_to_microseconds(M#archive_message.utc) -
+        mod_archive2_utils:datetime_to_microseconds(Start),
     exmpp_xml:element(
         undefined,
         M#archive_message.direction,
         filter_undef([
-            if M#archive_message.direction =:= note orelse Secs < 0 orelse ForceUtc =:= true ->
+            if M#archive_message.direction =:= note orelse MicroSecs < 0 orelse ForceUtc =:= true ->
                 exmpp_xml:attribute(<<"utc">>,
                      datetime_to_utc_string(M#archive_message.utc));
                true ->
-                exmpp_xml:attribute(<<"secs">>, Secs)
+                exmpp_xml:attribute(<<"secs">>, MicroSecs div 1000000)
             end,
             case M#archive_message.name of
                 undefined -> undefined;
@@ -208,9 +208,9 @@ message_from_xml(#xmlel{name = Name, children = Children} = XM, Start) ->
                     datetime_from_xml(
                         exmpp_xml:get_attribute_as_list(XM, <<"utc">>, undefined));
                 Secs ->
-                    calendar:gregorian_seconds_to_datetime(
-                        calendar:datetime_to_gregorian_seconds(Start) +
-                        list_to_integer(Secs))
+                    mod_archive2_utils:microseconds_to_datetime(
+                        mod_archive2_utils:datetime_to_microseconds(Start) +
+                        1000000 * list_to_integer(Secs))
             end,
         body = get_body_from_children(Children),
         name = exmpp_xml:get_attribute_as_list(XM, <<"name">>, undefined),
@@ -455,15 +455,15 @@ jid_to_string(#archive_jid_prefs{} = Prefs) ->
                        Prefs#archive_jid_prefs.with_server,
                        Prefs#archive_jid_prefs.with_resource)).
 
-datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second}}) ->
+datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}) ->
     lists:flatten(
         io_lib:format("~4..0w-~2..0w-~2..0wT~2..0w:~2..0w:~2..0w.~6..0wZ",
-                      [Year, Month, Day, Hour, Minute, Second, 0])).
+                      [Year, Month, Day, Hour, Minute, Second, MicroSecond])).
 
 datetime_from_xml(undefined) -> undefined;
 
 datetime_from_xml(TimeStr) ->
-    calendar:now_to_datetime(mod_archive2_utils:datetime_string_to_timestamp(TimeStr)).
+    mod_archive2_utils:now_to_datetime(mod_archive2_utils:datetime_string_to_timestamp(TimeStr)).
 
 get_body_from_children(Children) ->
     NormChildren = exmpp_xml:normalize_cdata_in_list(Children),
