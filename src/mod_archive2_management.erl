@@ -57,10 +57,13 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
             Range = parse_cmd_range(SubEl),
             Fields = [id, with_user, with_server, with_resource, utc, version],
             Results =
-                case get_items_ranged(IQ, TableInfo,
-                    Range, get_with_conditions(From, Range) ++
-                    [{'=/=', deleted, true}],
-                    #archive_collection.utc, Fields) of
+                case get_items_ranged(IQ,
+                    TableInfo,
+                    Range,
+                    get_with_conditions(From, Range) ++ [{'=/=', deleted, true}],
+                    #archive_collection.utc,
+                    #archive_collection.id,
+                    Fields) of
                     {[], undefined} ->
                         [];
                     {Items, OutRSM} ->
@@ -85,9 +88,13 @@ modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
             Fields = [id, with_user, with_server, with_resource, utc,
                       change_utc, version, deleted],
             Results =
-                case get_items_ranged(IQ, TableInfo,
-                    Range, get_with_conditions(From, Range),
-                    #archive_collection.change_utc, Fields) of
+                case get_items_ranged(IQ,
+                    TableInfo,
+                    Range,
+                    get_with_conditions(From, Range),
+                    #archive_collection.change_utc,
+                    #archive_collection.id,
+                    Fields) of
                     {[], undefined} ->
                         [];
                     {Items, OutRSM} ->
@@ -334,11 +341,14 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ, ForceUtc) ->
                     Fields = TableInfo#table.fields,
                     Range = #range{exactmatch = false},
                     Results =
-                        case get_items_ranged(IQ, TableInfo,
-                            Range, [{'=:=', coll_id,
-                                     dbms_storage_utils:encode_brackets(
-                                         C#archive_collection.id)}],
-                            #archive_message.utc, Fields) of
+                        case get_items_ranged(IQ,
+                            TableInfo,
+                            Range,
+                            [{'=:=', coll_id,
+                             dbms_storage_utils:encode_brackets(C#archive_collection.id)}],
+                            #archive_message.utc,
+                            #archive_message.id,
+                            Fields) of
                             {[], undefined} ->
                                 [];
                             {Items, OutRSM} ->
@@ -358,7 +368,7 @@ retrieve(From, #iq{type = Type, payload = SubEl} = IQ, ForceUtc) ->
 %%--------------------------------------------------------------------
 %% Helper functions for range requests
 %%--------------------------------------------------------------------
-get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
+get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, IdField, Fields) ->
     InRSM =
         case mod_archive2_utils:rsm_decode(IQ) of
             none -> #rsm_in{};
@@ -374,7 +384,7 @@ get_items_ranged(IQ, TableInfo, Range, Conditions, UTCField, Fields) ->
             [{aggregate, count}]),
     if Count > 0 ->
         CombiRange = combine_ranges(Range, InRSM),
-        Opts = get_range_opts(InRSM, UTCField),
+        Opts = get_range_opts(InRSM, [UTCField, IdField]),
         {selected, Rows} =
             dbms_storage:select(
                 [{MSHead,
@@ -522,7 +532,7 @@ combine_ranges(Range, InRSM) ->
                 start_id = ID}
     end.
 
-get_range_opts(InRSM, Field) ->
+get_range_opts(InRSM, Fields) ->
     filter_undef([
         if InRSM#rsm_in.index =/= undefined ->
             {offset, InRSM#rsm_in.index};
@@ -536,11 +546,11 @@ get_range_opts(InRSM, Field) ->
         end,
         case InRSM#rsm_in.direction of
             before ->
-                {order_by, {Field, desc}};
+                {order_by, {Fields, desc}};
             aft ->
-                {order_by, {Field, asc}};
+                {order_by, {Fields, asc}};
             undefined ->
-                {order_by, {Field, asc}}
+                {order_by, {Fields, asc}}
         end]).
 
 decode_rsm_position(Pos) ->

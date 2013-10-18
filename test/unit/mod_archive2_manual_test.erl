@@ -179,7 +179,7 @@ mysql_test_retrieve_all_setup() ->
                 {"select count(*) from archive_message where (coll_id = 1)",
                  {selected, [], [{4}]}},
                 {"select * from archive_message where (coll_id = 1) "
-                 "order by utc asc",
+                 "order by utc, id asc",
                  {selected, [],
                   [{1, 1, "1469-07-21 02:56:15.000123", 0,
                      "Art thou not Romeo, and a Montague?", undefined,
@@ -295,7 +295,7 @@ mysql_test_retrieve_max() ->
                 {"select count(*) from archive_message where (coll_id = 1)",
                  {selected, [], [{4}]}},
                 {"select * from archive_message where (coll_id = 1) "
-                 "order by utc asc offset 1 limit 2",
+                 "order by utc, id asc offset 1 limit 2",
                  {selected, [],
                   [{2, 1, "1469-07-21 02:56:26.000123", 1,
                     "Neither, fair saint, if either thee dislike.", null, null},

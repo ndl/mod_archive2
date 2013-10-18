@@ -140,17 +140,17 @@ delete2('$end_of_table', Total) -> Total.
 %%--------------------------------------------------------------------
 
 select(MS, Opts) ->
-    {OrderBy, OrderType} =
+    {OrderByFields, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
     Offset = proplists:get_value(offset, Opts, undefined),
     Limit = proplists:get_value(limit, Opts, undefined),
     Aggregate = proplists:get_value(aggregate, Opts, undefined),
-    FieldPos =
-        case OrderBy of
+    OrderByFieldsPos =
+        case OrderByFields of
             undefined -> undefined;
-            _ -> correct_field_index(MS, OrderBy)
+            _ -> [correct_field_index(MS, Field) || Field <- OrderByFields]
         end,
-    SelectOpts = {{Offset, Limit}, {FieldPos, OrderType}, Aggregate},
+    SelectOpts = {{Offset, Limit}, {OrderByFieldsPos, OrderType}, Aggregate},
     select2(
         mnesia:select(get_table(MS), MS, ?SELECT_NOBJECTS, read),
         get_acc(SelectOpts), SelectOpts).
@@ -190,14 +190,16 @@ append_results(Results, {AccType, AccStruct}, {Range, Order, _Aggregate}) ->
             {AccType, update_minmax(Results, fun lists:max/1, Index, AccStruct)}
     end.
 
-append_results_to_tree(Results, Acc, Range, {FieldPos, OrderType}) ->
+append_results_to_tree(Results, Acc, Range, {OrderByFieldsPos, OrderType}) ->
     NewTree =
-        lists:foldl(fun(Record, AccTree) ->
-                        Element = {element(FieldPos, Record), Record},
-                        gb_sets:add(Element, AccTree)
-                    end,
-                    Acc,
-                    Results),
+        lists:foldl(
+            fun(Record, AccTree) ->
+                Element =
+                    [element(Pos, Record) || Pos <- OrderByFieldsPos] ++ [Record],
+                gb_sets:add(Element, AccTree)
+            end,
+            Acc,
+            Results),
     case get_tree_limit(Range) of
         undefined -> NewTree;
         TreeLimit -> prune_tree(NewTree, TreeLimit, OrderType)
@@ -238,26 +240,26 @@ finalize_results({AccType, AccStruct}, {Range, Order, Aggregate}) ->
            Results
     end.
 
-finalize_tree(Tree, {Offset, Limit}, {_FieldPos, OrderType}) ->
+finalize_tree(Tree, {Offset, Limit}, {_OrderByFieldsPos, OrderType}) ->
     Records = gb_sets:to_list(Tree),
     SortedRecords =
         case OrderType of
             asc -> Records;
             desc -> lists:reverse(Records)
         end,
-    Candidates = [Record || { _, Record } <- SortedRecords],
+    Candidates = [lists:last(Record) || Record <- SortedRecords],
     {_, Rest} = safe_split(Offset, Candidates),
     {Result, _} = safe_split(Limit, Rest),
     Result.
 
-finalize_list(List, {FieldPos, OrderType} = Order) ->
+finalize_list(List, {OrderByFieldsPos, OrderType} = Order) ->
     case Order of
         {undefined, undefined} -> lists:reverse(List);
         _ ->
             lists:sort(
                 fun(E1, E2) ->
-                    Key1 = element(FieldPos, E1),
-                    Key2 = element(FieldPos, E2),
+                    Key1 = [element(Pos, E1) || Pos <- OrderByFieldsPos],
+                    Key2 = [element(Pos, E2) || Pos <- OrderByFieldsPos],
                     case OrderType of
                         asc -> Key1 =< Key2;
                         desc -> Key1 >= Key2
