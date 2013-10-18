@@ -76,7 +76,7 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, mnesia) ->
             expire_collections_mnesia(
                 DefaultExpire,
                 ReplicationExpire,
-                mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
+                mod_archive2_utils:current_datetime(),
                 mnesia:select(archive_collection, MS, ?SELECT_NOBJECTS, write))
         end);
 
@@ -84,7 +84,7 @@ expire_collections(Host, DefaultExpire, ReplicationExpire, RDBMS) ->
     dbms_storage:transaction(Host,
         fun() ->
             Now = dbms_storage_odbc:encode(
-                mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
+                mod_archive2_utils:current_datetime(),
                 time,
                 dbms_storage_utils:get_table_info(archive_collection,
                     ?MOD_ARCHIVE2_SCHEMA)),

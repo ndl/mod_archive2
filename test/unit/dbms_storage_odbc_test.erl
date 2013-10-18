@@ -44,14 +44,18 @@ mod_archive2_match_to_sql_test_() ->
         ?test_gen0(test_match_to_sql6),
         ?test_gen0(test_match_to_sql7),
         ?test_gen0(test_match_to_sql8),
-        ?test_gen0(test_xmlchildren_decode)
+        ?test_gen0(test_xmlchildren_decode),
+        ?test_gen0(test_datetime_encode),
+        ?test_gen0(test_datetime_encode2),
+        ?test_gen0(test_datetime_decode),
+        ?test_gen0(test_datetime_decode2)
      ].
 
--define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01 00:00:00')))").
+-define(WHERE_CLAUSE1, "((id = 1) or ((id = 2) and (utc = '2000-01-01 00:00:00.000123')))").
 
--define(QUERY_DATE, {{2000, 1, 1}, {0, 0, 0}}).
+-define(QUERY_DATE, {{2000, 1, 1}, {0, 0, 0, 123}}).
 
--define(QUERY_DATE_ENCODED, {{{{2000, 1, 1}}, {{0, 0, 0}}}}).
+-define(QUERY_DATE_ENCODED, {{{{2000, 1, 1}}, {{0, 0, 0, 123}}}}).
 
 -define(QUERY_RES1,
     {?WHERE_CLAUSE1,
@@ -125,7 +129,7 @@ test_match_to_sql4() ->
                 fun(#archive_message{id = 1, utc = ?QUERY_DATE} = R) ->
                     R
                 end), TableInfo)
-        =:= {"(id = 1) and (utc = '2000-01-01 00:00:00')", query_body_full(TableInfo)}).
+        =:= {"(id = 1) and (utc = '2000-01-01 00:00:00.000123')", query_body_full(TableInfo)}).
 
 %% Partial body plus head matching test.
 test_match_to_sql5() ->
@@ -186,13 +190,13 @@ test_match_to_sql7() ->
         dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
                            US =:= "client@localhost",
-                           UTC < {{1469,7,21},{2,56,15}} orelse
-                           UTC =:= {{1469,7,21},{2,56,15}} andalso
+                           UTC < {{1469,7,21},{2,56,15,123000}} orelse
+                           UTC =:= {{1469,7,21},{2,56,15,123000}} andalso
                            ID < 1 -> ok
                        end), TableInfo)
     =:=
-        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') or "
-         "((utc = '1469-07-21 02:56:15') and (id < 1)))", {[], [{value, ok}]}}).
+        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15.123000') or "
+         "((utc = '1469-07-21 02:56:15.123000') and (id < 1)))", {[], [{value, ok}]}}).
 
 %% Partial records in body result test.
 test_match_to_sql8() ->
@@ -201,14 +205,14 @@ test_match_to_sql8() ->
         dbms_storage_odbc:ms_to_sql(
             ets:fun2ms(fun(#archive_collection{id = ID, utc = UTC, us = US}) when
                            US =:= "client@localhost",
-                           UTC < {{1469,7,21},{2,56,15}} orelse
-                           UTC =:= {{1469,7,21},{2,56,15}} andalso
+                           UTC < {{1469,7,21},{2,56,15,123}} orelse
+                           UTC =:= {{1469,7,21},{2,56,15,123}} andalso
                            ID < 1 ->
                             #archive_collection{id = ID, utc = UTC}
                        end), TableInfo)
     =:=
-        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15') or "
-         "((utc = '1469-07-21 02:56:15') and (id < 1)))",
+        {"(us = 'client@localhost') and ((utc < '1469-07-21 02:56:15.000123') or "
+         "((utc = '1469-07-21 02:56:15.000123') and (id < 1)))",
          {[id,utc],
           [{value,archive_collection},
            {field,id},
@@ -232,3 +236,23 @@ test_xmlchildren_decode() ->
     TableInfo = get_table_info(archive_collection),
     ?XHTML_BODY =
         dbms_storage_odbc:decode("<body>Neither, fair saint, if either thee dislike.</body><html xmlns=\"http://jabber.org/protocol/xhtml-im\"><body xmlns=\"http://www.w3.org/1999/xhtml\"><p xmlns=\"\">Neither, fair saint, if either thee dislike.</p></body></html>", xmlchildren, TableInfo).
+
+test_datetime_encode() ->
+    TableInfo = get_table_info(archive_collection),
+    "'1469-07-21 02:56:15.123456'" =
+        dbms_storage_odbc:encode({{1469,7,21},{2,56,15,123456}}, time, TableInfo).
+
+test_datetime_encode2() ->
+    TableInfo = get_table_info(archive_collection),
+    "'1469-07-21 02:56:15.012000'" =
+        dbms_storage_odbc:encode({{1469,7,21},{2,56,15,12000}}, time, TableInfo).
+
+test_datetime_decode() ->
+    TableInfo = get_table_info(archive_collection),
+    {{1469,7,21},{2,56,15,123456}} =
+        dbms_storage_odbc:decode("1469-07-21 02:56:15.123456", time, TableInfo).
+
+test_datetime_decode2() ->
+    TableInfo = get_table_info(archive_collection),
+    {{1469,7,21},{2,56,15,12000}} =
+        dbms_storage_odbc:decode("1469-07-21 02:56:15.012", time, TableInfo).

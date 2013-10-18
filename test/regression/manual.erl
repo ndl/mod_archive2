@@ -169,7 +169,7 @@ test_linking(F) ->
         exmpp_xml:element(undefined, "chat",
         [
             exmpp_xml:attribute(<<"with">>, "benvolio@montague.net"),
-            exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z")
+            exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.012340Z")
         ],
         [
             exmpp_xml:element(undefined, "next",
@@ -193,7 +193,7 @@ test_linking(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "retrieve",
     [
         exmpp_xml:attribute(<<"with">>, "benvolio@montague.net"),
-        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.012340Z")
     ], []))),
     ?MANUAL_TC5_CHANGE_RESULT =
     client:response(F, exmpp_iq:set(undefined, exmpp_xml:element(?NS_ARCHIVING, "save", [],
@@ -207,7 +207,7 @@ test_linking(F) ->
             exmpp_xml:element(undefined, "previous",
             [
                 exmpp_xml:attribute(<<"with">>, "benvolio@montague.net"),
-                exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z")
+                exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.012340Z")
             ], [])
         ])
     ]))),
@@ -246,7 +246,7 @@ test_add_attributes(F) ->
         exmpp_xml:element(undefined, "chat",
         [
             exmpp_xml:attribute(<<"with">>, "benvolio@montague.net"),
-            exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z")
+            exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.012340Z")
         ],
         [
             exmpp_xml:element("jabber:x:data", "x",
@@ -271,5 +271,5 @@ test_add_attributes(F) ->
     client:response(F, exmpp_iq:get(undefined, exmpp_xml:element(?NS_ARCHIVING, "retrieve",
     [
         exmpp_xml:attribute(<<"with">>, "benvolio@montague.net"),
-        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54Z")
+        exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.012340Z")
     ], []))).

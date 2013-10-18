@@ -38,7 +38,7 @@
 -define(ARCHIVE_COLLECTION_COMPLETE,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
@@ -46,11 +46,11 @@
          [{xmlel,undefined,[],previous,[{xmlattr,undefined,<<"with">>,
                                          <<"balcony@house.capulet.com">>},
                                         {xmlattr,undefined,<<"start">>,
-                                         <<"1469-07-21T03:16:37.000000Z">>}], []},
+                                         <<"1469-07-21T03:16:37.000123Z">>}], []},
           {xmlel,undefined,[],next,[{xmlattr,undefined,<<"with">>,
                                      <<"benvolio@montague.net">>},
                                     {xmlattr,undefined,<<"start">>,
-                                     <<"1469-07-21T03:01:54.000000Z">>}], []},
+                                     <<"1469-07-21T03:01:54.000123Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]},
           {xmlel,undefined,[],from,[{xmlattr,undefined,<<"secs">>,<<"0">>}],
            [{xmlel,undefined,[],body,[],
@@ -69,7 +69,7 @@
                [{xmlel,undefined,[],p,[],
                  [{xmlcdata,
                    <<"Neither, fair saint, if either thee dislike.">>}]}]}]}]},
-          {xmlel,undefined,[],note,[{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35Z">>}],
+          {xmlel,undefined,[],note,[{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35.000123Z">>}],
            [{xmlcdata,<<"I think she might fancy me.">>}]}]}).
 
 eunit_xml_report(OutDir) -> ?EUNIT_XML_REPORT(?MODULE, OutDir).
@@ -117,34 +117,34 @@ mysql_test_upload() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'balcony') and (with_server = 'house.capulet.com') "
-                 "and (with_resource is null) and (utc = '1469-07-21 03:16:37') "
+                 "and (with_resource is null) and (utc = '1469-07-21 03:16:37.000123') "
                  "and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54') "
+                 "and (utc = '1469-07-21 03:01:54.000123') "
                  "and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id, version from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') "
                  "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
-                 "and (utc = '1469-07-21 02:56:15')",
+                 "and (utc = '1469-07-21 02:56:15.000123')",
                  {selected, [], []}},
                 {ignore, {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '1469-07-21 02:56:15', "
+                 "name, jid) values (1, '1469-07-21 02:56:15.000123', "
                  "0, 'Art thou not Romeo, and a Montague?', null, null), "
-                 "(1, '1469-07-21 02:56:26', "
+                 "(1, '1469-07-21 02:56:26.000123', "
                  "1, 'Neither, fair saint, if either thee dislike.', null, null), "
-                 "(1, '1469-07-21 02:56:27', "
+                 "(1, '1469-07-21 02:56:27.000123', "
                  "1, '<body>Neither, fair saint, if either thee dislike.</body>"
                  "<html xmlns=\\\"http://jabber.org/protocol/xhtml-im\\\">"
                  "<body xmlns=\\\"http://www.w3.org/1999/xhtml\\\">"
                  "<p xmlns=\\\"\\\">Neither, fair saint, if either thee dislike.</p>"
                  "</body></html>', 'romeo', 'romeo@montague.net'), "
-                 "(1, '1469-07-21 03:04:35', "
+                 "(1, '1469-07-21 03:04:35.000123', "
                  "2, 'I think she might fancy me.', null, null)",
                  {updated, 4}},
                 {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
@@ -169,11 +169,11 @@ mysql_test_retrieve_all_setup() ->
                 {},
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
-                 "(with_resource = 'chamber') and (utc = '1469-07-21 02:56:15') "
+                 "(with_resource = 'chamber') and (utc = '1469-07-21 02:56:15.000123') "
                  "and (deleted <> 1)",
                  {selected, [],
                     [{1, null, null, "client@localhost",
-                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
+                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15.000123",
                       "2009-10-15 07:53:19", 0, "0", "Subject", "12345", 1,
                       "<x><test/></x>"}]}},
                 {"select count(*) from archive_message where (coll_id = 1)",
@@ -181,22 +181,22 @@ mysql_test_retrieve_all_setup() ->
                 {"select * from archive_message where (coll_id = 1) "
                  "order by utc asc",
                  {selected, [],
-                  [{1, 1, "1469-07-21 02:56:15", 0,
+                  [{1, 1, "1469-07-21 02:56:15.000123", 0,
                      "Art thou not Romeo, and a Montague?", undefined,
                      undefined},
-                   {2, 1, "1469-07-21 02:56:26", 1,
+                   {2, 1, "1469-07-21 02:56:26.000123", 1,
                     "Neither, fair saint, if either thee dislike.", null, null},  
-                   {3, 1, "1469-07-21 02:56:27", 1,
+                   {3, 1, "1469-07-21 02:56:27.000123", 1,
                     "<body>Neither, fair saint, if either thee dislike.</body>"
                     "<html xmlns=\"http://jabber.org/protocol/xhtml-im\">"
                     "<body xmlns=\"http://www.w3.org/1999/xhtml\">"
                     "<p xmlns=\"\">Neither, fair saint, if either thee dislike.</p>"
                     "</body></html>", "romeo", "romeo@montague.net"},
-                   {4, 1, "1469-07-21 03:04:35", "2",
+                   {4, 1, "1469-07-21 03:04:35.000123", "2",
                     "I think she might fancy me.", null, null}]}},
                 {"select count(*) from archive_message where (coll_id = 1) and "
-                 "((utc < '1469-07-21 02:56:15') or "
-                 "((utc = '1469-07-21 02:56:15') and (id < 1)))",
+                 "((utc < '1469-07-21 02:56:15.000123') or "
+                 "((utc = '1469-07-21 02:56:15.000123') and (id < 1)))",
                  {selected, [], [{0}]}},
                 {}])
         end).
@@ -206,7 +206,7 @@ common_test_retrieve_all_iq() ->
        exmpp_iq:get(?NS_JABBER_CLIENT,
            exmpp_xml:element(?NS_ARCHIVING, retrieve,
                [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-                exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
+                exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z")],
                []))).
 
 mysql_test_retrieve_all() ->
@@ -239,18 +239,18 @@ mysql_test_update() ->
                 {"select id from archive_collection where (us = 'client@localhost') "
                 "and (with_user = 'balcony') "
                  "and (with_server = 'house.capulet.com') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:16:37') and (deleted <> 1)",
+                 "and (utc = '1469-07-21 03:16:37.000123') and (deleted <> 1)",
                  {selected, [], []}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54') and (deleted <> 1)",
+                 "and (utc = '1469-07-21 03:01:54.000123') and (deleted <> 1)",
                  {selected, [], []}},
                 {},
                 {"select id, version from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') "
                  "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
-                 "and (utc = '1469-07-21 02:56:15')",
+                 "and (utc = '1469-07-21 02:56:15.000123')",
                  {selected, [], [{1, 0}]}},
                 {ignore, {updated, 1}},
                 {}])
@@ -286,10 +286,10 @@ mysql_test_retrieve_max() ->
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') "
                  "and (with_server = 'capulet.com') and (with_resource = 'chamber') "
-                 "and (utc = '1469-07-21 02:56:15') and (deleted <> 1)",
+                 "and (utc = '1469-07-21 02:56:15.000123') and (deleted <> 1)",
                  {selected, [],
                     [{1, null, null, "client@localhost",
-                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15",
+                      "juliet", "capulet.com", "chamber", "1469-07-21 02:56:15.000123",
                       "2009-10-15 07:53:19", 1, "0", "Subject2", "12345", 0,
                       undefined}]}},
                 {"select count(*) from archive_message where (coll_id = 1)",
@@ -297,17 +297,17 @@ mysql_test_retrieve_max() ->
                 {"select * from archive_message where (coll_id = 1) "
                  "order by utc asc offset 1 limit 2",
                  {selected, [],
-                  [{2, 1, "1469-07-21 02:56:26", 1,
+                  [{2, 1, "1469-07-21 02:56:26.000123", 1,
                     "Neither, fair saint, if either thee dislike.", null, null},
-                   {3, 1, "1469-07-21 02:56:27", 1,
+                   {3, 1, "1469-07-21 02:56:27.000123", 1,
                     "<body>Neither, fair saint, if either thee dislike.</body>"
                     "<html xmlns=\"http://jabber.org/protocol/xhtml-im\">"
                     "<body xmlns=\"http://www.w3.org/1999/xhtml\">"
                     "<p xmlns=\"\">Neither, fair saint, if either thee dislike.</p>"
                     "</body></html>", "romeo", "romeo@montague.net"}]}},
                 {"select count(*) from archive_message where (coll_id = 1) and "
-                 "((utc < '1469-07-21 02:56:26') or "
-                 "((utc = '1469-07-21 02:56:26') and (id < 2)))",
+                 "((utc < '1469-07-21 02:56:26.000123') or "
+                 "((utc = '1469-07-21 02:56:26.000123') and (id < 2)))",
                  {selected, [], [{1}]}},
                 {}])
         end),
@@ -321,7 +321,7 @@ common_test_retrieve_max() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
                         [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber"),
-                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
+                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z")],
                         [exmpp_xml:element("http://jabber.org/protocol/rsm",
                          set,
                              [],
@@ -336,7 +336,7 @@ mysql_test_retrieve_empty() ->
                 {},
                 {"select * from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'capulet.com') and "
-                 "(with_resource = 'NOT_EXISTING') and (utc = '1469-07-21 02:56:15') "
+                 "(with_resource = 'NOT_EXISTING') and (utc = '1469-07-21 02:56:15.000123') "
                  "and (deleted <> 1)",
                  {selected, [], []}},
                 {}])
@@ -351,6 +351,6 @@ common_test_retrieve_empty() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, retrieve,
                         [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/NOT_EXISTING"),
-                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15Z")],
+                         exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z")],
                         []))),
             false).

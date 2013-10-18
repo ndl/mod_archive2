@@ -26,10 +26,11 @@
 -module(mod_archive2_time).
 -author('xmpp@endl.ch').
 
--export([start/0, start/1, now/0]).
+-export([start/0, start/1, now/0, timestamp/0]).
+-compile({no_auto_import, [now/0]}).
 
 -define(MOD_ARCHIVE2_TIME_KEY, list_to_atom(atom_to_list(?MODULE) ++ "_key")).
--define(DEFAULT_TIME, {{2010, 1, 2}, {3, 4, 5}}).
+-define(DEFAULT_TIME, {{2010, 1, 2}, {3, 4, 5, 0}}).
 
 start() ->
     put(?MOD_ARCHIVE2_TIME_KEY, [?DEFAULT_TIME]).
@@ -41,14 +42,14 @@ now() ->
     case get(?MOD_ARCHIVE2_TIME_KEY) of
         undefined ->
             put(?MOD_ARCHIVE2_TIME_KEY,
-                [calendar:gregorian_seconds_to_datetime(
-                    calendar:datetime_to_gregorian_seconds(?DEFAULT_TIME) + 1)]),
+                [mod_archive2_utils:microseconds_to_datetime(
+                    mod_archive2_utils:datetime_to_microseconds(?DEFAULT_TIME) + 1000000)]),
             datetime_to_now(?DEFAULT_TIME);
         [Time | Times] ->
             if Times =:= [] ->
                     put(?MOD_ARCHIVE2_TIME_KEY,
-                        [calendar:gregorian_seconds_to_datetime(
-                            calendar:datetime_to_gregorian_seconds(Time) + 1)]);
+                        [mod_archive2_utils:microseconds_to_datetime(
+                            mod_archive2_utils:datetime_to_microseconds(Time) + 1000000)]);
                true ->
                 put(?MOD_ARCHIVE2_TIME_KEY, Times)
             end,
@@ -56,7 +57,11 @@ now() ->
     end.
 
 datetime_to_now(DateTime) ->
-    Secs =
-        calendar:datetime_to_gregorian_seconds(DateTime) -
-        calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-    {Secs div 1000000, Secs rem 1000000, 0}.
+    MicroSecs =
+        mod_archive2_utils:datetime_to_microseconds(DateTime) -
+        mod_archive2_utils:datetime_to_microseconds({{1970, 1, 1}, {0, 0, 0, 0}}),
+    Secs = MicroSecs div 1000000,
+    {Secs div 1000000, Secs rem 1000000, MicroSecs rem 1000000}.
+
+timestamp() ->
+    now().

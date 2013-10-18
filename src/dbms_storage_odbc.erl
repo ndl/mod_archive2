@@ -260,7 +260,7 @@ handle_query({transaction, F}, DbInfo) ->
 %%      'C' where C is bound in fun head to the whole record.
 %%    * 'ok' atom for queries returning no results.
 %%   No other forms are allowed: specifically, no variables that are not part
-%%%  of tuple, constants, lists or whatever are allowed, as values tuples is the
+%%   of tuple, constants, lists or whatever are allowed, as values tuples is the
 %%   only way SQL will return us its results.
 %%
 %% - The set of supported functions and operators is also quite limited: if you
@@ -750,17 +750,6 @@ decode(Value, bool, TableInfo) ->
         1 -> true
     end;
 
-% Some SQL drivers (currently erlang pgsql only?) do us a favor and parse time
-% structure on their own. This results in a problem, though, because
-% Erlang datetime representation doesn't have milliseconds / microseconds.
-%
-% pgsql seems to solve this by introducing floating-point seconds
-% (unless integer_datetimes is set to on?), therefore we assume seconds
-% to be floating-point and extract microseconds from there, hoping for enough
-% floating-point precision.
-decode({{_, _, _} = D, {H, M, S}}, time, _TableInfo) ->
-    {D, {H, M, S, trunc((S - trunc(S)) * 1000000)}};
-
 decode(Value, time, _TableInfo) ->
     parse_sql_datetime(Value);
 
@@ -810,8 +799,10 @@ parse_sql_time(Time) ->
         case string:str(Time, ".") of
             N when N > 0 ->
                 [HMS2, MicroSecs2] = string:tokens(Time, "."),
-                {trunc(list_to_float("0." ++ MicroSecs2) * 1000000), HMS2};
-            _ -> {0, Time}
+                MicroSecs3 = io_lib:format("~-6..0s", [MicroSecs2]),
+                {list_to_integer(lists:flatten(MicroSecs3)), HMS2};
+            _ ->
+                {0, Time}
         end,
     [H, M, S] = string:tokens(HMS, ":"),
     {list_to_integer(H), list_to_integer(M), list_to_integer(S), MicroSecs}.

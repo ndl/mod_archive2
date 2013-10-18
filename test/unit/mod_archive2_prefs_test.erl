@@ -839,9 +839,9 @@ test_prefs_cache_expire(_) ->
         mod_archive2_prefs:expire_prefs_cache(create_auto_states_with(true)).
 
 test_prefs_threads_expire(_) ->
-    Time1 = {{2010, 1, 2}, {3, 4, 5}},
-    Time2 = {{2010, 1, 2}, {3, 4, 7}},
-    Time3 = {{2010, 1, 2}, {3, 34, 6}},
+    Time1 = {{2010, 1, 2}, {3, 4, 5, 0}},
+    Time2 = {{2010, 1, 2}, {3, 4, 7, 0}},
+    Time3 = {{2010, 1, 2}, {3, 34, 6, 0}},
     AutoStates = create_auto_states_threads(
         true,
         [{<<"123">>, {thread_info, Time1, body}},
@@ -853,9 +853,9 @@ test_prefs_threads_expire(_) ->
         mod_archive2_prefs:expire_threads(AutoStates, 1800).
 
 test_prefs_threads_expiration_reset(_) ->
-    Time1 = {{2010, 1, 2}, {3, 4, 5}},
-    Time2 = {{2010, 1, 2}, {3, 4, 7}},
-    Time3 = {{2010, 1, 2}, {3, 34, 6}},
+    Time1 = {{2010, 1, 2}, {3, 4, 5, 0}},
+    Time2 = {{2010, 1, 2}, {3, 4, 7, 0}},
+    Time3 = {{2010, 1, 2}, {3, 34, 6, 0}},
     AutoStates = create_auto_states_threads(
         true,
         [{<<"123">>, {thread_info, Time1, body}},
@@ -870,7 +870,7 @@ test_prefs_threads_expiration_reset(_) ->
         mod_archive2_prefs:reset_thread_expiration(exmpp_jid:parse(?JID), <<"123">>, AutoStates).
 
 test_prefs_thread_stream_override(_) ->
-    Time1 = {{2010, 1, 2}, {3, 4, 5}},
+    Time1 = {{2010, 1, 2}, {3, 4, 5, 0}},
     {message, _} =
         mod_archive2_prefs:should_auto_archive(
             exmpp_jid:parse(?JID),

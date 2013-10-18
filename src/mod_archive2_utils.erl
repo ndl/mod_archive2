@@ -35,8 +35,8 @@
          rsm_encode/1,
          rsm_encode/2,
          rsm_decode/1,
-         datetime_string_to_timestamp/1,
-         now_to_datetime/1,
+         parse_datetime/1,
+         current_datetime/0,
          datetime_to_microseconds/1,
          microseconds_to_datetime/1]).
 
@@ -125,23 +125,22 @@ rsm_encode_count(Count, Arr)->
 i2b(I) when is_integer(I) -> list_to_binary(integer_to_list(I));
 i2b(L) when is_list(L)    -> list_to_binary(L).
 
-% yyyy-mm-ddThh:mm:ss[.sss]{Z|{+|-}hh:mm} -> {MegaSecs, Secs, MicroSecs}
-datetime_string_to_timestamp(TimeStr) ->
-    case catch parse_datetime(TimeStr) of
+% yyyy-mm-ddThh:mm:ss[.sss]{Z|{+|-}hh:mm} -> {{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}
+parse_datetime(TimeStr) ->
+    case catch parse_datetime2(TimeStr) of
         {'EXIT', _Err} ->
             undefined;
         TimeStamp ->
             TimeStamp
     end.
 
-parse_datetime(TimeStr) ->
+parse_datetime2(TimeStr) ->
     [Date, Time] = string:tokens(TimeStr, "T"),
     D = parse_date(Date),
-    {T, MS, TZH, TZM} = parse_time(Time),
-    S = calendar:datetime_to_gregorian_seconds({D, T}),
-    S1 = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
-    Seconds = (S - S1) - TZH * 60 * 60 - TZM * 60,
-    {Seconds div 1000000, Seconds rem 1000000, MS}.
+    {{H, M, S}, MS, TZH, TZM} = parse_time(Time),
+    MS1 = datetime_to_microseconds({D, {H, M, S, MS}}),
+    MS2 = MS1 - 1000000 * (TZH * 60 * 60 + TZM * 60),
+    microseconds_to_datetime(MS2).
 
 % yyyy-mm-dd
 parse_date(Date) ->
@@ -208,6 +207,9 @@ parse_time1(Time) ->
 now_to_datetime({_, _, MicroSecs} = Now) ->
     {D, {H, M, S}} = calendar:now_to_datetime(Now),
     {D, {H, M, S, MicroSecs}}.
+
+current_datetime() ->
+    now_to_datetime(mod_archive2_time:timestamp()).
 
 datetime_to_microseconds({D, {H, M, S, MicroSecs}}) ->
     Secs = calendar:datetime_to_gregorian_seconds({D, {H, M, S}}),

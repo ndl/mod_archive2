@@ -103,12 +103,12 @@ dbms_storage_mnesia_test_() ->
     ]
 }.
 
--define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59, 0}},
+-define(RECORD1, #archive_message{utc = {{2000, 12, 31}, {23, 59, 59, 456}},
                                   direction = from,
                                   body = [{xmlcdata, <<"Hi!">>}],
                                   name = "me"}).
 
--define(RECORD2, #archive_message{utc = {{1999, 11, 30}, {19, 01, 02, 0}},
+-define(RECORD2, #archive_message{utc = {{1999, 11, 30}, {19, 01, 02, 456000}},
                                   direction = from,
                                   body = [{xmlcdata, <<"Hi there!">>}],
                                   name = "smb"}).
@@ -136,11 +136,11 @@ mysql_test_read(Pid) ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null)",
+                 "name, jid) values (null, '2000-12-31 23:59:59.000456', 0, 'Hi!', 'me', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_message where id = 1",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0", "Hi!",
+                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0", "Hi!",
                   "me", null}]}},
                 {"delete from archive_message where id = 1",
                  {updated, 1}},
@@ -167,8 +167,8 @@ mysql_test_insert1() ->
                 {},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values "
-                 "(null, '2000-12-31 23:59:59', 0, 'Hi!', 'me', null), "
-                 "(null, '1999-11-30 19:01:02', 0, 'Hi there!', 'smb', null)",
+                 "(null, '2000-12-31 23:59:59.000456', 0, 'Hi!', 'me', null), "
+                 "(null, '1999-11-30 19:01:02.456000', 0, 'Hi there!', 'smb', null)",
                  {updated, 2}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {}])
@@ -188,9 +188,9 @@ mysql_test_select1() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_message where (direction = 0)",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
+                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
                                   "Hi!", "me", null},
-                                 {2, null, "1999-11-30 19:01:02", "0",
+                                 {2, null, "1999-11-30 19:01:02.456000", "0",
                                   "Hi there!", "smb", null}]}},
                 {}])
         end),
@@ -211,7 +211,7 @@ mysql_test_select2() ->
                 {},
                 {"select * from archive_message where (direction = 0) order by "
                  "name asc offset 1 limit 2",
-                 {selected, [], [{1, null, "1999-11-30 19:01:02", "0",
+                 {selected, [], [{1, null, "1999-11-30 19:01:02.456000", "0",
                                   "Hi there!", "smb", null}]}},
                 {}])
         end),
@@ -233,7 +233,7 @@ mysql_test_select3() ->
                 {},
                 {"select * from archive_message where (direction = 0) order by "
                  "name desc offset 1 limit 2",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
+                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
                                   "Hi!", "me", null}]}},
                 {}])
         end),
@@ -338,13 +338,13 @@ mysql_test_select8() ->
                 {},
                 {"select max(utc) from archive_message where (direction = 0) "
                 "order by utc asc limit 1",
-                 {selected, [], [{"1999-11-30 19:01:02"}]}},
+                 {selected, [], [{"1999-11-30 19:01:02.456000"}]}},
                 {}])
         end),
     common_test_select8().
 
 common_test_select8() ->
-    {atomic, {selected, [{{{1999, 11, 30}, {19, 01, 02}}}]}} =
+    {atomic, {selected, [{{{1999, 11, 30}, {19, 01, 02, 456000}}}]}} =
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
@@ -449,7 +449,7 @@ mysql_test_update1() ->
             ejabberd_odbc:start([
                 {},
                 {"select * from archive_message where (name = 'me')",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59", "0",
+                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
                                   "Hi!", "me", null}]}},
                 {"update archive_message set name = 'other' where id = 1",
                  {updated, 1}},
