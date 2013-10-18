@@ -392,11 +392,12 @@
                           {xmlattr,undefined,<<"type">>,<<"set">>},
                           {xmlattr,undefined,<<"id">>,<<"push">>}],
                          [{xmlel,?NS_ARCHIVING,
-                                 [{?NS_ARCHIVING,none}],
-                                 auto,
-                                 [{xmlattr,undefined,<<"save">>,<<"false">>},
-                                  {xmlattr,undefined,<<"scope">>,<<"global">>}],
-                                 []}]}}).
+                              [{?NS_ARCHIVING,none}],
+                              pref,[],
+                              [{xmlel,?NS_ARCHIVING,[],auto,
+                                   [{xmlattr,undefined,<<"save">>,<<"false">>},
+                                    {xmlattr,undefined,<<"scope">>,<<"global">>}],
+                                   []}]}]}}).
 
 -define(PREFS_TC7_CHANGE_RESULT,
     {received_packet,iq,"result",

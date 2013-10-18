@@ -86,7 +86,9 @@ auto(From, #iq{type = Type, payload = AutoEl} = IQ, AutoStates, XmppApi) ->
                             us = exmpp_jid:prep_bare_to_list(From),
                             auto_save = AutoSave},
                     store_global_prefs(GlobalPrefs),
-                    XmppApi:broadcast_iq(From, IQ),
+                    XmppApi:broadcast_iq(From,
+                        IQ#iq{payload =
+                            exmpp_xml:element(?NS_ARCHIVING, pref, [], [AutoEl])}),
                     {auto_states, clear_with_auto_states(From, AutoStates)}
                 end,
             dbms_storage:transaction(
