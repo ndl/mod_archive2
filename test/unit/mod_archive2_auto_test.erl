@@ -548,7 +548,7 @@ mysql_test_remove_open() ->
                  {selected, [], [{2}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
-                 "(deleted <> 1) order by utc, id asc",
+                 "(deleted <> 1) order by utc asc, id asc",
                  {selected, [],
                   [{1, "juliet", "example.com", "chamber", "2010-01-02 03:04:05.123456", 2},
                    {3, "darkcave", "chat.shakespeare.lit", null, "2010-01-02 05:04:07.123456", 0}]}},

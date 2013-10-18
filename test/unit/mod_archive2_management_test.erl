@@ -166,7 +166,7 @@ mysql_test_list_all() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc",
+                 "and (deleted <> 1) order by utc asc, id asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15.000123", 1},
                                  {3, "benvolio", "montague.net", undefined,
@@ -200,7 +200,7 @@ mysql_test_list_max() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
-                 "(deleted <> 1) order by utc, id asc limit 1",
+                 "(deleted <> 1) order by utc asc, id asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -249,7 +249,7 @@ mysql_test_list_index() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc offset 1 limit 1",
+                 "and (deleted <> 1) order by utc asc, id asc offset 1 limit 1",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -274,7 +274,7 @@ mysql_test_list_after() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc limit 1",
+                 "and (deleted <> 1) order by utc asc, id asc limit 1",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -290,7 +290,7 @@ mysql_test_list_after() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(deleted <> 1) and "
                  "((utc > '1469-07-21 02:56:15.000123') or ((utc = '1469-07-21 02:56:15.000123') "
-                 "and (id > 1))) order by utc, id asc limit 2",
+                 "and (id > 1))) order by utc asc, id asc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", 1},
                                  {2, "balcony", "house.capulet.com", undefined,
@@ -332,7 +332,7 @@ mysql_test_list_before() ->
                  {selected, [], [{3}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc offset 2 limit 1",
+                 "and (deleted <> 1) order by utc asc, id asc offset 2 limit 1",
                  {selected, [], [{2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -348,7 +348,7 @@ mysql_test_list_before() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(deleted <> 1) and "
                  "((utc < '1469-07-21 03:16:37.000123') or ((utc = '1469-07-21 03:16:37.000123') "
-                 "and (id < 2))) order by utc, id desc limit 2",
+                 "and (id < 2))) order by utc desc, id desc limit 2",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", 1},
                                  {1, "juliet", "capulet.com", "chamber",
@@ -394,7 +394,7 @@ mysql_test_list_start_end() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(deleted <> 1) and "
                  "(utc >= '1469-07-21 03:01:54.000123') and (utc < '1469-07-21 03:16:37.000123') "
-                 "order by utc, id asc",
+                 "order by utc asc, id asc",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -432,7 +432,7 @@ mysql_test_list_with() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(with_user = 'juliet') and (with_server = 'capulet.com') and "
                  "(deleted <> 1) and "
-                 "(utc < '1469-07-21 03:16:37.000123') order by utc, id asc",
+                 "(utc < '1469-07-21 03:16:37.000123') order by utc asc, id asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                   "1469-07-21 02:56:15.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -507,7 +507,7 @@ mysql_test_remove_single() ->
                  {selected, [], [{2}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc",
+                 "and (deleted <> 1) order by utc asc, id asc",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", 1},
                                  {2, "balcony", "house.capulet.com", undefined,
@@ -606,7 +606,7 @@ mysql_test_remove_range(_) ->
                  {selected, [], [{1}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) order by utc, id asc",
+                 "and (deleted <> 1) order by utc asc, id asc",
                  {selected, [], [{2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37.000123", 1}]}},
                  {"select count(*) from archive_collection where "
@@ -651,7 +651,7 @@ mysql_test_modified1() ->
                 {"select id, with_user, with_server, with_resource, utc, "
                  "change_utc, version, deleted "
                  "from archive_collection where (us = 'client@localhost') "
-                 "order by change_utc, id asc",
+                 "order by change_utc asc, id asc",
                  {selected, [], [{3, "benvolio", "montague.net", undefined,
                                   "1469-07-21 03:01:54.000123", "2000-12-31 23:59:59.007890", 1, 0},
                                  {2, "balcony", "house.capulet.com", undefined,
@@ -687,7 +687,7 @@ mysql_test_modified2() ->
                  "change_utc, version, deleted "
                  "from archive_collection where (us = 'client@localhost') "
                  "and (change_utc >= '2001-01-01 00:00:00.007890') "
-                 "order by change_utc, id asc",
+                 "order by change_utc asc, id asc",
                  {selected, [], [{2, "balcony", "house.capulet.com", undefined,
                                   "1469-07-21 03:16:37.000123", "2001-12-31 23:59:59.007890", 1, 0},
                                  {1, "juliet", "capulet.com", "chamber",

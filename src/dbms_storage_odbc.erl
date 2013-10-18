@@ -90,10 +90,9 @@ handle_query({select, MS, Opts}, DbInfo) ->
             _ ->
                 "order by " ++
                 string:join(
-                    [atom_to_list(lists:nth(OrderByField - 1, TableInfo#table.fields)) ||
-                     OrderByField <- OrderByFields], ", ") ++
-                " " ++
-                atom_to_list(OrderType)
+                    [atom_to_list(lists:nth(OrderByField - 1, TableInfo#table.fields)) ++
+                     " " ++ atom_to_list(OrderType) ||
+                     OrderByField <- OrderByFields], ", ")
         end,
     OffsetClause =
         case Offset of
