@@ -26,7 +26,10 @@
 -module(mod_archive2_time).
 -author('xmpp@endl.ch').
 
--export([now/0]).
+-export([now/0, timestamp/0]).
 
 now() ->
     erlang:now().
+
+timestamp() ->
+    os:timestamp().

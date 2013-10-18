@@ -40,8 +40,9 @@ mod_archive2_utils_test_() ->
     fun utils_tests_setup/0,
     fun utils_tests_teardown/1,
     [
-        ?test_gen1(test_datetime_string_to_timestamp),
-        ?test_gen1(test_datetime_string_to_timestamp2)
+        ?test_gen1(test_parse_datetime),
+        ?test_gen1(test_parse_datetime2),
+        ?test_gen1(test_parse_datetime3)
     ]
  }.
 
@@ -49,8 +50,11 @@ utils_tests_setup() -> exmpp:start().
 
 utils_tests_teardown(_) -> ok.
 
-test_datetime_string_to_timestamp(_) ->
-    {-15792,-612203,0} = mod_archive2_utils:datetime_string_to_timestamp("1469-07-21T03:16:37Z").
+test_parse_datetime(_) ->
+    {{1469, 07, 21}, {03, 16, 37, 0}} = mod_archive2_utils:parse_datetime("1469-07-21T03:16:37Z").
 
-test_datetime_string_to_timestamp2(_) ->
-    {-15792,-612203,0} = mod_archive2_utils:datetime_string_to_timestamp("1469-07-21T03:16:37.000000Z").
+test_parse_datetime2(_) ->
+    {{1469, 07, 21}, {03, 16, 37, 12340}} = mod_archive2_utils:parse_datetime("1469-07-21T03:16:37.012340Z").
+
+test_parse_datetime3(_) ->
+    {{1469, 07, 21}, {05, 30, 37, 12340}} = mod_archive2_utils:parse_datetime("1469-07-21T03:16:37.012340-02:14").

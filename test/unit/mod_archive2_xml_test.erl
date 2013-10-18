@@ -42,7 +42,7 @@
             with_user = "juliet",
             with_server = "capulet.com",
             with_resource = "chamber",
-            utc = {{1469, 07, 21}, {02, 56, 15, 0}},
+            utc = {{1469, 07, 21}, {02, 56, 15, 123}},
             version = 1,
             deleted = false,
             subject = "Subject",
@@ -53,7 +53,7 @@
 -define(ARCHIVE_COLLECTION_NO_LINKS_XML,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
@@ -63,7 +63,7 @@
 -define(ARCHIVE_COLLECTION_WITH_LINKS_XML,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
@@ -71,17 +71,17 @@
          [{xmlel,undefined,[],previous,[{xmlattr,undefined,<<"with">>,
                                          <<"balcony@house.capulet.com">>},
                                         {xmlattr,undefined,<<"start">>,
-                                         <<"1469-07-21T03:16:37.000000Z">>}], []},
+                                         <<"1469-07-21T03:16:37.000123Z">>}], []},
           {xmlel,undefined,[],next,[{xmlattr,undefined,<<"with">>,
                                      <<"benvolio@montague.net">>},
                                     {xmlattr,undefined,<<"start">>,
-                                     <<"1469-07-21T03:01:54.000000Z">>}], []},
+                                     <<"1469-07-21T03:01:54.000123Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
 -define(ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML,
         {xmlel,undefined,[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+          {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
@@ -93,7 +93,7 @@
 -define(ARCHIVE_MESSAGE1,
         #archive_message{
             direction = from,
-            utc = {{1469, 07, 21}, {02, 56, 15, 0}},
+            utc = {{1469, 07, 21}, {02, 56, 15, 123}},
             body = [{xmlcdata, <<"Art thou not Romeo, and a Montague?">>}]}).
 
 -define(ARCHIVE_MESSAGE1_XML,
@@ -105,7 +105,7 @@
 -define(ARCHIVE_MESSAGE2,
         #archive_message{
             direction = to,
-            utc = {{1469, 07, 21}, {02, 56, 26, 0}},
+            utc = {{1469, 07, 21}, {02, 56, 26, 123}},
             name = "romeo",
             jid = "romeo@montague.net",
             body = [{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]}).
@@ -120,7 +120,7 @@
 
 -define(ARCHIVE_MESSAGE2_UTC_XML,
         {xmlel,undefined,[],to,
-         [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T02:56:26.000000Z">>},
+         [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T02:56:26.000123Z">>},
           {xmlattr,undefined,<<"name">>,<<"romeo">>},
           {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
          [{xmlel,undefined,[],body,[],
@@ -129,18 +129,18 @@
 -define(ARCHIVE_MESSAGE3,
         #archive_message{
             direction = note,
-            utc = {{1469, 07, 21}, {03, 04, 35, 0}},
+            utc = {{1469, 07, 21}, {03, 04, 35, 123}},
             body = [{xmlcdata, <<"I think she might fancy me.">>}]}).
 
 -define(ARCHIVE_MESSAGE3_XML,
         {xmlel,undefined,[],note,
-         [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35.000000Z">>}],
+         [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35.000123Z">>}],
          [{xmlcdata,<<"I think she might fancy me.">>}]}).
 
 -define(ARCHIVE_MESSAGE4,
         #archive_message{
             direction = to,
-            utc = {{1469, 07, 21}, {02, 56, 26, 0}},
+            utc = {{1469, 07, 21}, {02, 56, 26, 123}},
             name = "romeo",
             jid = "romeo@montague.net",
             body = [{xmlel,undefined,[],body,[],[{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]},
@@ -175,7 +175,7 @@
      [{xmlcdata,<<"Test">>}],
      undefined,undefined}).
 
--define(START, {{1469, 07, 21}, {02, 56, 15, 0}}).
+-define(START, {{1469, 07, 21}, {02, 56, 15, 123}}).
 
 -define(EXTERNAL_MESSAGE1_XML,
     {xmlel,'jabber:client',
@@ -313,14 +313,14 @@
 -define(MODIFIED1_XML,
     {xmlel,undefined,[],changed,
        [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-        {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+        {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
         {xmlattr,undefined,<<"version">>,<<"1">>}],
        []}).
 
 -define(MODIFIED2_XML,
     {xmlel,undefined,[],removed,
        [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
-        {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000000Z">>},
+        {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
         {xmlattr,undefined,<<"version">>,<<"1">>}],
        []}).
 
@@ -403,7 +403,7 @@ test_collection_from_xml(_) ->
 
 test_collection_from_xml_empty_links(_) ->
     {archive_collection,undefined,null,null,"client@localhost","juliet",
-     "capulet.com","chamber", {{1469,7,21},{2,56,15, 0}},
+     "capulet.com","chamber", {{1469,7,21},{2,56,15, 123}},
      _,1,false,"Subject","12345",true,null} =
     mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
@@ -581,8 +581,8 @@ test_modified1_to_xml(_) ->
                 with_user = "juliet",
                 with_server = "capulet.com",
                 with_resource = "chamber",
-                utc = {{1469, 07, 21}, {02, 56, 15, 0}},
-                change_utc = {{2000, 12, 31}, {23, 59, 59, 0}},
+                utc = {{1469, 07, 21}, {02, 56, 15, 123}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59, 7890}},
                 version = 1,
                 deleted = false}).
 
@@ -594,8 +594,8 @@ test_modified2_to_xml(_) ->
                 with_user = "juliet",
                 with_server = "capulet.com",
                 with_resource = "chamber",
-                utc = {{1469, 07, 21}, {02, 56, 15, 0}},
-                change_utc = {{2000, 12, 31}, {23, 59, 59, 0}},
+                utc = {{1469, 07, 21}, {02, 56, 15, 123}},
+                change_utc = {{2000, 12, 31}, {23, 59, 59, 7890}},
                 version = 1,
                 deleted = true}).
 
@@ -613,36 +613,36 @@ mysql_test_links(Pid) ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
-                 "'1469-07-21 02:56:15', '2002-12-31 23:59:59', 1, 0, null, "
+                 "'1469-07-21 02:56:15.000123', '2002-12-31 23:59:59.007890', 1, 0, null, "
                  "null, null, null), "
                  "(null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
-                 "'1469-07-21 03:16:37', '2001-12-31 23:59:59', 1, 0, null, "
+                 "'1469-07-21 03:16:37.000123', '2001-12-31 23:59:59.007890', 1, 0, null, "
                  "null, null, null), "
                  "(null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
-                 "'1469-07-21 03:01:54', '2000-12-31 23:59:59', 1, 0, null, "
+                 "'1469-07-21 03:01:54.000123', '2000-12-31 23:59:59.007890', 1, 0, null, "
                  "null, null, null)",
                  {updated, 3}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'balcony') "
                  "and (with_server = 'house.capulet.com') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:16:37') and (deleted <> 1)",
+                 "and (utc = '1469-07-21 03:16:37.000123') and (deleted <> 1)",
                  {selected, [], [{2}]}},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'benvolio') "
                  "and (with_server = 'montague.net') and (with_resource is null) "
-                 "and (utc = '1469-07-21 03:01:54') and (deleted <> 1)",
+                 "and (utc = '1469-07-21 03:01:54.000123') and (deleted <> 1)",
                  {selected, [], [{3}]}},
                 {"select with_user, with_server, with_resource, utc from "
                  "archive_collection where (id = 2) and (deleted <> 1)",
                  {selected, [], [{"balcony", "house.capulet.com", undefined,
-                                  "1469-07-21 03:16:37"}]}},
+                                  "1469-07-21 03:16:37.000123"}]}},
                 {"select with_user, with_server, with_resource, utc from "
                  "archive_collection where (id = 3) and (deleted <> 1)",
                  {selected, [], [{"benvolio", "montague.net", undefined,
-                                  "1469-07-21 03:01:54"}]}},
+                                  "1469-07-21 03:01:54.000123"}]}},
                 {}])
         end),
     common_test_links(Pid).

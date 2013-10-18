@@ -119,8 +119,8 @@
                 {{[],[],
                   [[{no_thread,undefined}|
                     {session,
-                     {{2010,1,2},{4,4,7}},
-                     {{2010,1,2},{4,4,7}},
+                     {{2010,1,2},{4,4,7,123456}},
+                     {{2010,1,2},{4,4,7,123456}},
                      1,0,undefined}]],
                   [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
              [],
@@ -132,8 +132,8 @@
                 {{[],[],
                   [[{no_thread,undefined}|
                     {session,
-                     {{2010,1,2},{5,4,7}},
-                     {{2010,1,2},{5,4,7}},
+                     {{2010,1,2},{5,4,7,123456}},
+                     {{2010,1,2},{5,4,7,123456}},
                      2,0,undefined}]],
                   [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
              [],[],[],[],[],[],[]}}}).
@@ -150,8 +150,8 @@
             {{[],[],
               [[{no_thread,undefined}|
                 {session,
-                 {{2010,1,2},{5,4,7}},
-                 {{2010,1,2},{5,4,7}},
+                 {{2010,1,2},{5,4,7,123456}},
+                 {{2010,1,2},{5,4,7,123456}},
                  2,0,undefined}]],
               [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
          [],[],[],[],[],[],[]}}}).
@@ -169,7 +169,7 @@
        {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
        {{[],[],
          [[{no_thread,undefined}|
-           {session,{{2010,1,2},{5,4,7}},{{2010,1,2},{5,4,7}},_,0,undefined}]],
+           {session,{{2010,1,2},{5,4,7,123456}},{{2010,1,2},{5,4,7,123456}},_,0,undefined}]],
          [],[],[],[],[],[],[],[],[],[],[],[],[]}}}]],
     [],[],[],[]}}}}).
 
@@ -252,38 +252,38 @@ mysql_test_auto_new_and_update() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'example.com') "
-                 "and (with_resource is null) and (utc = '2010-01-02 03:04:05') "
+                 "and (with_resource is null) and (utc = '2010-01-02 03:04:05.123456') "
                  "and (deleted <> 1)", {selected, [], []}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
-                 "'juliet', 'example.com', null, '2010-01-02 03:04:05', "
-                 "'2010-01-02 03:04:05', 0, 0, null, null, null, null)",
+                 "'juliet', 'example.com', null, '2010-01-02 03:04:05.123456', "
+                 "'2010-01-02 03:04:05.123456', 0, 0, null, null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:05', 1, 'Art thou not "
+                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {},
                 {},
                 {"update archive_collection set with_resource = 'balcony', "
-                 "change_utc = '2010-01-02 03:04:06', version = 1, "
+                 "change_utc = '2010-01-02 03:04:06.123456', version = 1, "
                  "subject = 'Incompetence', thread = null where id = 1",
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:06', 0, "
+                 "name, jid) values (1, '2010-01-02 03:04:06.123456', 0, "
                  "'That\\'s my line, idiot!!!', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {},
                 {},
                 {"update archive_collection set with_resource = 'balcony', "
-                 "change_utc = '2010-01-02 03:04:07', version = 2, "
+                 "change_utc = '2010-01-02 03:04:07.123456', version = 2, "
                  "subject = 'Sorry', thread = null where id = 1",
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:07', 1, "
+                 "name, jid) values (1, '2010-01-02 03:04:07.123456', 1, "
                  "'Sorry, that\\'s due to that extra beer ...', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
@@ -291,34 +291,34 @@ mysql_test_auto_new_and_update() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'example.com') "
-                 "and (with_resource is null) and (utc = '2010-01-02 04:04:07') "
+                 "and (with_resource is null) and (utc = '2010-01-02 04:04:07.123456') "
                  "and (deleted <> 1)", {selected, [], []}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
-                 "'juliet', 'example.com', null, '2010-01-02 04:04:07', "
-                 "'2010-01-02 04:04:07', 0, 0, null, null, null, null)",
+                 "'juliet', 'example.com', null, '2010-01-02 04:04:07.123456', "
+                 "'2010-01-02 04:04:07.123456', 0, 0, null, null, null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (2, '2010-01-02 04:04:07', 1, 'Art thou not "
+                 "name, jid) values (2, '2010-01-02 04:04:07.123456', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
                 {},
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'darkcave') and (with_server = 'chat.shakespeare.lit') "
-                 "and (with_resource is null) and (utc = '2010-01-02 05:04:07') "
+                 "and (with_resource is null) and (utc = '2010-01-02 05:04:07.123456') "
                  "and (deleted <> 1)", {selected, [], []}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'darkcave', 'chat.shakespeare.lit', null, "
-                 "'2010-01-02 05:04:07', '2010-01-02 05:04:07', 0, 0, null, "
+                 "'2010-01-02 05:04:07.123456', '2010-01-02 05:04:07.123456', 0, 0, null, "
                  "null, null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (3, '2010-01-02 05:04:07', 0, "
+                 "name, jid) values (3, '2010-01-02 05:04:07.123456', 0, "
                  "'Harpier cries: \\'tis time, \\'tis time.', 'thirdwitch', null)",
                  {selected, [], []}},
                 {"select LAST_INSERT_ID()", {selected, [], [{5}]}},
@@ -329,7 +329,7 @@ mysql_test_auto_new_and_update() ->
 common_test_auto_new_and_update() ->
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 5}},
+            NewTS = {{2010, 1, 2}, {3, 4, 5, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg] =
@@ -344,11 +344,11 @@ common_test_auto_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
-    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 5}}, _, 0, undefined}}] = Threads,
+    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 5, 123456}}, _, 0, undefined}}] = Threads,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 6}},
+            NewTS = {{2010, 1, 2}, {3, 4, 6, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg2] =
@@ -363,11 +363,11 @@ common_test_auto_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
-    [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 6}}, _, 1, "balcony"}}] = Threads2,
+    [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 6, 123456}}, _, 1, "balcony"}}] = Threads2,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 7}},
+            NewTS = {{2010, 1, 2}, {3, 4, 7, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg3] =
@@ -382,11 +382,11 @@ common_test_auto_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
-    [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 7}}, _, 2, "balcony"}}] = Threads3,
+    [{{no_thread, "balcony"}, {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 7, 123456}}, _, 2, "balcony"}}] = Threads3,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {4, 4, 7}},
+            NewTS = {{2010, 1, 2}, {4, 4, 7, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     NewSessions3 =
@@ -399,11 +399,11 @@ common_test_auto_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads4 = dict:to_list(dict:fetch(KeyWith4, NewSessions3)),
-    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7}},
-        {{2010, 1, 2}, {4, 4, 7}}, _, 0, undefined}}] = Threads4,
+    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {4, 4, 7, 123456}},
+        {{2010, 1, 2}, {4, 4, 7, 123456}}, _, 0, undefined}}] = Threads4,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {5, 4, 7}},
+            NewTS = {{2010, 1, 2}, {5, 4, 7, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     NewSessions4 =
@@ -420,8 +420,8 @@ common_test_auto_new_and_update() ->
           {jid,<<"darkcave@chat.shakespeare.lit">>,<<"darkcave">>,<<"chat.shakespeare.lit">>,undefined}}]),
     [KeyWith4 | [KeyWith5]] = KeysWith5,
     Threads5 = dict:to_list(dict:fetch(KeyWith5, NewSessions4)),
-    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {5, 4, 7}},
-      {{2010, 1, 2}, {5, 4, 7}}, _, 0, undefined}}] = Threads5.
+    [{{no_thread, undefined}, {session, {{2010, 1, 2}, {5, 4, 7, 123456}},
+      {{2010, 1, 2}, {5, 4, 7, 123456}}, _, 0, undefined}}] = Threads5.
 
 mysql_test_auto_thread_new_and_update() ->
     dbms_storage:transaction(?HOST,
@@ -431,38 +431,38 @@ mysql_test_auto_thread_new_and_update() ->
                 {},
                 {"select id from archive_collection where (us = 'client@localhost') "
                  "and (with_user = 'juliet') and (with_server = 'example.com') "
-                 "and (with_resource is null) and (utc = '2010-01-02 03:04:05') "
+                 "and (with_resource is null) and (utc = '2010-01-02 03:04:05.123456') "
                  "and (deleted <> 1)", {selected, [], []}},
                 {"insert into archive_collection (prev_id, next_id, us, with_user, "
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, 'client@localhost', "
-                 "'juliet', 'example.com', null, '2010-01-02 03:04:05', "
-                 "'2010-01-02 03:04:05', 0, 0, null, 'thread123', null, null)",
+                 "'juliet', 'example.com', null, '2010-01-02 03:04:05.123456', "
+                 "'2010-01-02 03:04:05.123456', 0, 0, null, 'thread123', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:05', 1, 'Art thou not "
+                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {},
                 {},
                 {"update archive_collection set with_resource = 'balcony', "
-                 "change_utc = '2010-01-02 03:04:06', version = 1, "
+                 "change_utc = '2010-01-02 03:04:06.123456', version = 1, "
                  "subject = 'Incompetence', thread = 'thread123' where id = 1",
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:06', 0, "
+                 "name, jid) values (1, '2010-01-02 03:04:06.123456', 0, "
                  "'That\\'s my line, idiot!!!', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {},
                 {},
                 {"update archive_collection set with_resource = 'chamber', "
-                 "change_utc = '2010-01-02 03:04:07', version = 2, "
+                 "change_utc = '2010-01-02 03:04:07.123456', version = 2, "
                  "subject = 'Sorry', thread = 'thread123' where id = 1",
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:07', 1, "
+                 "name, jid) values (1, '2010-01-02 03:04:07.123456', 1, "
                  "'Sorry, that\\'s due to that extra beer ...', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
@@ -473,7 +473,7 @@ mysql_test_auto_thread_new_and_update() ->
 common_test_auto_thread_new_and_update() ->
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 5}},
+            NewTS = {{2010, 1, 2}, {3, 4, 5, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg] =
@@ -488,11 +488,11 @@ common_test_auto_thread_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads = dict:to_list(dict:fetch(KeyWith, Sessions)),
-    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 5}}, _, 0, undefined}}] = Threads,
+    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 5, 123456}}, _, 0, undefined}}] = Threads,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 6}},
+            NewTS = {{2010, 1, 2}, {3, 4, 6, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg2] =
@@ -507,11 +507,11 @@ common_test_auto_thread_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads2 = dict:to_list(dict:fetch(KeyWith2, NewSessions)),
-    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 6}}, _, 1, "balcony"}}] = Threads2,
+    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 6, 123456}}, _, 1, "balcony"}}] = Threads2,
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2010, 1, 2}, {3, 4, 7}},
+            NewTS = {{2010, 1, 2}, {3, 4, 7, 123456}},
             mod_archive2_time:start(lists:duplicate(10, NewTS))
         end),
     [Msg3] =
@@ -526,8 +526,8 @@ common_test_auto_thread_new_and_update() ->
         {"client@localhost",
          {jid,<<"juliet@example.com">>,<<"juliet">>,<<"example.com">>, undefined}}),
     Threads3 = dict:to_list(dict:fetch(KeyWith3, NewSessions2)),
-    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5}},
-        {{2010, 1, 2}, {3, 4, 7}}, _, 2, "chamber"}}] = Threads3.
+    [{"thread123", {session, {{2010, 1, 2}, {3, 4, 5, 123456}},
+        {{2010, 1, 2}, {3, 4, 7, 123456}}, _, 2, "chamber"}}] = Threads3.
 
 mysql_test_remove_open() ->
     dbms_storage:transaction(?HOST,
@@ -550,11 +550,11 @@ mysql_test_remove_open() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(deleted <> 1) order by utc asc",
                  {selected, [],
-                  [{1, "juliet", "example.com", "chamber", "2010-01-02 03:04:05", 2},
-                   {3, "darkcave", "chat.shakespeare.lit", null, "2010-01-02 05:04:07", 0}]}},
+                  [{1, "juliet", "example.com", "chamber", "2010-01-02 03:04:05.123456", 2},
+                   {3, "darkcave", "chat.shakespeare.lit", null, "2010-01-02 05:04:07.123456", 0}]}},
                 {"select count(*) from archive_collection where (us = 'client@localhost') "
-                 "and (deleted <> 1) and ((utc < '2010-01-02 03:04:05') or "
-                 "((utc = '2010-01-02 03:04:05') and (id < 1)))",
+                 "and (deleted <> 1) and ((utc < '2010-01-02 03:04:05.123456') or "
+                 "((utc = '2010-01-02 03:04:05.123456') and (id < 1)))",
                  {selected, [], [{0}]}},
                 {}])
         end),
@@ -583,7 +583,7 @@ common_test_remove_open(RDBMS) ->
                     exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
 
 common_test_expire() ->
-    NewTS = {{2010, 1, 2}, {5, 33, 7}},
+    NewTS = {{2010, 1, 2}, {5, 33, 7, 123456}},
     mod_archive2_time:start(lists:duplicate(10, NewTS)),
     NewSessions = mod_archive2_auto:expire_sessions(?SESSIONS_TO_EXPIRE, 1800),
     ?EXPIRED_SESSIONS =  NewSessions.

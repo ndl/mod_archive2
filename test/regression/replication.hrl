@@ -93,7 +93,7 @@
         []},
  {xmlel,undefined,[],removed,
         [{xmlattr,undefined,<<"with">>,<<"benvolio@montague.net">>},
-         {xmlattr,undefined,<<"start">>,<<"1469-07-21T03:01:54.000000Z">>},
+         {xmlattr,undefined,<<"start">>,<<"1469-07-21T03:01:54.012340Z">>},
          {xmlattr,undefined,<<"version">>,<<"1">>}],
         []},
  {xmlel,undefined,[],removed,

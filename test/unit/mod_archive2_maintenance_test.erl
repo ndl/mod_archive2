@@ -95,13 +95,13 @@ mysql_test_expire() ->
                  "with_server, with_resource, utc, change_utc, version, deleted, "
                  "subject, thread, crypt, extra) values (null, null, "
                  "'client@localhost', 'juliet', 'capulet.com', 'chamber', "
-                 "'2003-02-01 00:00:00', '2002-12-31 23:59:59', 1, 0, null, "
+                 "'2003-02-01 00:00:00.000000', '2002-12-31 23:59:59.007890', 1, 0, null, "
                  "null, null, null), (null, null, "
                  "'client@localhost', 'balcony', 'house.capulet.com', null, "
-                 "'1469-07-21 03:16:37', '2001-12-31 23:59:59', 1, 1, null, "
+                 "'1469-07-21 03:16:37.000123', '2001-12-31 23:59:59.007890', 1, 1, null, "
                  "null, null, null), (null, null, "
                  "'client@localhost', 'benvolio', 'montague.net', null, "
-                 "'1469-07-21 03:01:54', '2000-12-31 23:59:59', 1, 0, null, "
+                 "'1469-07-21 03:01:54.000123', '2000-12-31 23:59:59.007890', 1, 0, null, "
                  "null, null, null)",
                  {updated, 3}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
@@ -119,19 +119,19 @@ mysql_test_expire() ->
                  "'' and domain_jid_prefs.with_resource = '' and "
                  "domain_jid_prefs.exactmatch = 0 left join archive_global_prefs "
                  "on ac.us = archive_global_prefs.us set deleted = 1, "
-                 "change_utc = '2004-01-01 00:00:00', version = ac.version + 1 "
+                 "change_utc = '2004-01-01 00:00:00.000000', version = ac.version + 1 "
                  "where ac.deleted = 0 and not full_jid_prefs.expire is null and "
                  "timestampadd(second, full_jid_prefs.expire, ac.utc) < "
-                 "'2004-01-01 00:00:00' or not bare_jid_prefs.expire is null and "
+                 "'2004-01-01 00:00:00.000000' or not bare_jid_prefs.expire is null and "
                  "full_jid_prefs.expire is null and timestampadd(second, "
-                 "bare_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:00' or not "
+                 "bare_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:00.000000' or not "
                  "domain_jid_prefs.expire is null and full_jid_prefs.expire is "
                  "null and bare_jid_prefs.expire is null and timestampadd(second, "
-                 "domain_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:00' or "
+                 "domain_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:00.000000' or "
                  "not archive_global_prefs.expire is null and "
                  "domain_jid_prefs.expire is null and full_jid_prefs.expire is "
                  "null and bare_jid_prefs.expire is null and timestampadd(second, "
-                 "archive_global_prefs.expire, ac.utc) < '2004-01-01 00:00:00'",
+                 "archive_global_prefs.expire, ac.utc) < '2004-01-01 00:00:00.000000'",
                  {updated, 1}},
                 {},
                 {"update archive_collection as ac left join archive_jid_prefs as "
@@ -147,27 +147,27 @@ mysql_test_expire() ->
                  "'' and domain_jid_prefs.with_resource = '' and "
                  "domain_jid_prefs.exactmatch = 0 left join archive_global_prefs "
                  "on ac.us = archive_global_prefs.us set deleted = 1, "
-                 "change_utc = '2004-01-01 00:00:01', version = ac.version + 1 "
+                 "change_utc = '2004-01-01 00:00:01.000000', version = ac.version + 1 "
                  "where ac.deleted = 0 and not full_jid_prefs.expire is null and "
                  "timestampadd(second, full_jid_prefs.expire, ac.utc) < "
-                 "'2004-01-01 00:00:01' or not bare_jid_prefs.expire is null and "
+                 "'2004-01-01 00:00:01.000000' or not bare_jid_prefs.expire is null and "
                  "full_jid_prefs.expire is null and timestampadd(second, "
-                 "bare_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:01' or not "
+                 "bare_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:01.000000' or not "
                  "domain_jid_prefs.expire is null and full_jid_prefs.expire is "
                  "null and bare_jid_prefs.expire is null and timestampadd(second, "
-                 "domain_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:01' or "
+                 "domain_jid_prefs.expire, ac.utc) < '2004-01-01 00:00:01.000000' or "
                  "not archive_global_prefs.expire is null and "
                  "domain_jid_prefs.expire is null and full_jid_prefs.expire is "
                  "null and bare_jid_prefs.expire is null and timestampadd(second, "
-                 "archive_global_prefs.expire, ac.utc) < '2004-01-01 00:00:01' "
+                 "archive_global_prefs.expire, ac.utc) < '2004-01-01 00:00:01.000000' "
                  "or archive_global_prefs.expire is null and domain_jid_prefs.expire is "
                  "null and full_jid_prefs.expire is null and bare_jid_prefs.expire is "
                  "null and timestampadd(second, 31536000, ac.utc) < "
-                 "'2004-01-01 00:00:01'",
+                 "'2004-01-01 00:00:01.000000'",
                  {updated, 1}},
                 {"delete from archive_collection where deleted = 1 and "
                  "timestampadd(second, 31536000, archive_collection.change_utc) < "
-                 "'2004-01-01 00:00:01'",
+                 "'2004-01-01 00:00:01.000000'",
                  {updated, 1}},
                 {},
                 {"select count(*) from archive_collection where (us = 'client@localhost') "
@@ -177,10 +177,10 @@ mysql_test_expire() ->
                  "from archive_collection where (us = 'client@localhost') and "
                  "(deleted <> 1) order by utc asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
-                                 "2003-02-01 00:00:00", 1}]}},
+                                 "2003-02-01 00:00:00.000000", 1}]}},
                 {"select count(*) from archive_collection where "
                  "(us = 'client@localhost') and (deleted <> 1) and "
-                 "((utc < '2003-02-01 00:00:00') or ((utc = '2003-02-01 00:00:00') "
+                 "((utc < '2003-02-01 00:00:00.000000') or ((utc = '2003-02-01 00:00:00.000000') "
                  "and (id < 1)))",
                  {selected, [], [{0}]}},
                 {}])
@@ -193,7 +193,7 @@ mnesia_test_expire() ->
 common_test_expire(RDBMS) ->
     dbms_storage:transaction(?HOST,
         fun() ->
-            NewTS = {{2004, 1, 1}, {0, 0, 0}},
+            NewTS = {{2004, 1, 1}, {0, 0, 0, 0}},
             mod_archive2_time:start([NewTS])
         end),
     {atomic, {inserted, 3, _Key}} =
@@ -201,7 +201,7 @@ common_test_expire(RDBMS) ->
             fun() ->
                 dbms_storage:insert([
                     (?ARCHIVE_COLLECTION1)#archive_collection{
-                      utc = {{2003, 02, 01}, {0, 0, 0}}},
+                      utc = {{2003, 02, 01}, {0, 0, 0, 0}}},
                     (?ARCHIVE_COLLECTION2)#archive_collection{
                       deleted = true},
                     ?ARCHIVE_COLLECTION3])

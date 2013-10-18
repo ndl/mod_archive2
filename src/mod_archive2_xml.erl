@@ -136,7 +136,7 @@ collection_from_xml(From, XC) ->
                 with_resource = exmpp_jid:prep_resource_as_list(With),
                 utc = datetime_from_xml(
                     exmpp_xml:get_attribute_as_list(XC, <<"start">>, undefined)),
-                change_utc = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
+                change_utc = mod_archive2_utils:current_datetime(),
                 version =
                     case exmpp_xml:get_attribute_as_list(XC, <<"version">>, undefined) of
                         undefined -> undefined;
@@ -463,7 +463,7 @@ datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}
 datetime_from_xml(undefined) -> undefined;
 
 datetime_from_xml(TimeStr) ->
-    mod_archive2_utils:now_to_datetime(mod_archive2_utils:datetime_string_to_timestamp(TimeStr)).
+    mod_archive2_utils:parse_datetime(TimeStr).
 
 get_body_from_children(Children) ->
     NormChildren = exmpp_xml:normalize_cdata_in_list(Children),

@@ -59,7 +59,7 @@ filter_sessions(Filter, Sessions) ->
         FilteredSessions).
 
 expire_sessions(Sessions, TimeOut) ->
-    TS = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
+    TS = mod_archive2_utils:current_datetime(),
     filter_sessions(
         fun(_WithKey, Session) ->
             not is_session_expired(Session, TS, TimeOut)
@@ -174,7 +174,7 @@ get_session(From, With, EM, TimeOut, InSessions) ->
                 exmpp_jid:prep_resource_as_list(With)
         end,
     WithKey = {exmpp_jid:prep_bare_to_list(From), exmpp_jid:bare(With)},
-    TS = mod_archive2_utils:now_to_datetime(mod_archive2_time:now()),
+    TS = mod_archive2_utils:current_datetime(),
     Thread = EM#external_message.thread,
     % Make sure the session is removed if it is timed out, as otherwise
     % our tracking logic below might go wrong. We do not use all sessions
