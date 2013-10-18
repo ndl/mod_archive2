@@ -175,7 +175,7 @@ mysql_test_expire() ->
                  {selected, [], [{1}]}},
                 {"select id, with_user, with_server, with_resource, utc, version "
                  "from archive_collection where (us = 'client@localhost') and "
-                 "(deleted <> 1) order by utc asc",
+                 "(deleted <> 1) order by utc, id asc",
                  {selected, [], [{1, "juliet", "capulet.com", "chamber",
                                  "2003-02-01 00:00:00.000000", 1}]}},
                 {"select count(*) from archive_collection where "

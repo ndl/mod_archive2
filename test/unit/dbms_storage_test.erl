@@ -222,7 +222,7 @@ common_test_select2() ->
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
-                    [{order_by, {#archive_message.name, asc}},
+                    [{order_by, {[#archive_message.name], asc}},
                      {offset, 1}, {limit, 2}])
             end).
 
@@ -244,7 +244,7 @@ common_test_select3() ->
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
-                    [{order_by, {#archive_message.name, desc}},
+                    [{order_by, {[#archive_message.name], desc}},
                      {offset, 1}, {limit, 2}])
             end).
 
@@ -284,7 +284,7 @@ common_test_select5() ->
             fun() ->
                 dbms_storage:select(?DIRMS,
                     [{aggregate, count},
-                     {order_by, {#archive_message.utc, asc}},
+                     {order_by, {[#archive_message.utc], asc}},
                      {limit, 1}])
             end).
 
@@ -305,7 +305,7 @@ common_test_select6() ->
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
-                    [{order_by, {#archive_message.name, asc}},
+                    [{order_by, {[#archive_message.name], asc}},
                      {offset, 1}, {aggregate, count}])
             end).
 
@@ -326,7 +326,7 @@ common_test_select7() ->
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
-                    [{order_by, {#archive_message.name, desc}},
+                    [{order_by, {[#archive_message.name], desc}},
                      {limit, 1},
                      {aggregate, {min, #archive_message.body}}])
             end).
@@ -348,7 +348,7 @@ common_test_select8() ->
         dbms_storage:transaction(?HOST,
             fun() ->
                 dbms_storage:select(?DIRMS,
-                    [{order_by, {#archive_message.utc, asc}},
+                    [{order_by, {[#archive_message.utc], asc}},
                      {limit, 1},
                      {aggregate, {max, #archive_message.utc}}])
             end).
@@ -374,7 +374,7 @@ common_test_select9() ->
                     ets:fun2ms(
                         fun(#archive_message{body = Body, name = Name}) ->
                             {Body, Name}
-                        end), [{order_by, {#archive_message.name, asc}}])
+                        end), [{order_by, {[#archive_message.name], asc}}])
             end).
 
 mysql_test_select10() ->
@@ -398,7 +398,7 @@ common_test_select10() ->
                     ets:fun2ms(
                         fun(#archive_message{body = Body, name = Name}) ->
                             {Body, Name}
-                        end), [{order_by, {#archive_message.name, desc}}])
+                        end), [{order_by, {[#archive_message.name], desc}}])
             end).
 
 mysql_test_select11() ->
@@ -502,7 +502,7 @@ common_test_update2() ->
                     ets:fun2ms(
                         fun(#archive_message{name = Name, direction = Dir}) ->
                             {Dir, Name}
-                        end), [{order_by, {#archive_message.name, asc}}])
+                        end), [{order_by, {[#archive_message.name], asc}}])
             end).
 
 mysql_test_insert2() ->

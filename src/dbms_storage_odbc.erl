@@ -79,18 +79,19 @@ handle_query({read, R}, DbInfo) ->
 handle_query({select, MS, Opts}, DbInfo) ->
     TableInfo = dbms_storage_utils:get_table_info(MS, DbInfo),
     {WhereMS, {RequestedFields, _} = BodyMS} = ms_to_sql(MS, TableInfo),
-    {OrderBy, OrderType} =
+    {OrderByFields, OrderType} =
         proplists:get_value(order_by, Opts, {undefined, undefined}),
     Offset = proplists:get_value(offset, Opts, undefined),
     Limit = proplists:get_value(limit, Opts, undefined),
     Aggregate = proplists:get_value(aggregate, Opts, undefined),
     OrderedClause =
-        case OrderBy of
+        case OrderByFields of
             undefined -> "";
             _ ->
-                FieldName = lists:nth(OrderBy - 1, TableInfo#table.fields),
                 "order by " ++
-                atom_to_list(FieldName) ++
+                string:join(
+                    [atom_to_list(lists:nth(OrderByField - 1, TableInfo#table.fields)) ||
+                     OrderByField <- OrderByFields], ", ") ++
                 " " ++
                 atom_to_list(OrderType)
         end,
