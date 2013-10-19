@@ -399,7 +399,8 @@ test_collection_to_xml(_) ->
 test_collection_from_xml(_) ->
     ?ARCHIVE_COLLECTION_NO_LINKS = (mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
-        ?ARCHIVE_COLLECTION_NO_LINKS_XML))#archive_collection{change_utc = undefined}.
+        ?ARCHIVE_COLLECTION_NO_LINKS_XML,
+        microseconds))#archive_collection{change_utc = undefined}.
 
 test_collection_from_xml_empty_links(_) ->
     {archive_collection,undefined,null,null,"client@localhost","juliet",
@@ -407,7 +408,8 @@ test_collection_from_xml_empty_links(_) ->
      _,1,false,"Subject","12345",true,null} =
     mod_archive2_xml:collection_from_xml(
         exmpp_jid:parse(?JID),
-        ?ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML).
+        ?ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML,
+        microseconds).
 
 test_collection_xml_each(_) ->
     lists:foreach(
@@ -418,7 +420,8 @@ test_collection_xml_each(_) ->
                Index =/= #archive_collection.deleted ->
                 R = setelement(Index, ?ARCHIVE_COLLECTION_NO_LINKS, undefined),
                 OutR = (mod_archive2_xml:collection_from_xml(exmpp_jid:parse(?JID),
-                     mod_archive2_xml:collection_to_xml(chat, R)))#archive_collection{
+                     mod_archive2_xml:collection_to_xml(chat, R),
+                     microseconds))#archive_collection{
                         change_utc = undefined},
                 R = OutR;
                true ->
@@ -433,7 +436,7 @@ test_message1_to_xml(_) ->
 
 test_message1_from_xml(_) ->
     ?ARCHIVE_MESSAGE1 =
-        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE1_XML, ?START).
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE1_XML, ?START, microseconds).
 
 test_message2_to_xml(_) ->
     ?ARCHIVE_MESSAGE2_XML =
@@ -445,7 +448,7 @@ test_message2_to_xml_utc(_) ->
 
 test_message2_from_xml(_) ->
     ?ARCHIVE_MESSAGE2 =
-        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE2_XML, ?START).
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE2_XML, ?START, microseconds).
 
 test_message3_to_xml(_) ->
     ?ARCHIVE_MESSAGE3_XML =
@@ -453,7 +456,7 @@ test_message3_to_xml(_) ->
 
 test_message3_from_xml(_) ->
     ?ARCHIVE_MESSAGE3 =
-        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START).
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE3_XML, ?START, microseconds).
 
 test_message4_to_xml(_) ->
     ?ARCHIVE_MESSAGE4_XML =
@@ -461,7 +464,7 @@ test_message4_to_xml(_) ->
 
 test_message4_from_xml(_) ->
     ?ARCHIVE_MESSAGE4 =
-        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE4_XML, ?START).
+        mod_archive2_xml:message_from_xml(?ARCHIVE_MESSAGE4_XML, ?START, microseconds).
 
 test_external_message1_from_xml(_) ->
     {external_message,chat,undefined,"Test",undefined,undefined,
@@ -602,7 +605,7 @@ test_modified2_to_xml(_) ->
 test_archive_message5_from_xml(_) ->
     [MsgXML] =
         exmpp_xml:parse_document_fragment(?ARCHIVE_MESSAGE5_XML, [{root_depth, 0}]),
-    ?ARCHIVE_MESSAGE5 = mod_archive2_xml:message_from_xml(MsgXML, {{1, 2, 3}, {4, 5, 6, 0}}).
+    ?ARCHIVE_MESSAGE5 = mod_archive2_xml:message_from_xml(MsgXML, {{1, 2, 3}, {4, 5, 6, 0}}, seconds).
 
 mysql_test_links(Pid) ->
     dbms_storage:transaction(?HOST,
@@ -657,5 +660,6 @@ common_test_links(_Pid) ->
                 mod_archive2_xml:collection_to_xml(chat,
                     mod_archive2_xml:collection_from_xml(
                         exmpp_jid:parse(?JID),
-                        ?ARCHIVE_COLLECTION_WITH_LINKS_XML))
+                        ?ARCHIVE_COLLECTION_WITH_LINKS_XML,
+                        microseconds))
             end).

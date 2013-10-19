@@ -32,15 +32,15 @@
 -author('xmpp@endl.ch').
 
 %% Our hooks
--export([collection_from_xml/2, collection_to_xml/2,
-         message_from_xml/2, message_to_xml/3,
+-export([collection_from_xml/3, collection_to_xml/2,
+         message_from_xml/3, message_to_xml/3,
          external_message_from_xml/2,
          thread_from_external_message/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
          session_prefs_from_xml/1, session_prefs_to_xml/2,
          modified_to_xml/1,
-         datetime_from_xml/1]).
+         datetime_from_xml/2]).
 
 -include("mod_archive2.hrl").
 
@@ -101,10 +101,10 @@ collection_to_xml(Name, #archive_collection{} = C) ->
             end]),
         filter_undef([PrevLinkXML, NextLinkXML, ExtraXML])).
 
-collection_from_xml(_From, undefined) ->
+collection_from_xml(_From, undefined, _) ->
     undefined;
 
-collection_from_xml(From, XC) ->
+collection_from_xml(From, XC, TimeAccuracy) ->
     LinkPrevXML = exmpp_xml:get_element(XC, previous),
     LinkNextXML = exmpp_xml:get_element(XC, next),
     Extra =
@@ -126,17 +126,18 @@ collection_from_xml(From, XC) ->
             With = exmpp_jid:parse(JID),
             #archive_collection{
                 prev_id =
-                    get_collection_id(collection_from_xml(From, LinkPrevXML)),
+                    get_collection_id(collection_from_xml(From, LinkPrevXML, TimeAccuracy)),
                 next_id =
-                    get_collection_id(collection_from_xml(From, LinkNextXML)),
+                    get_collection_id(collection_from_xml(From, LinkNextXML, TimeAccuracy)),
                 us = exmpp_jid:prep_to_list(
                     exmpp_jid:make(FromUser, FromServer)),
                 with_user = exmpp_jid:prep_node_as_list(With),
                 with_server = exmpp_jid:prep_domain_as_list(With),
                 with_resource = exmpp_jid:prep_resource_as_list(With),
                 utc = datetime_from_xml(
-                    exmpp_xml:get_attribute_as_list(XC, <<"start">>, undefined)),
-                change_utc = mod_archive2_utils:current_datetime(),
+                    exmpp_xml:get_attribute_as_list(XC, <<"start">>, undefined),
+                    TimeAccuracy),
+                change_utc = mod_archive2_utils:current_datetime(TimeAccuracy),
                 version =
                     case exmpp_xml:get_attribute_as_list(XC, <<"version">>, undefined) of
                         undefined -> undefined;
@@ -199,14 +200,15 @@ message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
                 M#archive_message.body
         end).
 
-message_from_xml(#xmlel{name = Name, children = Children} = XM, Start) ->
+message_from_xml(#xmlel{name = Name, children = Children} = XM, Start, TimeAccuracy) ->
     #archive_message{
         direction = Name,
         utc =
             case exmpp_xml:get_attribute_as_list(XM, <<"secs">>, undefined) of
                 undefined ->
                     datetime_from_xml(
-                        exmpp_xml:get_attribute_as_list(XM, <<"utc">>, undefined));
+                        exmpp_xml:get_attribute_as_list(XM, <<"utc">>, undefined),
+                        TimeAccuracy);
                 Secs ->
                     mod_archive2_utils:microseconds_to_datetime(
                         mod_archive2_utils:datetime_to_microseconds(Start) +
@@ -460,10 +462,10 @@ datetime_to_utc_string({{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}
         io_lib:format("~4..0w-~2..0w-~2..0wT~2..0w:~2..0w:~2..0w.~6..0wZ",
                       [Year, Month, Day, Hour, Minute, Second, MicroSecond])).
 
-datetime_from_xml(undefined) -> undefined;
+datetime_from_xml(undefined, _) -> undefined;
 
-datetime_from_xml(TimeStr) ->
-    mod_archive2_utils:parse_datetime(TimeStr).
+datetime_from_xml(TimeStr, Accuracy) ->
+    mod_archive2_utils:parse_datetime(TimeStr, Accuracy).
 
 get_body_from_children(Children) ->
     NormChildren = exmpp_xml:normalize_cdata_in_list(Children),

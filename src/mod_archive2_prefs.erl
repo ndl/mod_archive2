@@ -287,7 +287,7 @@ reset_thread_expiration(From, Thread, AutoStates) ->
                                             Thread,
                                             ThreadInfo#thread_info{
                                                 last_access =
-                                                    mod_archive2_utils:current_datetime()},
+                                                    mod_archive2_utils:current_datetime(microseconds)},
                                             AutoState#auto_state.threads)};
                                 _ ->
                                     AutoState
@@ -304,7 +304,7 @@ reset_thread_expiration(From, Thread, AutoStates) ->
 % We're not expiring prefs cache here as
 % session auto save calculation result is not stored in cache.
 expire_threads(AutoStates, TimeOut) ->
-    TS = mod_archive2_utils:current_datetime(),
+    TS = mod_archive2_utils:current_datetime(microseconds),
     dict:map(
         fun(_US, Resources) ->
             dict:map(
@@ -416,7 +416,7 @@ pref_set(From, PrefsXML, EnforceExpire, AutoStates) ->
                     end
                 end,
                 exmpp_xml:get_elements(PrefsXML, item)),
-            TS = mod_archive2_utils:current_datetime(),
+            TS = mod_archive2_utils:current_datetime(microseconds),
             NewThreads =
                 lists:foldl(
                     fun(Item, ThreadsIn) ->

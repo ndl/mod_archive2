@@ -217,4 +217,5 @@ common_test_expire(RDBMS) ->
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
+            microseconds).

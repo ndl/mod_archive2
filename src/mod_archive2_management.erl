@@ -32,7 +32,7 @@
 -author('xmpp@endl.ch').
 
 %% Our hooks
--export([list/2, modified/2, remove/4, retrieve/3, delete_messages/1]).
+-export([list/3, modified/3, remove/5, retrieve/4, delete_messages/1]).
 
 -include("mod_archive2.hrl").
 -include("mod_archive2_storage.hrl").
@@ -49,12 +49,12 @@
 %% Lists collections according to specified parameters
 %%--------------------------------------------------------------------
 
-list(From, #iq{type = Type, payload = SubEl} = IQ) ->
+list(From, #iq{type = Type, payload = SubEl} = IQ, TimeAccuracy) ->
     mod_archive2_utils:verify_iq_type(Type, get),
     TableInfo = dbms_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
-            Range = parse_cmd_range(SubEl),
+            Range = parse_cmd_range(SubEl, TimeAccuracy),
             Fields = [id, with_user, with_server, with_resource, utc, version],
             Results =
                 case get_items_ranged(IQ,
@@ -79,12 +79,12 @@ list(From, #iq{type = Type, payload = SubEl} = IQ) ->
 %% Retrieves modifications list
 %%--------------------------------------------------------------------
 
-modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
+modified(From, #iq{type = Type, payload = SubEl} = IQ, TimeAccuracy) ->
     mod_archive2_utils:verify_iq_type(Type, get),
     TableInfo = dbms_storage_utils:get_table_info(archive_collection,
         ?MOD_ARCHIVE2_SCHEMA),
     F = fun() ->
-            Range = parse_cmd_range(SubEl),
+            Range = parse_cmd_range(SubEl, TimeAccuracy),
             Fields = [id, with_user, with_server, with_resource, utc,
                       change_utc, version, deleted],
             Results =
@@ -110,9 +110,9 @@ modified(From, #iq{type = Type, payload = SubEl} = IQ) ->
 %% Removes specified collections and their messages
 %%--------------------------------------------------------------------
 
-remove(From, #iq{type = Type, payload = SubEl}, RDBMS, Sessions) ->
+remove(From, #iq{type = Type, payload = SubEl}, RDBMS, Sessions, TimeAccuracy) ->
     mod_archive2_utils:verify_iq_type(Type, set),
-    InR = parse_cmd_range(SubEl),
+    InR = parse_cmd_range(SubEl, TimeAccuracy),
     % Enforce 'exactmatch' in 'single item remove request' case.
     R =
         if InR#range.start_time =/= undefined andalso
@@ -327,10 +327,10 @@ get_collections_ids([{MSHead, Conditions, _}]) ->
 %% Retrieves collection and its messages
 %%--------------------------------------------------------------------
 
-retrieve(From, #iq{type = Type, payload = SubEl} = IQ, ForceUtc) ->
+retrieve(From, #iq{type = Type, payload = SubEl} = IQ, ForceUtc, TimeAccuracy) ->
     mod_archive2_utils:verify_iq_type(Type, get),
     F = fun() ->
-            InC = mod_archive2_xml:collection_from_xml(From, SubEl),
+            InC = mod_archive2_xml:collection_from_xml(From, SubEl, TimeAccuracy),
             case mod_archive2_storage:get_collection(InC, by_link) of
                 undefined ->
                     throw({error, 'item-not-found'});
@@ -493,7 +493,7 @@ get_with_conditions(From, R) ->
            []
     end.
 
-parse_cmd_range(#xmlel{} = Range) ->
+parse_cmd_range(#xmlel{} = Range, TimeAccuracy) ->
     #range{
         with =
             case exmpp_xml:get_attribute_as_list(Range, <<"with">>, undefined) of
@@ -501,9 +501,11 @@ parse_cmd_range(#xmlel{} = Range) ->
                    R -> exmpp_jid:parse(R)
             end,
         start_time = mod_archive2_xml:datetime_from_xml(
-            exmpp_xml:get_attribute_as_list(Range, <<"start">>, undefined)),
+            exmpp_xml:get_attribute_as_list(Range, <<"start">>, undefined),
+            TimeAccuracy),
         end_time = mod_archive2_xml:datetime_from_xml(
-            exmpp_xml:get_attribute_as_list(Range, <<"end">>, undefined)),
+            exmpp_xml:get_attribute_as_list(Range, <<"end">>, undefined),
+            TimeAccuracy),
         start_id = undefined,
         end_id = undefined,
         exactmatch = list_to_bool(

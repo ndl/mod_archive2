@@ -31,7 +31,7 @@
 -module(mod_archive2_auto).
 -author('xmpp@endl.ch').
 
--export([expire_sessions/2, filter_sessions/2, add_message/4]).
+-export([expire_sessions/2, filter_sessions/2, add_message/5]).
 
 -include("mod_archive2.hrl").
 
@@ -59,30 +59,31 @@ filter_sessions(Filter, Sessions) ->
         FilteredSessions).
 
 expire_sessions(Sessions, TimeOut) ->
-    TS = mod_archive2_utils:current_datetime(),
+    TS = mod_archive2_utils:current_datetime(microseconds),
     filter_sessions(
         fun(_WithKey, Session) ->
             not is_session_expired(Session, TS, TimeOut)
         end,
         Sessions).
 
-add_message({_Direction, _From, _With, Packet} = Args, TimeOut, AutoSave, Sessions) ->
+add_message({_Direction, _From, _With, Packet} = Args,
+            TimeOut, TimeAccuracy, AutoSave, Sessions) ->
     case mod_archive2_xml:external_message_from_xml(Packet, AutoSave =:= message) of
         #external_message{} = EM ->
             case exmpp_xml:get_element(Packet, body) of
                 undefined ->
                     Sessions;
                 _ ->
-                    add_message2(Args, EM, TimeOut, Sessions)
+                    add_message2(Args, EM, TimeOut, TimeAccuracy, Sessions)
             end;
         _ -> Sessions
     end.
 
-add_message2({Direction, From, With, _Packet}, EM, TimeOut, Sessions) ->
+add_message2({Direction, From, With, _Packet}, EM, TimeOut, TimeAccuracy, Sessions) ->
     F =
         fun() ->
             {NewSessions, Session} =
-                get_session(From, With, EM, TimeOut, Sessions),
+                get_session(From, With, EM, TimeOut, TimeAccuracy, Sessions),
             case Session#session.version of
                 0 ->
                     % Nothing to update, collection was just created.
@@ -162,7 +163,7 @@ add_message2({Direction, From, With, _Packet}, EM, TimeOut, Sessions) ->
 %%        create new if none exists, notifying the caller about change of
 %%        resource, if needed.
 %%
-get_session(From, With, EM, TimeOut, InSessions) ->
+get_session(From, With, EM, TimeOut, TimeAccuracy, InSessions) ->
     % Assume empty resource for groupchat messages so that they're recorded
     % to the same collection.
     Type = EM#external_message.type,
@@ -174,7 +175,7 @@ get_session(From, With, EM, TimeOut, InSessions) ->
                 exmpp_jid:prep_resource_as_list(With)
         end,
     WithKey = {exmpp_jid:prep_bare_to_list(From), exmpp_jid:bare(With)},
-    TS = mod_archive2_utils:current_datetime(),
+    TS = mod_archive2_utils:current_datetime(TimeAccuracy),
     Thread = EM#external_message.thread,
     % Make sure the session is removed if it is timed out, as otherwise
     % our tracking logic below might go wrong. We do not use all sessions

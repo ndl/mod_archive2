@@ -338,7 +338,7 @@ common_test_auto_new_and_update() ->
         mod_archive2_auto:add_message({to,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com"),
-            Msg}, 1800, body, dict:new()),
+            Msg}, 1800, microseconds, body, dict:new()),
     [KeyWith] = dict:fetch_keys(Sessions),
     ?assert(KeyWith =:=
         {"client@localhost",
@@ -357,7 +357,7 @@ common_test_auto_new_and_update() ->
         mod_archive2_auto:add_message({from,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com", "balcony"),
-            Msg2}, 1800, body, Sessions),
+            Msg2}, 1800, microseconds, body, Sessions),
     [KeyWith2] = dict:fetch_keys(NewSessions),
     ?assert(KeyWith2 =:=
         {"client@localhost",
@@ -376,7 +376,7 @@ common_test_auto_new_and_update() ->
         mod_archive2_auto:add_message({to,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com", "balcony"),
-            Msg3}, 1800, body, NewSessions),
+            Msg3}, 1800, microseconds, body, NewSessions),
     [KeyWith3] = dict:fetch_keys(NewSessions2),
     ?assert(KeyWith3 =:=
         {"client@localhost",
@@ -393,7 +393,7 @@ common_test_auto_new_and_update() ->
         mod_archive2_auto:add_message({to,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com", undefined),
-            Msg}, 1800, body, NewSessions2),
+            Msg}, 1800, microseconds, body, NewSessions2),
     [KeyWith4] = dict:fetch_keys(NewSessions3),
     ?assert(KeyWith4 =:=
         {"client@localhost",
@@ -410,7 +410,7 @@ common_test_auto_new_and_update() ->
         mod_archive2_auto:add_message({from,
             exmpp_jid:make("client", "localhost", undefined),
             exmpp_jid:make("darkcave", "chat.shakespeare.lit", "thirdwitch"),
-            ?MESSAGE7}, 1800, body, NewSessions3),
+            ?MESSAGE7}, 1800, microseconds, body, NewSessions3),
     put(?SESSIONS_KEY, NewSessions4),
     KeysWith5 = dict:fetch_keys(NewSessions4),
     ?assert(KeysWith5 =:=
@@ -482,7 +482,7 @@ common_test_auto_thread_new_and_update() ->
         mod_archive2_auto:add_message({to,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com"),
-            Msg}, 1800, body, dict:new()),
+            Msg}, 1800, microseconds, body, dict:new()),
     [KeyWith] = dict:fetch_keys(Sessions),
     ?assert(KeyWith =:=
         {"client@localhost",
@@ -501,7 +501,7 @@ common_test_auto_thread_new_and_update() ->
         mod_archive2_auto:add_message({from,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com", "balcony"),
-            Msg2}, 1800, body, Sessions),
+            Msg2}, 1800, microseconds, body, Sessions),
     [KeyWith2] = dict:fetch_keys(NewSessions),
     ?assert(KeyWith2 =:=
         {"client@localhost",
@@ -520,7 +520,7 @@ common_test_auto_thread_new_and_update() ->
         mod_archive2_auto:add_message({to,
             exmpp_jid:make("client", "localhost"),
             exmpp_jid:make("juliet", "example.com", "chamber"),
-            Msg3}, 1800, body, NewSessions),
+            Msg3}, 1800, microseconds, body, NewSessions),
     [KeyWith3] = dict:fetch_keys(NewSessions2),
     ?assert(KeyWith3 =:=
         {"client@localhost",
@@ -574,13 +574,15 @@ common_test_remove_open(RDBMS) ->
                         [exmpp_xml:attribute(<<"open">>, "true"),
                          exmpp_xml:attribute(<<"with">>, "juliet@example.com")], []))),
             RDBMS,
-            Sessions),
+            Sessions,
+            microseconds),
     ?RETRIEVE_RESULT =
         mod_archive2_management:list(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
+            microseconds).
 
 common_test_expire() ->
     NewTS = {{2010, 1, 2}, {5, 33, 7, 123456}},

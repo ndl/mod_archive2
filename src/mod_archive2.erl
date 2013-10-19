@@ -89,6 +89,7 @@
                 auto_states,
                 should_cache_prefs,
                 only_in_roster,
+                time_accuracy,
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer,
@@ -112,6 +113,7 @@
 -define(DEFAULT_MIN_EXPIRE, 0).
 -define(DEFAULT_MAX_EXPIRE, infinity).
 -define(DEFAULT_FORCE_UTC, false).
+-define(DEFAULT_TIME_ACCURACY, milliseconds).
 
 %%====================================================================
 %% API
@@ -193,6 +195,8 @@ init([Host, Opts]) ->
         _ ->
             ok
     end,
+    TimeAccuracy =
+        proplists:get_value(time_accuracy, Opts, ?DEFAULT_TIME_ACCURACY),
     % Add all necessary hooks
     XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),
     case XmppServer of
@@ -290,6 +294,7 @@ init([Host, Opts]) ->
                 auto_states = dict:new(),
                 should_cache_prefs = PrefsCacheExpirationTimer =/= 0,
                 only_in_roster = OnlyInRoster,
+                time_accuracy = TimeAccuracy,
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer,
@@ -455,24 +460,25 @@ handle_call2({From, _To, #iq{type = _Type, payload = SubEl} = IQ}, _, State) ->
                             State#state.auto_states, State#state.xmpp_api),
                         State);
                             'list' ->
-                    mod_archive2_management:list(From, IQ);
+                    mod_archive2_management:list(From, IQ, State#state.time_accuracy);
                             'modified' ->
-                    mod_archive2_management:modified(From, IQ);
+                    mod_archive2_management:modified(From, IQ, State#state.time_accuracy);
                             'retrieve' ->
                                 ForceUtc =
                                     proplists:get_value(
                                         force_utc,
                                         State#state.options,
                                         ?DEFAULT_FORCE_UTC),
-                    mod_archive2_management:retrieve(From, IQ, ForceUtc);
+                    mod_archive2_management:retrieve(
+                        From, IQ, ForceUtc, State#state.time_accuracy);
                             'save' ->
-                    mod_archive2_manual:save(From, IQ);
+                    mod_archive2_manual:save(From, IQ, State#state.time_accuracy);
                             'remove' ->
                     RDBMS =
                         proplists:get_value(
                             rdbms, State#state.options, ?DEFAULT_RDBMS),
                     case mod_archive2_management:remove(From, IQ, RDBMS,
-                        State#state.sessions) of
+                        State#state.sessions, State#state.time_accuracy) of
                         {atomic, Sessions} ->
                             {reply, exmpp_iq:result(IQ),
                                 State#state{sessions = Sessions}};
@@ -528,7 +534,7 @@ handle_cast({add_message, {_Direction, From, With, Packet} = Args}, State) ->
                     State#state.options,
                     ?DEFAULT_SESSION_DURATION),
             NewSessions =
-                mod_archive2_auto:add_message(Args, TimeOut, AutoSave, Sessions),
+                mod_archive2_auto:add_message(Args, TimeOut, State#state.time_accuracy, AutoSave, Sessions),
             {noreply, State#state{sessions = NewSessions,
                 auto_states = NewAutoStates}}
     end;

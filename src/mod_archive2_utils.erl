@@ -35,8 +35,8 @@
          rsm_encode/1,
          rsm_encode/2,
          rsm_decode/1,
-         parse_datetime/1,
-         current_datetime/0,
+         parse_datetime/2,
+         current_datetime/1,
          datetime_to_microseconds/1,
          microseconds_to_datetime/1]).
 
@@ -126,19 +126,22 @@ i2b(I) when is_integer(I) -> list_to_binary(integer_to_list(I));
 i2b(L) when is_list(L)    -> list_to_binary(L).
 
 % yyyy-mm-ddThh:mm:ss[.sss]{Z|{+|-}hh:mm} -> {{Year, Month, Day}, {Hour, Minute, Second, MicroSecond}}
-parse_datetime(TimeStr) ->
-    case catch parse_datetime2(TimeStr) of
+parse_datetime(TimeStr, Accuracy) ->
+    case catch parse_datetime2(TimeStr, Accuracy) of
         {'EXIT', _Err} ->
             undefined;
         TimeStamp ->
             TimeStamp
     end.
 
-parse_datetime2(TimeStr) ->
+parse_datetime2(TimeStr, Accuracy) ->
     [Date, Time] = string:tokens(TimeStr, "T"),
     D = parse_date(Date),
     {{H, M, S}, MS, TZH, TZM} = parse_time(Time),
-    MS1 = datetime_to_microseconds({D, {H, M, S, MS}}),
+    % Possible overflow into seconds range is handled
+    % below via conversion to microseconds and back.
+    RMS = round_microseconds(MS, Accuracy),
+    MS1 = datetime_to_microseconds({D, {H, M, S, RMS}}),
     MS2 = MS1 - 1000000 * (TZH * 60 * 60 + TZM * 60),
     microseconds_to_datetime(MS2).
 
@@ -187,6 +190,7 @@ parse_time_with_timezone(Time, Delim) ->
         "+" ->
             {TT, MS, TZH, TZM}
     end.
+
 parse_timezone(TZ) ->
     [H, M] = string:tokens(TZ, ":"),
     {[H1, M1], true} = check_list([{H, 12}, {M, 60}]),
@@ -204,12 +208,32 @@ parse_time1(Time) ->
     {[H1, M1, S1], true} = check_list([{H, 24}, {M, 60}, {S, 60}]),
     {{H1, M1, S1}, MS}.
 
-now_to_datetime({_, _, MicroSecs} = Now) ->
-    {D, {H, M, S}} = calendar:now_to_datetime(Now),
-    {D, {H, M, S, MicroSecs}}.
+now_to_datetime({MegaSecs, Secs, MicroSecs}, Accuracy) ->
+    RMS = round_microseconds(MicroSecs, Accuracy),
+    RemRMS = RMS rem 1000000,
+    {D, {H, M, S}} = calendar:now_to_datetime(
+        {MegaSecs, Secs + RMS div 1000000, RemRMS}),
+    % All whole seconds should already be accounted for in S.
+    {D, {H, M, S, RemRMS}}.
 
-current_datetime() ->
-    now_to_datetime(mod_archive2_time:timestamp()).
+round_microseconds(MicroSecs, Accuracy) ->
+    TimeQuantum =
+        case Accuracy of
+            seconds -> 1000000;
+            milliseconds -> 1000;
+            microseconds -> 1;
+            _ -> throw({error, 'internal-server-error'})
+        end,
+    Rem = MicroSecs rem TimeQuantum,
+    % 'Rem > 0' is to properly handle 'microseconds' case.
+    if Rem > 0 andalso Rem >= TimeQuantum div 2 ->
+        ((MicroSecs div TimeQuantum) + 1) * TimeQuantum;
+       true ->
+        (MicroSecs div TimeQuantum) * TimeQuantum
+    end.
+
+current_datetime(Accuracy) ->
+    now_to_datetime(mod_archive2_time:timestamp(), Accuracy).
 
 datetime_to_microseconds({D, {H, M, S, MicroSecs}}) ->
     Secs = calendar:datetime_to_gregorian_seconds({D, {H, M, S}}),

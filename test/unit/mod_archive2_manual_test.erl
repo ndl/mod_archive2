@@ -160,7 +160,8 @@ common_test_upload() ->
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, save,
                         [],
-                        [?ARCHIVE_COLLECTION_COMPLETE])))).
+                        [?ARCHIVE_COLLECTION_COMPLETE]))),
+            microseconds).
 
 mysql_test_retrieve_all_setup() ->
     dbms_storage:transaction(?HOST,
@@ -218,7 +219,8 @@ common_test_retrieve_all() ->
         mod_archive2_management:retrieve(
             exmpp_jid:parse(?JID),
             common_test_retrieve_all_iq(),
-            false).
+            false,
+            microseconds).
 
 mysql_test_retrieve_all_utc() ->
     mysql_test_retrieve_all_setup(),
@@ -229,7 +231,8 @@ common_test_retrieve_all_utc() ->
         mod_archive2_management:retrieve(
             exmpp_jid:parse(?JID),
             common_test_retrieve_all_iq(),
-            true).
+            true,
+            microseconds).
 
 mysql_test_update() ->
     dbms_storage:transaction(?HOST,
@@ -260,7 +263,7 @@ mysql_test_update() ->
 common_test_update() ->
     F = fun() ->
         C = mod_archive2_xml:collection_from_xml(exmpp_jid:parse(?JID),
-            ?ARCHIVE_COLLECTION_COMPLETE),
+            ?ARCHIVE_COLLECTION_COMPLETE, microseconds),
         mod_archive2_xml:collection_to_xml(chat,
             C#archive_collection{
                 subject = "Subject2",
@@ -276,7 +279,8 @@ common_test_update() ->
                 exmpp_iq:set(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, save,
                         [],
-                        [XC])))).
+                        [XC]))),
+            microseconds).
 
 mysql_test_retrieve_max() ->
     dbms_storage:transaction(?HOST,
@@ -327,7 +331,8 @@ common_test_retrieve_max() ->
                              [],
                          [exmpp_xml:element(undefined, index, [], [exmpp_xml:cdata(1)]),
                           exmpp_xml:element(undefined, max, [], [exmpp_xml:cdata(2)])])]))),
-            false).
+            false,
+            microseconds).
 
 mysql_test_retrieve_empty() ->
     dbms_storage:transaction(?HOST,
@@ -353,4 +358,5 @@ common_test_retrieve_empty() ->
                         [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/NOT_EXISTING"),
                          exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z")],
                         []))),
-            false).
+            false,
+            microseconds).

@@ -32,7 +32,7 @@
 -author('xmpp@endl.ch').
 
 %% Our hooks
--export([save/2]).
+-export([save/3]).
 
 -include("mod_archive2.hrl").
 
@@ -40,15 +40,15 @@
 %% Uploads given collections
 %%--------------------------------------------------------------------
 
-save(From, #iq{type = Type, payload = SubEl} = IQ) ->
+save(From, #iq{type = Type, payload = SubEl} = IQ, TimeAccuracy) ->
     mod_archive2_utils:verify_iq_type(Type, set),
     F =
         fun() ->
             XC = exmpp_xml:get_element(SubEl, chat),
-            InC = mod_archive2_xml:collection_from_xml(From, XC),
+            InC = mod_archive2_xml:collection_from_xml(From, XC, TimeAccuracy),
             InMessages =
                 [mod_archive2_xml:message_from_xml(M,
-                    InC#archive_collection.utc) ||
+                    InC#archive_collection.utc, TimeAccuracy) ||
                  M <- exmpp_xml:get_child_elements(XC),
                  M#xmlel.name =:= to orelse
                  M#xmlel.name =:= from orelse

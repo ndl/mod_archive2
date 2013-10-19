@@ -121,7 +121,8 @@ common_test_list_empty(_Pid) ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute(<<"with">>, "juliet@capulet.com")],
-                        [])))).
+                        []))),
+            microseconds).
 
 mysql_test_insert1() ->
     dbms_storage:transaction(?HOST,
@@ -188,7 +189,8 @@ common_test_list_all() ->
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
+            microseconds).
 
 mysql_test_list_max() ->
     dbms_storage:transaction(?HOST,
@@ -237,7 +239,8 @@ get_list_range(Max, Index) ->
                                     [exmpp_xml:cdata(Index)]);
                                true ->
                                 undefined
-                            end]))])))).
+                            end]))]))),
+        microseconds).
 
 mysql_test_list_index() ->
     dbms_storage:transaction(?HOST,
@@ -320,7 +323,8 @@ common_test_list_after() ->
                             [exmpp_xml:element(undefined, 'after', [],
                                                [exmpp_xml:cdata(Last)]),
                              exmpp_xml:element(undefined, max, [],
-                                               [exmpp_xml:cdata("2")])])])))).
+                                               [exmpp_xml:cdata("2")])])]))),
+            microseconds).
 
 mysql_test_list_before() ->
     dbms_storage:transaction(?HOST,
@@ -378,7 +382,8 @@ common_test_list_before() ->
                             [exmpp_xml:element(undefined, 'before', [],
                                                [exmpp_xml:cdata(First)]),
                              exmpp_xml:element(undefined, max, [],
-                                               [exmpp_xml:cdata("2")])])])))).
+                                               [exmpp_xml:cdata("2")])])]))),
+            microseconds).
 
 mysql_test_list_start_end() ->
     dbms_storage:transaction(?HOST,
@@ -415,7 +420,8 @@ common_test_list_start_end() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute(<<"start">>, "1469-07-21T03:01:54.000123Z"),
-                         exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37.000123Z")], [])))).
+                         exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37.000123Z")], []))),
+            microseconds).
 
 mysql_test_list_with() ->
     dbms_storage:transaction(?HOST,
@@ -454,7 +460,8 @@ common_test_list_with() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37.000123Z"),
-                         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com")], [])))).
+                         exmpp_xml:attribute(<<"with">>, "juliet@capulet.com")], []))),
+            microseconds).
 
 mysql_test_list_exactmatch() ->
     dbms_storage:transaction(?HOST,
@@ -480,7 +487,8 @@ common_test_list_exactmatch() ->
                     exmpp_xml:element(?NS_ARCHIVING, list,
                         [exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37.000123Z"),
                          exmpp_xml:attribute(<<"with">>, "juliet@capulet.com"),
-                         exmpp_xml:attribute(<<"exactmatch">>, "1")], [])))).
+                         exmpp_xml:attribute(<<"exactmatch">>, "1")], []))),
+            microseconds).
 
 mysql_test_remove_single() ->
     mysql_test_insert1(),
@@ -540,13 +548,15 @@ common_test_remove_single(RDBMS) ->
                         [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z"),
                          exmpp_xml:attribute(<<"with">>, "juliet@capulet.com/chamber")], []))),
             RDBMS,
-            dict:new()),
+            dict:new(),
+            microseconds),
     ?MGMT_TC10_RETRIEVE_RESULT =
         mod_archive2_management:list(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
+            microseconds).
 
 mysql_test_remove_single_non_existing(_) ->
     mysql_test_insert1(),
@@ -576,7 +586,8 @@ common_test_remove_single_non_existing(RDBMS) ->
                     exmpp_xml:element(?NS_ARCHIVING, remove,
                         [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:14.000123Z")], []))),
             RDBMS,
-            dict:new()).
+            dict:new(),
+            microseconds).
 
 mysql_test_remove_range(_) ->
     % No need to call it, as no actual DB interaction occurs.
@@ -632,13 +643,15 @@ common_test_remove_range(RDBMS) ->
                         [exmpp_xml:attribute(<<"start">>, "1469-07-21T02:56:15.000123Z"),
                          exmpp_xml:attribute(<<"end">>, "1469-07-21T03:16:37.000123Z")], []))),
             RDBMS,
-            dict:new()),
+            dict:new(),
+            microseconds),
     ?MGMT_TC12_RETRIEVE_RESULT =
         mod_archive2_management:list(
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, list, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, list, [], []))),
+            microseconds).
 
 mysql_test_modified1() ->
     dbms_storage:transaction(?HOST,
@@ -673,7 +686,8 @@ common_test_modified1() ->
             exmpp_jid:parse(?JID),
             exmpp_iq:xmlel_to_iq(
                 exmpp_iq:get(?NS_JABBER_CLIENT,
-                    exmpp_xml:element(?NS_ARCHIVING, modified, [], [])))).
+                    exmpp_xml:element(?NS_ARCHIVING, modified, [], []))),
+            microseconds).
 
 mysql_test_modified2() ->
     dbms_storage:transaction(?HOST,
@@ -710,7 +724,8 @@ common_test_modified2() ->
                 exmpp_iq:get(?NS_JABBER_CLIENT,
                     exmpp_xml:element(?NS_ARCHIVING, modified,
                         [exmpp_xml:attribute(<<"start">>, "2001-01-01T00:00:00.007890Z")],
-                        [])))).
+                        []))),
+            microseconds).
 
 
 get_child(undefined, _) ->
