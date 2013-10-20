@@ -51,7 +51,7 @@
             extra = #xmlel{name =x,children=[#xmlel{name=test}]}}).
 
 -define(ARCHIVE_COLLECTION_NO_LINKS_XML,
-        {xmlel,undefined,[],chat,
+        {xmlel,'urn:xmpp:archive',[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
           {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
@@ -61,33 +61,33 @@
          [{xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
 -define(ARCHIVE_COLLECTION_WITH_LINKS_XML,
-        {xmlel,undefined,[],chat,
+        {xmlel,'urn:xmpp:archive',[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
           {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
           {xmlattr,undefined,<<"version">>,<<"1">>}],
-         [{xmlel,undefined,[],previous,[{xmlattr,undefined,<<"with">>,
+         [{xmlel,'urn:xmpp:archive',[],previous,[{xmlattr,undefined,<<"with">>,
                                          <<"balcony@house.capulet.com">>},
                                         {xmlattr,undefined,<<"start">>,
                                          <<"1469-07-21T03:16:37.000123Z">>}], []},
-          {xmlel,undefined,[],next,[{xmlattr,undefined,<<"with">>,
+          {xmlel,'urn:xmpp:archive',[],next,[{xmlattr,undefined,<<"with">>,
                                      <<"benvolio@montague.net">>},
                                     {xmlattr,undefined,<<"start">>,
                                      <<"1469-07-21T03:01:54.000123Z">>}], []},
           {xmlel,undefined,[],x,[],[{xmlel,undefined,[],test,[],[]}]}]}).
 
 -define(ARCHIVE_COLLECTION_WITH_EMPTY_LINKS_XML,
-        {xmlel,undefined,[],chat,
+        {xmlel,'urn:xmpp:archive',[],chat,
          [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
           {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
           {xmlattr,undefined,<<"subject">>,<<"Subject">>},
           {xmlattr,undefined,<<"thread">>,<<"12345">>},
           {xmlattr,undefined,<<"crypt">>,<<"true">>},
           {xmlattr,undefined,<<"version">>,<<"1">>}],
-         [{xmlel,undefined,[],previous,[], []},
-          {xmlel,undefined,[],next,[], []},
+         [{xmlel,'urn:xmpp:archive',[],previous,[], []},
+          {xmlel,'urn:xmpp:archive',[],next,[], []},
           {xmlel,undefined,[],x,[],[]}]}).
 
 -define(ARCHIVE_MESSAGE1,
@@ -97,9 +97,9 @@
             body = [{xmlcdata, <<"Art thou not Romeo, and a Montague?">>}]}).
 
 -define(ARCHIVE_MESSAGE1_XML,
-        {xmlel,undefined,[],from,
+        {xmlel,'urn:xmpp:archive',[],from,
          [{xmlattr,undefined,<<"secs">>,<<"0">>}],
-         [{xmlel,undefined,[],body,[],
+         [{xmlel,'urn:xmpp:archive',[],body,[],
               [{xmlcdata,<<"Art thou not Romeo, and a Montague?">>}]}]}).
 
 -define(ARCHIVE_MESSAGE2,
@@ -111,19 +111,19 @@
             body = [{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]}).
 
 -define(ARCHIVE_MESSAGE2_XML,
-        {xmlel,undefined,[],to,
+        {xmlel,'urn:xmpp:archive',[],to,
          [{xmlattr,undefined,<<"secs">>,<<"11">>},
           {xmlattr,undefined,<<"name">>,<<"romeo">>},
           {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
-         [{xmlel,undefined,[],body,[],
+         [{xmlel,'urn:xmpp:archive',[],body,[],
                [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}).
 
 -define(ARCHIVE_MESSAGE2_UTC_XML,
-        {xmlel,undefined,[],to,
+        {xmlel,'urn:xmpp:archive',[],to,
          [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T02:56:26.000123Z">>},
           {xmlattr,undefined,<<"name">>,<<"romeo">>},
           {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
-         [{xmlel,undefined,[],body,[],
+         [{xmlel,'urn:xmpp:archive',[],body,[],
                [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}).
 
 -define(ARCHIVE_MESSAGE3,
@@ -133,7 +133,7 @@
             body = [{xmlcdata, <<"I think she might fancy me.">>}]}).
 
 -define(ARCHIVE_MESSAGE3_XML,
-        {xmlel,undefined,[],note,
+        {xmlel,'urn:xmpp:archive',[],note,
          [{xmlattr,undefined,<<"utc">>,<<"1469-07-21T03:04:35.000123Z">>}],
          [{xmlcdata,<<"I think she might fancy me.">>}]}).
 
@@ -143,17 +143,17 @@
             utc = {{1469, 07, 21}, {02, 56, 26, 123}},
             name = "romeo",
             jid = "romeo@montague.net",
-            body = [{xmlel,undefined,[],body,[],[{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]},
+            body = [{xmlel,'urn:xmpp:archive',[],body,[],[{xmlcdata, <<"Neither, fair saint, if either thee dislike.">>}]},
                     {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
                         [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
                             [{xmlel,undefined,[],p,[],[{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]}]}]}]}).
 
 -define(ARCHIVE_MESSAGE4_XML,
-    {xmlel,undefined,[],to,
+    {xmlel,'urn:xmpp:archive',[],to,
        [{xmlattr,undefined,<<"secs">>,<<"11">>},
         {xmlattr,undefined,<<"name">>,<<"romeo">>},
         {xmlattr,undefined,<<"jid">>,<<"romeo@montague.net">>}],
-       [{xmlel,undefined,[],body,[],
+       [{xmlel,'urn:xmpp:archive',[],body,[],
             [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
         {xmlel,'http://jabber.org/protocol/xhtml-im',[],html,[],
             [{xmlel,'http://www.w3.org/1999/xhtml',[],body,[],
@@ -250,53 +250,53 @@
     "</pref>").
 
 -define(GLOBAL_PREFS2_XML,
-[{xmlel,undefined,[],default,
+[{xmlel,'urn:xmpp:archive',[],default,
         [{xmlattr,undefined,<<"save">>,<<"message">>},
          {xmlattr,undefined,<<"expire">>,<<"3600">>},
          {xmlattr,undefined,<<"otr">>,<<"require">>},
          {xmlattr,undefined,<<"unset">>,<<"false">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"auto">>},
          {xmlattr,undefined,<<"use">>,<<"prefer">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"local">>},
          {xmlattr,undefined,<<"use">>,<<"forbid">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"manual">>},
          {xmlattr,undefined,<<"use">>,<<"concede">>}],
         []},
- {xmlel,undefined,[],auto,
+ {xmlel,'urn:xmpp:archive',[],auto,
         [{xmlattr,undefined,<<"save">>,<<"true">>},
          {xmlattr,undefined,<<"scope">>,<<"global">>}],
         []},
- {xmlel,undefined,[],auto,
+ {xmlel,'urn:xmpp:archive',[],auto,
         [{xmlattr,undefined,<<"save">>,<<"false">>},
          {xmlattr,undefined,<<"scope">>,<<"stream">>}],
         []}]).
 
 -define(GLOBAL_PREFS3_XML,
-[{xmlel,undefined,[],default,
+[{xmlel,'urn:xmpp:archive',[],default,
         [{xmlattr,undefined,<<"save">>,<<"false">>},
          {xmlattr,undefined,<<"expire">>,<<"3600">>},
          {xmlattr,undefined,<<"otr">>,<<"forbid">>},
          {xmlattr,undefined,<<"unset">>,<<"true">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"auto">>},
          {xmlattr,undefined,<<"use">>,<<"concede">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"local">>},
          {xmlattr,undefined,<<"use">>,<<"concede">>}],
         []},
- {xmlel,undefined,[],method,
+ {xmlel,'urn:xmpp:archive',[],method,
         [{xmlattr,undefined,<<"type">>,<<"manual">>},
          {xmlattr,undefined,<<"use">>,<<"prefer">>}],
         []},
- {xmlel,undefined,[],auto,
+ {xmlel,'urn:xmpp:archive',[],auto,
         [{xmlattr,undefined,<<"save">>,<<"false">>},
          {xmlattr,undefined,<<"scope">>,<<"global">>}],
         []}]).
@@ -311,14 +311,14 @@
         "<session thread='123' save='message'/>").
 
 -define(MODIFIED1_XML,
-    {xmlel,undefined,[],changed,
+    {xmlel,'urn:xmpp:archive',[],changed,
        [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
         {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
         {xmlattr,undefined,<<"version">>,<<"1">>}],
        []}).
 
 -define(MODIFIED2_XML,
-    {xmlel,undefined,[],removed,
+    {xmlel,'urn:xmpp:archive',[],removed,
        [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
         {xmlattr,undefined,<<"start">>,<<"1469-07-21T02:56:15.000123Z">>},
         {xmlattr,undefined,<<"version">>,<<"1">>}],
@@ -532,7 +532,7 @@ test_jid_prefs2_from_xml(_) ->
         mod_archive2_xml:jid_prefs_from_xml(exmpp_jid:parse(?JID), PrefsXML).
 
 test_jid_prefs1_to_xml(_) ->
-    {xmlel,undefined,[],item,
+    {xmlel,'urn:xmpp:archive',[],item,
        [{xmlattr,undefined,<<"jid">>,<<"benvolio@montague.net/res">>},
         {xmlattr,undefined,<<"exactmatch">>,<<"true">>},
         {xmlattr,undefined,<<"save">>,<<"stream">>},
@@ -551,8 +551,7 @@ test_jid_prefs1_to_xml(_) ->
                 otr = require}).
 
 test_jid_prefs2_to_xml(_) ->
-    {xmlel,
-     undefined,[],item,
+    {xmlel,'urn:xmpp:archive',[],item,
      [{xmlattr,undefined,<<"jid">>,<<"montague.net">>},
       {xmlattr,undefined,<<"exactmatch">>,<<"true">>}],
      []} =
@@ -569,7 +568,7 @@ test_session_prefs1_from_xml(_) ->
         mod_archive2_xml:session_prefs_from_xml(PrefsXML).
 
 test_session_prefs1_to_xml(_) ->
-    {xmlel,undefined,[],session,
+    {xmlel,'urn:xmpp:archive',[],session,
        [{xmlattr,undefined,<<"thread">>,<<"123">>},
         {xmlattr,undefined,<<"save">>,<<"message">>},
         {xmlattr,undefined,<<"timeout">>,<<"1800">>}],

@@ -72,7 +72,7 @@ collection_to_xml(Name, #archive_collection{} = C) ->
             _ ->
                 undefined
         end,
-    exmpp_xml:element(undefined, Name,
+    exmpp_xml:element(?NS_ARCHIVING, Name,
         filter_undef([
             exmpp_xml:attribute(<<"with">>, jid_to_string(C)),
             exmpp_xml:attribute(<<"start">>,
@@ -172,7 +172,7 @@ message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
         mod_archive2_utils:datetime_to_microseconds(M#archive_message.utc) -
         mod_archive2_utils:datetime_to_microseconds(Start),
     exmpp_xml:element(
-        undefined,
+        ?NS_ARCHIVING,
         M#archive_message.direction,
         filter_undef([
             if M#archive_message.direction =:= note orelse MicroSecs < 0 orelse ForceUtc =:= true ->
@@ -192,7 +192,7 @@ message_to_xml(#archive_message{} = M, Start, ForceUtc) ->
         case exmpp_xml:normalize_cdata_in_list(M#archive_message.body) of
             [#xmlcdata{} = Text] ->
                 if M#archive_message.direction =/= note ->
-                    [exmpp_xml:element(undefined, body, [], [Text])];
+                    [exmpp_xml:element(?NS_ARCHIVING, body, [], [Text])];
                    true ->
                     M#archive_message.body
                 end;
@@ -266,7 +266,7 @@ thread_from_external_message(Packet) ->
 %%--------------------------------------------------------------------
 
 session_prefs_to_xml({Thread, AutoSave}, TimeOut) ->
-    exmpp_xml:element(undefined, session,
+    exmpp_xml:element(?NS_ARCHIVING, session,
         [exmpp_xml:attribute(<<"thread">>, Thread),
          exmpp_xml:attribute(<<"save">>, AutoSave),
          exmpp_xml:attribute(<<"timeout">>, TimeOut)], []).
@@ -280,7 +280,7 @@ jid_prefs_to_xml(Prefs) ->
     Save = Prefs#archive_jid_prefs.save,
     Expire = Prefs#archive_jid_prefs.expire,
     OTR = Prefs#archive_jid_prefs.otr,
-    exmpp_xml:element(undefined, item,
+    exmpp_xml:element(?NS_ARCHIVING, item,
         filter_undef([
             exmpp_xml:attribute(<<"jid">>, jid_to_string(Prefs)),
             if ExactMatch =/= undefined ->
@@ -329,7 +329,7 @@ jid_prefs_from_xml(From, PrefsXML) ->
 
 global_prefs_to_xml(Prefs, UnSet, AutoState) ->
     filter_undef(
-        [exmpp_xml:element(undefined, default,
+        [exmpp_xml:element(?NS_ARCHIVING, default,
             filter_undef([
                 if Prefs#archive_global_prefs.save =/= undefined ->
                     exmpp_xml:attribute(<<"save">>, Prefs#archive_global_prefs.save);
@@ -347,20 +347,20 @@ global_prefs_to_xml(Prefs, UnSet, AutoState) ->
                     undefined
                 end,
                 exmpp_xml:attribute(<<"unset">>, UnSet)]), []),
-         exmpp_xml:element(undefined, method,
+         exmpp_xml:element(?NS_ARCHIVING, method,
             [exmpp_xml:attribute(<<"type">>, auto),
              exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_auto)],
             []),
-         exmpp_xml:element(undefined, method,
+         exmpp_xml:element(?NS_ARCHIVING, method,
             [exmpp_xml:attribute(<<"type">>, local),
              exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_local)],
             []),
-         exmpp_xml:element(undefined, method,
+         exmpp_xml:element(?NS_ARCHIVING, method,
             [exmpp_xml:attribute(<<"type">>, manual),
              exmpp_xml:attribute(<<"use">>, Prefs#archive_global_prefs.method_manual)],
             []),
          if Prefs#archive_global_prefs.auto_save =/= undefined ->
-             exmpp_xml:element(undefined, auto,
+             exmpp_xml:element(?NS_ARCHIVING, auto,
                  [exmpp_xml:attribute(<<"save">>,
                     Prefs#archive_global_prefs.auto_save),
                   exmpp_xml:attribute(<<"scope">>, global)],
@@ -369,7 +369,7 @@ global_prefs_to_xml(Prefs, UnSet, AutoState) ->
                 undefined
          end,
          if AutoState =/= undefined ->
-             exmpp_xml:element(undefined, auto,
+             exmpp_xml:element(?NS_ARCHIVING, auto,
                  [exmpp_xml:attribute(<<"save">>, AutoState),
                   exmpp_xml:attribute(<<"scope">>, stream)],
                  []);
@@ -435,7 +435,7 @@ modified_to_xml(#archive_collection{} = C) ->
             true -> removed;
             false -> changed
         end,
-    exmpp_xml:element(undefined, Name,
+    exmpp_xml:element(?NS_ARCHIVING, Name,
         [exmpp_xml:attribute(<<"with">>, jid_to_string(C)),
          exmpp_xml:attribute(<<"start">>,
             datetime_to_utc_string(C#archive_collection.utc)),

@@ -63,7 +63,7 @@ mod_archive2_match_to_sql_test_() ->
             [{field, id}, {field, utc}, {field, body}]}}).
 
 -define(XHTML_BODY,
-    [{xmlel,undefined,[],body,[],
+    [{xmlel,'urn:xmpp:archive',[],body,[],
            [{xmlcdata,<<"Neither, fair saint, if either thee dislike.">>}]},
     {xmlel,'http://jabber.org/protocol/xhtml-im',
            [{'http://jabber.org/protocol/xhtml-im',none}],

@@ -39,7 +39,7 @@
 {atomic,
     {iq,response,result,<<"stanza-",_/binary>>,?NS_ARCHIVING,
         {xmlel,?NS_ARCHIVING,[],list,[],
-            [{xmlel,undefined,[],chat,
+            [{xmlel,'urn:xmpp:archive',[],chat,
                  [{xmlattr,undefined,<<"with">>,<<"juliet@capulet.com/chamber">>},
                   {xmlattr,undefined,<<"start">>,_},
                   {xmlattr,undefined,<<"version">>,<<"1">>}],

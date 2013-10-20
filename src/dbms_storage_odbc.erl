@@ -34,6 +34,9 @@
 %% Should be OK for most of modern DBs, I hope ...
 -define(MAX_QUERY_LENGTH, 32768).
 
+%% Fake XML prefix used for proper XML fragments parsing from the RDBMS.
+-define(XML_PARSE_PREFIX, "<r xmlns='" ++ atom_to_list(?NS_ARCHIVING) ++ "'>").
+
 %%--------------------------------------------------------------------
 %% Queries interface
 %%--------------------------------------------------------------------
@@ -696,8 +699,14 @@ encode(XmlChildren, xmlchildren, TableInfo) ->
                 exmpp_xml:get_cdata_from_list_as_list(XmlChildren);
             _ ->
                 lists:foldl(
-                    fun(XmlEl, OutXml) ->
-                        OutXml ++ exmpp_xml:document_to_list(XmlEl)
+                    fun(#xmlel{ns = NS} = XmlEl, OutXml) ->
+                        XmlEl2 = XmlEl#xmlel{
+                            ns =
+                                case NS of
+                                    undefined -> ?NS_ARCHIVING;
+                                    _ -> NS
+                                end},
+                        OutXml ++ exmpp_xml:node_to_list(XmlEl2, [?NS_ARCHIVING, []], [])
                     end,
                     "",
                     XmlChildren)
@@ -812,8 +821,10 @@ parse_xml_fragment(StrValue) ->
     %% 1. Using fake root element so that parser accepts multiple XML
     %%    elements @ the input, there seems to be no way to tell parser it
     %%    should accept multiple root elements?
+    %%    Also using default namespace declaration to bring the elements
+    %%    into the right namespace.
     %% 2. Calling "parse_document_fragment" for each decoding is wasteful -
     %%    experiments show it's ~3 times slower than reusing existing parser.
     %%    However, we expect that not many messages require full XML
     %%    parsing, most messages should be handled via 'common' case.
-    tl(exmpp_xml:parse_document_fragment("<r>" ++ StrValue, [{root_depth, 1}])).
+    tl(exmpp_xml:parse_document_fragment(?XML_PARSE_PREFIX ++ StrValue, [{root_depth, 1}])).
