@@ -34,7 +34,7 @@
 %% Our hooks
 -export([collection_from_xml/3, collection_to_xml/2,
          message_from_xml/3, message_to_xml/3,
-         external_message_from_xml/2,
+         external_message_from_xml/3,
          thread_from_external_message/1,
          global_prefs_from_xml/2, global_prefs_to_xml/3,
          jid_prefs_from_xml/2, jid_prefs_to_xml/1,
@@ -214,14 +214,14 @@ message_from_xml(#xmlel{name = Name, children = Children} = XM, Start, TimeAccur
                         mod_archive2_utils:datetime_to_microseconds(Start) +
                         1000000 * list_to_integer(Secs))
             end,
-        body = get_body_from_children(Children),
+        body = get_body_from_children(Children, []),
         name = exmpp_xml:get_attribute_as_list(XM, <<"name">>, undefined),
         jid = exmpp_xml:get_attribute_as_list(XM, <<"jid">>, undefined)}.
 
 %%--------------------------------------------------------------------
 %% External messages conversion from XML.
 %%--------------------------------------------------------------------
-external_message_from_xml(#xmlel{name = message} = M, FullMsg) ->
+external_message_from_xml(#xmlel{name = message} = M, FullMsg, Filters) ->
     Type = list_to_atom(exmpp_xml:get_attribute_as_list(M, <<"type">>, [])),
     Nick =
         case Type of
@@ -238,7 +238,7 @@ external_message_from_xml(#xmlel{name = message} = M, FullMsg) ->
                true ->
                 exmpp_xml:get_elements(M, body)
             end,
-        Body = get_body_from_children(Children),
+        Body = get_body_from_children(Children, Filters),
     #external_message{
         type = Type,
         thread = get_cdata(exmpp_xml:get_element(M, thread)),
@@ -247,7 +247,7 @@ external_message_from_xml(#xmlel{name = message} = M, FullMsg) ->
         % Currently I see no way to get it easily :-(
         jid = undefined,
         body = Body};
-external_message_from_xml(_, _) ->
+external_message_from_xml(_, _, _) ->
     undefined.
 
 get_cdata(undefined) ->
@@ -467,21 +467,40 @@ datetime_from_xml(undefined, _) -> undefined;
 datetime_from_xml(TimeStr, Accuracy) ->
     mod_archive2_utils:parse_datetime(TimeStr, Accuracy).
 
-get_body_from_children(Children) ->
+get_body_from_children(Children, Filters) ->
     NormChildren = exmpp_xml:normalize_cdata_in_list(Children),
     case NormChildren of
-        % Directly embedded text, i.e. for <note> element.
         [#xmlcdata{}] ->
+            % Directly embedded text, i.e. for <note> element.
             NormChildren;
         _ ->
             NoCdataChildren = exmpp_xml:remove_cdata_from_list(NormChildren),
-            case NoCdataChildren of
-                % Common case of single <body> element:
-                % extract & store underlying cdata.
+            PrunedChildren = filter_message_children(NoCdataChildren, Filters),
+            case PrunedChildren of
                 [#xmlel{name = body, children = Text}] ->
+                    % Common case of single <body> element:
+                    % extract & store underlying cdata.
                     exmpp_xml:normalize_cdata_in_list(Text);
                 _ ->
-                % Everything else is stored "as is".
-                    NoCdataChildren
+                    % Everything else is stored "as is",
+                    % subject to optional prunning.
+                    PrunedChildren
             end
     end.
+
+filter_message_children(Children, Filters) ->
+    lists:foldl(
+        fun(Filter, ChildrenIn) ->
+            lists:filter(
+                fun(#xmlel{name = Name, ns = NS}) ->
+                    case Filter of
+                        {name, ExclName} ->
+                            Name =/= ExclName;
+                        {ns, ExclNS} ->
+                            NS =/= ExclNS
+                    end
+                end,
+                ChildrenIn)
+        end,
+        Children,
+        Filters).

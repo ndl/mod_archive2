@@ -351,6 +351,7 @@ mod_archive2_xml_test_() ->
         ?test_gen1(test_external_message3_from_xml),
         ?test_gen1(test_external_message4_from_xml_body),
         ?test_gen1(test_external_message4_from_xml_all),
+        ?test_gen1(test_external_message4_from_xml_filtered),
         ?test_gen1(test_global_prefs1_from_xml),
         ?test_gen1(test_global_prefs1_to_xml),
         ?test_gen1(test_global_prefs2_to_xml),
@@ -469,23 +470,28 @@ test_message4_from_xml(_) ->
 test_external_message1_from_xml(_) ->
     {external_message,chat,undefined,"Test",undefined,undefined,
      [{xmlcdata, <<"This is test message.">>}]} =
-    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE1_XML, false).
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE1_XML, false, []).
 
 test_external_message2_from_xml(_) ->
     {external_message,groupchat,undefined,undefined,"thirdwitch",undefined,
      [{xmlcdata, <<"Harpier cries: 'tis time, 'tis time.">>}]} =
-    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML, false).
+    mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE2_XML, false, []).
 
 test_external_message3_from_xml(_) ->
-    undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML, false).
+    undefined = mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE3_XML, false, []).
 
 test_external_message4_from_xml_body(_) ->
     ?EXTERNAL_MESSAGE4_BODY =
-        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, false).
+        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, false, []).
 
 test_external_message4_from_xml_all(_) ->
     ?EXTERNAL_MESSAGE4_ALL =
-        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, true).
+        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, true, []).
+
+test_external_message4_from_xml_filtered(_) ->
+    % We request full message, but due to filters everything but 'body' should be stripped.
+    ?EXTERNAL_MESSAGE4_BODY =
+        mod_archive2_xml:external_message_from_xml(?EXTERNAL_MESSAGE4_XML, true, [{name, html}]).
 
 test_global_prefs1_from_xml(_) ->
     [PrefsXML] =

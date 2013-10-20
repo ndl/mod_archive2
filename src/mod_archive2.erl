@@ -90,6 +90,7 @@
                 should_cache_prefs,
                 only_in_roster,
                 time_accuracy,
+                message_filters,
                 sessions,
                 sessions_expiration_timer,
                 collections_expiration_timer,
@@ -114,6 +115,7 @@
 -define(DEFAULT_MAX_EXPIRE, infinity).
 -define(DEFAULT_FORCE_UTC, false).
 -define(DEFAULT_TIME_ACCURACY, milliseconds).
+-define(DEFAULT_MESSAGE_FILTERS, [{ns, 'http://jabber.org/protocol/chatstates'}, {name, thread}]).
 
 %%====================================================================
 %% API
@@ -197,6 +199,8 @@ init([Host, Opts]) ->
     end,
     TimeAccuracy =
         proplists:get_value(time_accuracy, Opts, ?DEFAULT_TIME_ACCURACY),
+    MessageFilters =
+        proplists:get_value(message_filters, Opts, ?DEFAULT_MESSAGE_FILTERS),
     % Add all necessary hooks
     XmppServer = proplists:get_value(xmpp_server, Opts, ?DEFAULT_XMPP_SERVER),
     case XmppServer of
@@ -295,6 +299,7 @@ init([Host, Opts]) ->
                 should_cache_prefs = PrefsCacheExpirationTimer =/= 0,
                 only_in_roster = OnlyInRoster,
                 time_accuracy = TimeAccuracy,
+                message_filters = MessageFilters,
                 sessions = dict:new(),
                 sessions_expiration_timer = SessionsExpirationTimer,
                 collections_expiration_timer = CollectionsExpirationTimer,
@@ -534,7 +539,8 @@ handle_cast({add_message, {_Direction, From, With, Packet} = Args}, State) ->
                     State#state.options,
                     ?DEFAULT_SESSION_DURATION),
             NewSessions =
-                mod_archive2_auto:add_message(Args, TimeOut, State#state.time_accuracy, AutoSave, Sessions),
+                mod_archive2_auto:add_message(Args, TimeOut, State#state.time_accuracy, AutoSave,
+                    State#state.message_filters, Sessions),
             {noreply, State#state{sessions = NewSessions,
                 auto_states = NewAutoStates}}
     end;

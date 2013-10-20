@@ -31,7 +31,7 @@
 -module(mod_archive2_auto).
 -author('xmpp@endl.ch').
 
--export([expire_sessions/2, filter_sessions/2, add_message/5]).
+-export([expire_sessions/2, filter_sessions/2, add_message/6]).
 
 -include("mod_archive2.hrl").
 
@@ -67,8 +67,8 @@ expire_sessions(Sessions, TimeOut) ->
         Sessions).
 
 add_message({_Direction, _From, _With, Packet} = Args,
-            TimeOut, TimeAccuracy, AutoSave, Sessions) ->
-    case mod_archive2_xml:external_message_from_xml(Packet, AutoSave =:= message) of
+            TimeOut, TimeAccuracy, AutoSave, Filters, Sessions) ->
+    case mod_archive2_xml:external_message_from_xml(Packet, AutoSave =:= message, Filters) of
         #external_message{} = EM ->
             case exmpp_xml:get_element(Packet, body) of
                 undefined ->
