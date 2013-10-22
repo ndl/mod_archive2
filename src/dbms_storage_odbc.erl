@@ -696,7 +696,7 @@ encode(XmlChildren, xmlchildren, TableInfo) ->
         %% Optimize common case - single cdata node.
         case XmlChildren of
             [#xmlcdata{}] ->
-                exmpp_xml:get_cdata_from_list_as_list(XmlChildren);
+                "T:" ++ exmpp_xml:get_cdata_from_list_as_list(XmlChildren);
             _ ->
                 lists:foldl(
                     fun(#xmlel{ns = NS} = XmlEl, OutXml) ->
@@ -708,7 +708,7 @@ encode(XmlChildren, xmlchildren, TableInfo) ->
                                 end},
                         OutXml ++ exmpp_xml:node_to_list(XmlEl2, [?NS_ARCHIVING, []], [])
                     end,
-                    "",
+                    "X:",
                     XmlChildren)
         end,
     encode(Text, string, TableInfo);
@@ -772,12 +772,16 @@ decode(Value, xml, TableInfo) ->
 decode(Value, xmlchildren, TableInfo) ->
     StrValue = decode(Value, string, TableInfo),
     case StrValue of
-        "<" ++ _ ->
-            parse_xml_fragment(StrValue);
-        <<$<,_/binary>> ->
-            parse_xml_fragment(StrValue);
+        "X:" ++ Payload ->
+            parse_xml_fragment(Payload);
+        <<"X:", Payload/binary>> ->
+            parse_xml_fragment(Payload);
+        "T:" ++ Payload ->
+            [exmpp_xml:cdata(Payload)];
+        <<"T:", Payload/binary>> ->
+            [exmpp_xml:cdata(Payload)];
         _ ->
-            [exmpp_xml:cdata(StrValue)]
+            throw({error, 'internal-server-error'})
     end;
 
 decode(Value, {enum, Enums}, TableInfo) ->

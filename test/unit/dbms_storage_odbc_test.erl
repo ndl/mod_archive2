@@ -235,7 +235,7 @@ test_xmlchildren_decode() ->
     application:start(exmpp),
     TableInfo = get_table_info(archive_collection),
     ?XHTML_BODY =
-        dbms_storage_odbc:decode("<body>Neither, fair saint, if either thee dislike.</body><html xmlns=\"http://jabber.org/protocol/xhtml-im\"><body xmlns=\"http://www.w3.org/1999/xhtml\"><p xmlns=\"\">Neither, fair saint, if either thee dislike.</p></body></html>", xmlchildren, TableInfo).
+        dbms_storage_odbc:decode("X:<body>Neither, fair saint, if either thee dislike.</body><html xmlns=\"http://jabber.org/protocol/xhtml-im\"><body xmlns=\"http://www.w3.org/1999/xhtml\"><p xmlns=\"\">Neither, fair saint, if either thee dislike.</p></body></html>", xmlchildren, TableInfo).
 
 test_datetime_encode() ->
     TableInfo = get_table_info(archive_collection),

@@ -136,11 +136,11 @@ mysql_test_read(Pid) ->
             ejabberd_odbc:start([
                 {},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (null, '2000-12-31 23:59:59.000456', 0, 'Hi!', 'me', null)",
+                 "name, jid) values (null, '2000-12-31 23:59:59.000456', 0, 'T:Hi!', 'me', null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"select * from archive_message where id = 1",
-                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0", "Hi!",
+                 {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0", "T:Hi!",
                   "me", null}]}},
                 {"delete from archive_message where id = 1",
                  {updated, 1}},
@@ -167,8 +167,8 @@ mysql_test_insert1() ->
                 {},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values "
-                 "(null, '2000-12-31 23:59:59.000456', 0, 'Hi!', 'me', null), "
-                 "(null, '1999-11-30 19:01:02.456000', 0, 'Hi there!', 'smb', null)",
+                 "(null, '2000-12-31 23:59:59.000456', 0, 'T:Hi!', 'me', null), "
+                 "(null, '1999-11-30 19:01:02.456000', 0, 'T:Hi there!', 'smb', null)",
                  {updated, 2}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {}])
@@ -189,9 +189,9 @@ mysql_test_select1() ->
                 {},
                 {"select * from archive_message where (direction = 0)",
                  {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
-                                  "Hi!", "me", null},
+                                  "T:Hi!", "me", null},
                                  {2, null, "1999-11-30 19:01:02.456000", "0",
-                                  "Hi there!", "smb", null}]}},
+                                  "T:Hi there!", "smb", null}]}},
                 {}])
         end),
     common_test_select1().
@@ -212,7 +212,7 @@ mysql_test_select2() ->
                 {"select * from archive_message where (direction = 0) order by "
                  "name asc offset 1 limit 2",
                  {selected, [], [{1, null, "1999-11-30 19:01:02.456000", "0",
-                                  "Hi there!", "smb", null}]}},
+                                  "T:Hi there!", "smb", null}]}},
                 {}])
         end),
     common_test_select2().
@@ -234,7 +234,7 @@ mysql_test_select3() ->
                 {"select * from archive_message where (direction = 0) order by "
                  "name desc offset 1 limit 2",
                  {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
-                                  "Hi!", "me", null}]}},
+                                  "T:Hi!", "me", null}]}},
                 {}])
         end),
     common_test_select3().
@@ -316,7 +316,7 @@ mysql_test_select7() ->
                 {},
                 {"select min(body) from archive_message where (direction = 0) "
                  "order by name desc limit 1",
-                 {selected, [], [{"Hi there!"}]}},
+                 {selected, [], [{"T:Hi there!"}]}},
                 {}])
         end),
     common_test_select7().
@@ -360,7 +360,7 @@ mysql_test_select9() ->
                 {},
                 {"select body, name from archive_message order by "
                  "name asc",
-                 {selected, [], [{"Hi!", "me"}, {"Hi there!", "smb"}]}},
+                 {selected, [], [{"T:Hi!", "me"}, {"T:Hi there!", "smb"}]}},
                 {}])
         end),
     common_test_select9().
@@ -384,7 +384,7 @@ mysql_test_select10() ->
                 {},
                 {"select body, name from archive_message order by "
                  "name desc",
-                 {selected, [], [{"Hi there!", "smb"}, {"Hi!", "me"}]}},
+                 {selected, [], [{"T:Hi there!", "smb"}, {"T:Hi!", "me"}]}},
                 {}])
         end),
     common_test_select10().
@@ -407,7 +407,7 @@ mysql_test_select11() ->
             ejabberd_odbc:start([
                 {},
                 {"select body, name from archive_message where (name = 'me')",
-                 {selected, [], [{"Hi!", "me"}]}},
+                 {selected, [], [{"T:Hi!", "me"}]}},
                 {}])
         end),
     common_test_select11().
@@ -450,7 +450,7 @@ mysql_test_update1() ->
                 {},
                 {"select * from archive_message where (name = 'me')",
                  {selected, [], [{1, null, "2000-12-31 23:59:59.000456", "0",
-                                  "Hi!", "me", null}]}},
+                                  "T:Hi!", "me", null}]}},
                 {"update archive_message set name = 'other' where id = 1",
                  {updated, 1}},
                 {}])

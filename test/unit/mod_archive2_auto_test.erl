@@ -262,7 +262,7 @@ mysql_test_auto_new_and_update() ->
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'Art thou not "
+                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'T:Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {},
@@ -273,7 +273,7 @@ mysql_test_auto_new_and_update() ->
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (1, '2010-01-02 03:04:06.123456', 0, "
-                 "'That\\'s my line, idiot!!!', null, null)",
+                 "'T:That\\'s my line, idiot!!!', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {},
@@ -284,7 +284,7 @@ mysql_test_auto_new_and_update() ->
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (1, '2010-01-02 03:04:07.123456', 1, "
-                 "'Sorry, that\\'s due to that extra beer ...', null, null)",
+                 "'T:Sorry, that\\'s due to that extra beer ...', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {},
@@ -301,7 +301,7 @@ mysql_test_auto_new_and_update() ->
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (2, '2010-01-02 04:04:07.123456', 1, 'Art thou not "
+                 "name, jid) values (2, '2010-01-02 04:04:07.123456', 1, 'T:Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{4}]}},
                 {},
@@ -319,7 +319,7 @@ mysql_test_auto_new_and_update() ->
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (3, '2010-01-02 05:04:07.123456', 0, "
-                 "'Harpier cries: \\'tis time, \\'tis time.', 'thirdwitch', null)",
+                 "'T:Harpier cries: \\'tis time, \\'tis time.', 'thirdwitch', null)",
                  {selected, [], []}},
                 {"select LAST_INSERT_ID()", {selected, [], [{5}]}},
                 {}])
@@ -441,7 +441,7 @@ mysql_test_auto_thread_new_and_update() ->
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
-                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'Art thou not "
+                 "name, jid) values (1, '2010-01-02 03:04:05.123456', 1, 'T:Art thou not "
                  "Romeo, and a Montague?', null, null)", {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{1}]}},
                 {},
@@ -452,7 +452,7 @@ mysql_test_auto_thread_new_and_update() ->
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (1, '2010-01-02 03:04:06.123456', 0, "
-                 "'That\\'s my line, idiot!!!', null, null)",
+                 "'T:That\\'s my line, idiot!!!', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{2}]}},
                 {},
@@ -463,7 +463,7 @@ mysql_test_auto_thread_new_and_update() ->
                  {updated, 1}},
                 {"insert into archive_message (coll_id, utc, direction, body, "
                  "name, jid) values (1, '2010-01-02 03:04:07.123456', 1, "
-                 "'Sorry, that\\'s due to that extra beer ...', null, null)",
+                 "'T:Sorry, that\\'s due to that extra beer ...', null, null)",
                  {updated, 1}},
                 {"select LAST_INSERT_ID()", {selected, [], [{3}]}},
                 {}])
